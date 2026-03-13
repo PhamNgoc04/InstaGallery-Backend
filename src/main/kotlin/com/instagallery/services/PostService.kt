@@ -1,0 +1,53 @@
+package com.instagallery.services
+
+import com.instagallery.models.common.PaginatedFeedResponse
+import com.instagallery.models.common.PostDto
+import com.instagallery.models.request.CreatePostRequest
+import com.instagallery.plugins.AuthException
+import com.instagallery.plugins.ValidationException
+import com.instagallery.repositories.PostRepository
+import com.instagallery.repositories.UserRepository
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
+
+class PostService : KoinComponent {
+    private val postRepository: PostRepository by inject()
+    private val userRepository: UserRepository by inject()
+
+    suspend fun createPost(userId: Long, request: CreatePostRequest): PostDto {
+        // Validation 
+        if (request.mediaIds.isEmpty()) {
+            throw ValidationException("EMPTY_MEDIA", "A post must have at least one media item.")
+        }
+
+        // Action
+        return postRepository.createPost(userId, request) 
+            ?: throw Exception("Failed to create post")
+    }
+
+    suspend fun getFeed(userId: Long, page: Int, limit: Int): PaginatedFeedResponse {
+        val verifiedPage = if (page < 1) 1 else page
+        val verifiedLimit = if (limit < 1) 10 else if (limit > 50) 50 else limit
+
+        return postRepository.getFeedPosts(userId, verifiedPage, verifiedLimit)
+    }
+
+    suspend fun deletePost(userId: Long, postId: Long) {
+        val success = postRepository.logicSoftDeletePost(postId, userId)
+        if (!success) {
+            throw AuthException("FORBIDDEN_ACTION", "Post not found or you don't have permission to delete it.")
+        }
+    }
+
+    suspend fun getExplorePosts(page: Int, limit: Int, tag: String?): PaginatedFeedResponse {
+        val verifiedPage = if (page < 1) 1 else page
+        val verifiedLimit = if (limit < 1) 20 else if (limit > 50) 50 else limit
+
+        return postRepository.getExplorePosts(verifiedPage, verifiedLimit, tag)
+    }
+
+    suspend fun getTrendingTags(limit: Int): List<com.instagallery.models.common.TrendingTagDto> {
+        val verifiedLimit = if (limit < 1) 10 else if (limit > 50) 50 else limit
+        return postRepository.getTrendingTags(verifiedLimit)
+    }
+}

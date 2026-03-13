@@ -1,0 +1,28 @@
+{
+  "permission_rules": {
+    "bash": {
+      "default": "ask",
+      "allow": [
+        "gradlew test",
+        "gradlew build",
+        "gradlew run",
+        "docker-compose logs",
+        "git status"
+      ],
+      "deny": [
+        {
+          "pattern": "^rm -rf src/main/",
+          "reason": "Forbidden: Deleting core source code directory."
+        },
+        {
+          "pattern": "mysql .* drop database",
+          "reason": "Forbidden: Dropping database from CLI is not allowed. Use graphical client like DBeaver."
+        },
+        {
+          "pattern": "mysql .* delete from",
+          "reason": "Forbidden: Mass deletion from CLI is prevented."
+        }
+      ]
+    }
+  }
+}

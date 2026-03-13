@@ -1,0 +1,125 @@
+package com.instagallery.services
+
+import com.instagallery.models.common.CommentDto
+import com.instagallery.models.common.PaginatedCommentsResponse
+import com.instagallery.models.common.ToggleLikeResponse
+import com.instagallery.models.common.ToggleSaveResponse
+import com.instagallery.models.request.CreateCommentRequest
+import com.instagallery.plugins.AuthException
+import com.instagallery.plugins.ValidationException
+import com.instagallery.repositories.InteractionRepository
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
+
+class InteractionService : KoinComponent {
+    private val interactionRepo: InteractionRepository by inject()
+
+    suspend fun toggleLike(userId: Long, postId: Long): ToggleLikeResponse {
+        val postExists = interactionRepo.checkPostExists(postId)
+        if (!postExists) throw AuthException("POST_NOT_FOUND", "Bài viết không tồn tại hoặc đã bị xóa.")
+
+        val (isLiked, total) = interactionRepo.toggleLike(userId, postId)
+        return ToggleLikeResponse(isLiked, total)
+    }
+
+    suspend fun toggleSave(userId: Long, postId: Long): ToggleSaveResponse {
+        val postExists = interactionRepo.checkPostExists(postId)
+        if (!postExists) throw AuthException("POST_NOT_FOUND", "Bài viết không tồn tại hoặc đã bị xóa.")
+
+        val isSaved = interactionRepo.toggleSave(userId, postId)
+        return ToggleSaveResponse(isSaved)
+    }
+
+    suspend fun createComment(userId: Long, postId: Long, request: CreateCommentRequest): CommentDto {
+        val contentClean = request.content.trim()
+        if (contentClean.isBlank()) {
+            throw ValidationException("EMPTY_CONTENT", "Nội dung bình luận không được để trống.")
+        }
+
+        val postExists = interactionRepo.checkPostExists(postId)
+        if (!postExists) throw AuthException("POST_NOT_FOUND", "Bài viết không tồn tại hoặc đã bị xóa.")
+
+        if (request.parentId != null) {
+            val parentExists = interactionRepo.checkCommentExists(request.parentId)
+            if (!parentExists) throw AuthException("PARENT_COMMENT_NOT_FOUND", "Bình luận cha không tồn tại hoặc đã bị xóa.")
+        }
+
+        return interactionRepo.createComment(userId, postId, contentClean, request.parentId)
+    }
+
+    suspend fun getComments(postId: Long, page: Int, limit: Int): PaginatedCommentsResponse {
+        val postExists = interactionRepo.checkPostExists(postId)
+        if (!postExists) throw AuthException("POST_NOT_FOUND", "Bài viết không tồn tại.")
+
+        val verifiedPage = if (page < 1) 1 else page
+        val verifiedLimit = if (limit < 1) 20 else if (limit > 50) 50 else limit
+
+        return interactionRepo.getComments(postId, verifiedPage, verifiedLimit)
+    }
+
+    suspend fun updateComment(userId: Long, commentId: Long, request: com.instagallery.models.request.UpdateCommentRequest): CommentDto {
+        val contentClean = request.content.trim()
+        if (contentClean.isBlank()) {
+            throw ValidationException("EMPTY_CONTENT", "Nội dung bình luận không được để trống.")
+        }
+
+        return interactionRepo.updateComment(userId, commentId, contentClean)
+            ?: throw AuthException("FORBIDDEN_ACTION", "Bình luận không tồn tại hoặc bạn không có quyền sửa.")
+    }
+
+    suspend fun deleteComment(userId: Long, commentId: Long): Boolean {
+        val success = interactionRepo.deleteComment(userId, commentId)
+        if (!success) {
+            throw AuthException("FORBIDDEN_ACTION", "Bình luận không tồn tại hoặc bạn không có quyền xóa.")
+        }
+        return true
+    }
+
+    suspend fun toggleCommentLike(userId: Long, commentId: Long): Boolean {
+        val commentExists = interactionRepo.checkCommentExists(commentId)
+        if (!commentExists) throw AuthException("COMMENT_NOT_FOUND", "Bình luận không tồn tại hoặc đã bị xóa.")
+
+        return interactionRepo.toggleCommentLike(userId, commentId)
+    }
+
+    suspend fun toggleFollow(followerId: Long, followingId: Long): Boolean {
+        if (followerId == followingId) {
+            throw ValidationException("SELF_FOLLOW", "Bạn không thể tự theo dõi chính mình.")
+        }
+        
+        // Ensure followingId exists
+        val userRepository: com.instagallery.repositories.UserRepository by inject()
+        val userExists = userRepository.getUserById(followingId) != null
+        if (!userExists) {
+            throw AuthException("USER_NOT_FOUND", "Người dùng không tồn tại.")
+        }
+
+        return interactionRepo.toggleFollow(followerId, followingId)
+    }
+
+    suspend fun getFollowers(userId: Long, page: Int, limit: Int): com.instagallery.models.common.PaginatedFollowsResponse {
+        val userRepository: com.instagallery.repositories.UserRepository by inject()
+        val userExists = userRepository.getUserById(userId) != null
+        if (!userExists) {
+            throw AuthException("USER_NOT_FOUND", "Người dùng không tồn tại.")
+        }
+
+        val verifiedPage = if (page < 1) 1 else page
+        val verifiedLimit = if (limit < 1) 20 else if (limit > 50) 50 else limit
+
+        return interactionRepo.getFollowers(userId, verifiedPage, verifiedLimit)
+    }
+
+    suspend fun getFollowing(userId: Long, page: Int, limit: Int): com.instagallery.models.common.PaginatedFollowsResponse {
+        val userRepository: com.instagallery.repositories.UserRepository by inject()
+        val userExists = userRepository.getUserById(userId) != null
+        if (!userExists) {
+            throw AuthException("USER_NOT_FOUND", "Người dùng không tồn tại.")
+        }
+
+        val verifiedPage = if (page < 1) 1 else page
+        val verifiedLimit = if (limit < 1) 20 else if (limit > 50) 50 else limit
+
+        return interactionRepo.getFollowing(userId, verifiedPage, verifiedLimit)
+    }
+}
