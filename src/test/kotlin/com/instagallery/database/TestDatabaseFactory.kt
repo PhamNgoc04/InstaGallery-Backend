@@ -33,7 +33,7 @@ object TestDatabaseFactory {
                 PostsTable, FiltersTable, PostMediaTable, MediaTagsTable, PostMediaTagsTable,
                 FollowersTable, LikesTable, CommentsTable, CommentLikesTable, SavedPostsTable,
                 BookingsTable, RatingsTable, ConversationsTable, ConversationMembersTable, MessagesTable,
-                NotificationsTable, ActivityLogsTable, ReportsTable, SearchHistoriesTable
+                NotificationsTable, ActivityLogsTable, ReportsTable, SearchHistoriesTable, PasswordResetTokensTable
             )
         }
     }

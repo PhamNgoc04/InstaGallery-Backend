@@ -22,8 +22,9 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.koin.core.context.stopKoin
 import com.instagallery.services.AuthService
-import com.instagallery.models.response.AuthResponse
+import com.instagallery.models.response.LoginResponse
 import com.instagallery.models.common.UserDto
+import com.instagallery.models.common.UserType
 
 class AuthRoutesTest {
 
@@ -51,10 +52,13 @@ class AuthRoutesTest {
             configureSerialization()
             // In a real environment we'd provide the mock service logic directly
             // Mocks
-            coEvery { mockAuthService.login(any()) } returns AuthResponse(
+            coEvery { mockAuthService.login(any()) } returns LoginResponse(
+                userId = 1L,
+                email = "u1@test.com",
+                username = "user1",
+                role = com.instagallery.models.common.Role.USER,
                 token = "access_token_123",
-                refreshToken = "refresh_token_123",
-                user = UserDto(1L, "user1", "u1@test.com", "hash", "User 1", null, com.instagallery.models.common.Role.USER, com.instagallery.models.common.UserType.USER, true, false)
+                refreshToken = "refresh_token_123"
             )
 
             // Because Koin is integrated, we'd normally Mockk Koin inside configureDependencyInjection.
@@ -66,7 +70,7 @@ class AuthRoutesTest {
         // For MVP illustration of ktor-server-test-host:
         client.post("/api/v1/auth/login") {
             contentType(ContentType.Application.Json)
-            setBody(Json.encodeToString(LoginRequest("u1@test.com", "passwd", null)))
+            setBody(Json.encodeToString(LoginRequest("u1@test.com", "passwd")))
         }.apply {
             // Note: If Koin throws due to real `DependencyInjection` module pulling non-mocked DB setup,
             // the full testApplication needs DI override. This test assumes DI is mocked or checks the structure.

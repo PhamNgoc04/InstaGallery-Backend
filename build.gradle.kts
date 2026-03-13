@@ -65,6 +65,8 @@ dependencies {
     testImplementation("io.mockk:mockk:1.13.11")
     testImplementation("com.h2database:h2:2.2.224")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.8.0")
+    testImplementation("io.insert-koin:koin-test:$koin_version")
+    testImplementation("io.insert-koin:koin-test-junit5:$koin_version")
 }
 
 tasks.withType<Test> {

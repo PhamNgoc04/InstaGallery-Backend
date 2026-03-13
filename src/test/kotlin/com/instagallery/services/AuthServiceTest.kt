@@ -4,7 +4,8 @@ import com.instagallery.models.common.UserDto
 import com.instagallery.models.common.UserType
 import com.instagallery.models.request.LoginRequest
 import com.instagallery.models.request.RegisterRequest
-import com.instagallery.models.response.AuthResponse
+import com.instagallery.models.response.LoginResponse
+import com.instagallery.models.response.RegisterResponse
 import com.instagallery.plugins.AuthException
 import com.instagallery.plugins.ValidationException
 import com.instagallery.repositories.SessionRepository
@@ -29,7 +30,7 @@ class AuthServiceTest : KoinTest {
     private lateinit var authService: AuthService
     private lateinit var userRepository: UserRepository
     private lateinit var sessionRepository: SessionRepository
-    private lateinit var passwordHasher: PasswordHasher
+    private lateinit var passwordResetRepository: com.instagallery.repositories.PasswordResetRepository
     private lateinit var jwtManager: JwtManager
 
     @BeforeEach
@@ -37,15 +38,16 @@ class AuthServiceTest : KoinTest {
         stopKoin()
         userRepository = mockk()
         sessionRepository = mockk()
-        passwordHasher = mockk()
+        passwordResetRepository = mockk()
         jwtManager = mockk()
+        io.mockk.mockkObject(PasswordHasher)
 
         startKoin {
             modules(
                 module {
                     single { userRepository }
                     single { sessionRepository }
-                    single { passwordHasher }
+                    single { passwordResetRepository }
                     single { jwtManager }
                 }
             )
@@ -53,89 +55,97 @@ class AuthServiceTest : KoinTest {
         authService = AuthService()
     }
 
+    @org.junit.jupiter.api.AfterEach
+    fun teardown() {
+        io.mockk.unmockkObject(PasswordHasher)
+        stopKoin()
+    }
+
     @Test
-    fun `register should throw ValidationException when username is empty`() = runTest {
-        val req = RegisterRequest("", "test@test.com", "password", "Test Name", com.instagallery.models.common.UserType.USER)
+    fun `register should throw ValidationException when password is too weak`() = runTest {
+        val req = RegisterRequest("test@test.com", "testuser", "short", "Test Name")
         val exception = assertThrows<ValidationException> {
             authService.register(req)
         }
-        assertEquals("Tên đăng nhập không được để trống.", exception.message)
+        assertEquals("Password must be at least 8 characters long.", exception.message)
     }
 
     @Test
     fun `register should throw ValidationException when email is invalid`() = runTest {
-        val req = RegisterRequest("testuser", "invalidemail", "password", "Test Name", com.instagallery.models.common.UserType.USER)
+        val req = RegisterRequest("invalidemail", "testuser", "password", "Test Name")
         val exception = assertThrows<ValidationException> {
             authService.register(req)
         }
-        assertEquals("Email không hợp lệ.", exception.message)
+        assertEquals("Email format is incorrect.", exception.message)
     }
 
     @Test
-    fun `register should throw AuthException when email already exists`() = runTest {
-        val req = RegisterRequest("testuser", "test@test.com", "password", "Test Name", com.instagallery.models.common.UserType.USER)
+    fun `register should throw ValidationException when email already exists`() = runTest {
+        val req = RegisterRequest("test@test.com", "testuser", "password", "Test Name")
         coEvery { userRepository.getUserByEmail(req.email) } returns mockk()
 
-        val exception = assertThrows<AuthException> {
+        val exception = assertThrows<ValidationException> {
             authService.register(req)
         }
-        assertEquals("Email đã tồn tại.", exception.message)
+        assertEquals("This email is already registered.", exception.message)
     }
 
     @Test
     fun `register should successfully create user`() = runTest {
-        val req = RegisterRequest("testuser", "test@test.com", "password", "test user", UserType.USER)
+        val req = RegisterRequest("test@test.com", "testuser", "password", "test user")
         
         coEvery { userRepository.getUserByEmail(req.email) } returns null
         coEvery { userRepository.getUserByUsername(req.username) } returns null
-        every { passwordHasher.hashPassword(req.password) } returns "hashedPass"
+        every { PasswordHasher.hashPassword(req.passwordHash) } returns "hashedPass"
         
         val mockUserDto = UserDto(
             id = 1L,
             username = "testuser",
             email = "test@test.com",
+            passwordHash = "hashedPass",
             fullName = "test user",
+            profilePictureUrl = null,
             role = com.instagallery.models.common.Role.USER,
-            userType = UserType.USER,
+            userType = com.instagallery.models.common.UserType.ENTHUSIAST,
             isActive = true,
-            isVerified = false,
-            passwordHash = "hashedPass"
+            isVerified = false
         )
         coEvery { userRepository.createUser(req, "hashedPass") } returns mockUserDto
+        every { jwtManager.generateToken(mockUserDto) } returns "mock-access-token"
+        coEvery { sessionRepository.createSession(1L, null, null, any(), any()) } returns 1L
 
-        val userId = authService.register(req)
-        assertEquals(1L, userId)
+        val response = authService.register(req)
+        assertEquals(1L, response.userId)
+        assertEquals("mock-access-token", response.token)
     }
 
     @Test
     fun `login should throw AuthException when user not found`() = runTest {
-        val req = LoginRequest("nonexistent@test.com", "password", null)
+        val req = LoginRequest("nonexistent@test.com", "password")
         coEvery { userRepository.getUserByEmail(req.email) } returns null
 
         val exception = assertThrows<AuthException> {
             authService.login(req)
         }
-        assertEquals("Tài khoản hoặc mật khẩu không đúng.", exception.message)
+        assertEquals("Account with this email does not exist.", exception.message)
     }
 
     @Test
     fun `login should successfully return token`() = runTest {
-        val req = LoginRequest("test@test.com", "password", null)
-        val mockUser = UserDto(1L, "testuser", "test@test.com", "hashedPassword", "Test User", null, com.instagallery.models.common.Role.USER, UserType.USER, true, false)
+        val req = LoginRequest("test@test.com", "password")
+        val mockUser = UserDto(1L, "testuser", "test@test.com", "hashedPass", "Test User", null, com.instagallery.models.common.Role.USER, com.instagallery.models.common.UserType.ENTHUSIAST, true, false)
         
         coEvery { userRepository.getUserByEmail(req.email) } returns mockUser
         
-        every { passwordHasher.checkPassword(req.password, "hashedPassword") } returns true
+        every { PasswordHasher.verifyPassword(req.passwordHash, "hashedPass") } returns true
         
-        every { jwtManager.generateAccessToken(1L, "testuser", "USER") } returns "mock-access-token"
-        every { jwtManager.generateRefreshToken(1L) } returns "mock-refresh-token"
-        coEvery { sessionRepository.createSession(any()) } returns 1L
+        every { jwtManager.generateToken(mockUser) } returns "mock-access-token"
+        coEvery { sessionRepository.createSession(1L, null, null, any(), any()) } returns 1L
 
         val response = authService.login(req)
         
         assertNotNull(response)
         assertEquals("mock-access-token", response.token)
-        assertEquals("mock-refresh-token", response.refreshToken)
-        assertEquals(mockUser.username, response.user.username)
+        assertEquals(mockUser.username, response.username)
     }
 }

@@ -2,7 +2,8 @@ package com.instagallery.services
 
 import com.instagallery.models.common.PostDto
 import com.instagallery.models.common.PostVisibility
-import com.instagallery.models.common.PaginatedPostsResponse
+import com.instagallery.models.common.FeedPostDto
+import com.instagallery.models.common.PaginatedFeedResponse
 import com.instagallery.models.common.PaginationMeta
 import com.instagallery.models.request.CreatePostRequest
 import com.instagallery.plugins.ValidationException
@@ -42,54 +43,52 @@ class PostServiceTest : KoinTest {
 
     @Test
     fun `createPost should throw ValidationException when content is empty`() = runTest {
-        val req = CreatePostRequest("", PostVisibility.PUBLIC, null, null, null)
+        val req = CreatePostRequest("", "Thành phố Hồ Chí Minh", PostVisibility.PUBLIC, emptyList())
         val exception = assertThrows<ValidationException> {
             postService.createPost(1L, req)
         }
-        assertEquals("Nội dung bài viết không được để trống.", exception.message)
+        assertEquals("A post must have at least one media item.", exception.message)
     }
 
     @Test
     fun `createPost should call repository and return post id`() = runTest {
-        val req = CreatePostRequest("Hello world", PostVisibility.PUBLIC, null, null, null)
-        coEvery { postRepository.createPost(1L, req) } returns 100L
+        val req = CreatePostRequest("Hello world", "Thành phố Hồ Chí Minh", PostVisibility.PUBLIC, listOf(1L))
+        val returnedMockPost = PostDto(100L, 1L, "Hello world", "Thành phố Hồ Chí Minh", PostVisibility.PUBLIC, 0, 0, "2024-01-01T00:00:00Z", emptyList())
+        coEvery { postRepository.createPost(1L, req) } returns returnedMockPost
 
-        val postId = postService.createPost(1L, req)
-        assertEquals(100L, postId)
+        val postResponse = postService.createPost(1L, req)
+        assertEquals(100L, postResponse.postId)
     }
 
     @Test
     fun `getFeed should return mapped PageResponse`() = runTest {
         val mockData = listOf(
-            PostDto(1L, 1L, "testuser", "profile.jpg", "Hello world", "PUBLIC", 0, 0, 0, null, null, emptyList(), null, emptyList(), null, "2024-01-01")
+            FeedPostDto(1L, 1L, "testuser", "profile.jpg", "Hello world", "Thành phố Hồ Chí Minh", 0, 0, "2024-01-01T00:00:00Z", emptyList())
         )
-        val mockResponse = PaginatedPostsResponse(mockData, PaginationMeta(1, 1, false))
+        val mockResponse = PaginatedFeedResponse(mockData, PaginationMeta(1, 1, false))
         
         coEvery { postRepository.getFeedPosts(userId = 1L, page = 1, limit = 20) } returns mockResponse
 
         val response = postService.getFeed(1L, 1, 20)
         
-        assertEquals(1, response.reports.size)
-        assertEquals("Hello world", response.reports[0].content)
+        assertEquals(1, response.posts.size)
+        assertEquals("Hello world", response.posts[0].caption)
         assertEquals(1, response.meta.currentPage)
     }
 
     @Test
     fun `deletePost should throw AuthException when post mapped to another user`() = runTest {
-        val mockPost = PostDto(100L, 2L, "another_user", "profile.jpg", "Hello rules", "PUBLIC", 0, 0, 0, null, null, emptyList(), null, emptyList(), null, "2024-01-01")
-        coEvery { postRepository.getPostById(100L) } returns mockPost
+        coEvery { postRepository.logicSoftDeletePost(100L, 1L) } returns false
 
         val exception = assertThrows<AuthException> {
             postService.deletePost(1L, 100L)
         }
-        assertEquals("Bạn không có quyền xóa bài viết này.", exception.message)
+        assertEquals("FORBIDDEN_ACTION", exception.code)
     }
 
     @Test
     fun `deletePost should handle success deletion`() = runTest {
-        val mockPost = PostDto(100L, 1L, "my_user", "profile.jpg", "Hello rules", "PUBLIC", 0, 0, 0, null, null, emptyList(), null, emptyList(), null, "2024-01-01")
-        coEvery { postRepository.getPostById(100L) } returns mockPost
-        coEvery { postRepository.deletePost(1L, 100L) } returns true
+        coEvery { postRepository.logicSoftDeletePost(100L, 1L) } returns true
 
         assertDoesNotThrow {
             // Actually it returns nothing/unit
