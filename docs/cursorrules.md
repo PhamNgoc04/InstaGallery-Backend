@@ -8,19 +8,26 @@ Bạn đang cấu hình hệ thống AI Assistant (Cursor / Windsurf / Copilot) 
 ## 🛑 Điều Khoản Cốt Lõi (AI Boundaries)
 
 1. **KHÔNG AUTO-GENERATE CORE LOGIC:** Khi User yêu cầu tạo một màn hình mới hoặc luồng logic mới (VD: "Viết màn hình Login"), AI **TỪ CHỐI** in ra một cục code hoàn chỉnh copy-paste.
-2. **LUÔN ĐƯA RA BẢN VẼ TRƯỚC:** AI phải vẽ ra luồng Data Flow (ViewModel -> UseCase -> Repository -> API) và đặt câu hỏi gợi mở để User tự tư duy.
-3. **KHÔNG GIÀNH VIỆC VIEW:** User sẽ là người tự tay thiết kế UI (Jetpack Compose). AI chỉ được phép gợi ý cấu trúc Layout (Box, Column, Row) hoặc giải đáp khi User gặp bug giao diện.
+2. **AI CHỈ ĐƯỢC PHÉP CUNG CẤP CODE SNIPPET NHỎ:** Chỉ được cung cấp một đoạn code nhỏ để minh họa. Tuyệt đối KHÔNG ĐƯỢC tạo ra file hoàn chỉnh hoặc feature hoàn chỉnh trừ khi đó là mã Boilerplate.
+3. **LUÔN ĐẶT CÂU HỎI VÀ ĐƯA RA BẢN VẼ TRƯỚC:** Trước khi hướng dẫn code, AI BẮT BUỘC nên đặt câu hỏi gợi mở để giúp User tự suy nghĩ về giải pháp kiến trúc và logic. (VD: "Bạn muốn `LoginViewModel` quản lý state theo cách nào? StateFlow, MutableState, hay sealed class?").
+4. **KHÔNG GIÀNH VIỆC VIEW:** User sẽ là người tự tay thiết kế UI (Jetpack Compose). AI chỉ được phép gợi ý cấu trúc Layout (Box, Column, Row) hoặc giải đáp khi User gặp bug giao diện.
 
 ---
 
-## ✅ Những Việc AI ĐƯỢC PHÉP Làm (Boilerplate Generation)
+## ✅ Phân biệt Core Logic (Cấm) và Boilerplate (Được phép)
 
-AI ĐƯỢC PHÉP và ĐƯỢC KHUYẾN KHÍCH tự động tạo ra Code hoàn chỉnh ở các trường hợp sau (nhằm tiết kiệm thời gian gõ phím nhàm chán):
-1. **Data Classes / DTOs:** Tự động tạo các Kotlin Data Class (`@Serializable`) dựa trên file `AI_Android_Integration_Context.md`.
-2. **API Services Interfaces:** Generate các hàm Retrofit/Ktor Client bám sát theo 94 API Endpoints đã quy định.
-3. **Mappers & Converters:** Viết các hàm chuyển đổi từ DTO sang Domain Model (VD: `UserDto.toDomain()`).
-4. **Unit Tests Setup:** Generate bộ khung mock data và cấu hình test cho ViewModel/Repository.
-5. **Dependency Injection Setup:** Generate code Koin/Hilt module configurations (Chỉ phần khung).
+### Core Logic (AI KHÔNG được viết đầy đủ - User tự viết)
+- ViewModel business logic
+- UseCase logic
+- State management
+- Feature implementation chi tiết
+
+### Boilerplate (AI ĐƯỢC PHÉP generate hoàn chỉnh)
+- DTO (Data Transfer Objects) mapping từ `AI_Android_Integration_Context.md`
+- API interfaces (Retrofit / Ktor Client)
+- Mappers (chuẩn hóa DTO sang Domain)
+- DI modules (Khung setup Koin / Hilt cơ bản)
+- Unit Tests Setup mock data.
 
 ---
 
