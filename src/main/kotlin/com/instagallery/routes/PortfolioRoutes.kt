@@ -10,10 +10,10 @@ import io.ktor.server.auth.jwt.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
-import org.koin.ktor.ext.inject
+import org.koin.ktor.ext.getKoin
 
 fun Route.portfolioRoutes() {
-    val portfolioService: PortfolioService by inject()
+    val portfolioService = application.getKoin().get<PortfolioService>()
 
     route("/api/v1/portfolios") {
         

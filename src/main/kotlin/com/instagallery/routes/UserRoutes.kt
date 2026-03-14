@@ -10,12 +10,12 @@ import io.ktor.server.auth.jwt.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
-import org.koin.ktor.ext.inject
+import org.koin.ktor.ext.getKoin
 
 fun Route.userRoutes() {
-    val userService: UserService by inject()
-    val authService: com.instagallery.services.AuthService by inject()
-    val interactionService: com.instagallery.services.InteractionService by inject()
+    val userService = application.getKoin().get<UserService>()
+    val authService = application.getKoin().get<com.instagallery.services.AuthService>()
+    val interactionService = application.getKoin().get<com.instagallery.services.InteractionService>()
 
     route("/api/v1/users") {
         
@@ -104,6 +104,21 @@ fun Route.userRoutes() {
                 val suggestions = userService.getSuggestedUsers(userId, limit)
 
                 call.respond(HttpStatusCode.OK, ApiResponse.success(data = suggestions))
+            }
+        }
+
+        // --- PUBLIC GET PROFILE ---
+        get("/{id}") {
+            val userIdToFind = call.parameters["id"]?.toLongOrNull()
+                ?: return@get call.respond(HttpStatusCode.BadRequest, ApiResponse.error("INVALID_ID", "ID người dùng không hợp lệ."))
+
+            try {
+                // We reuse getCurrentUser logic which simply fetches the UserDto by ID
+                val userDto = userService.getCurrentUser(userIdToFind)
+                call.respond(HttpStatusCode.OK, ApiResponse.success(data = userDto))
+            } catch (e: Exception) {
+                // If the user doesn't exist, AuthException is thrown by getCurrentUser
+                call.respond(HttpStatusCode.NotFound, ApiResponse.error("NOT_FOUND", e.message ?: "Người dùng không tồn tại"))
             }
         }
 

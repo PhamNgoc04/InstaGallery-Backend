@@ -9,7 +9,7 @@ import io.ktor.server.auth.jwt.*
 import io.ktor.server.response.*
 
 fun Application.configureSecurity() {
-    val jwtSecret = environment.config.propertyOrNull("jwt.secret")?.getString() ?: "secret"
+    val jwtSecret = environment.config.propertyOrNull("jwt.secret")?.getString() ?: "my-super-secret-key-for-instagallery-app-which-is-at-least-32-bytes"
     val jwtIssuer = environment.config.propertyOrNull("jwt.issuer")?.getString() ?: "http://localhost:8080/"
     val jwtAudience = environment.config.propertyOrNull("jwt.audience")?.getString() ?: "http://localhost:8080/api/v1"
 

@@ -12,10 +12,10 @@ import io.ktor.server.auth.jwt.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
-import org.koin.ktor.ext.inject
+import org.koin.ktor.ext.getKoin
 
 fun Route.mediaRoutes() {
-    val mediaService: MediaService by inject()
+    val mediaService = application.getKoin().get<MediaService>()
 
     route("/api/v1") {
         

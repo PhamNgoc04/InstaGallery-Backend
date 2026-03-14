@@ -11,10 +11,10 @@ import io.ktor.server.auth.jwt.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
-import org.koin.ktor.ext.inject
+import org.koin.ktor.ext.getKoin
 
 fun Route.interactionRoutes() {
-    val interactionService: InteractionService by inject()
+    val interactionService = application.getKoin().get<InteractionService>()
 
     route("/api/v1/posts") {
         

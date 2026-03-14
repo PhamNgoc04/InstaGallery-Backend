@@ -11,10 +11,10 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.server.plugins.origin
 import io.ktor.server.auth.*
-import org.koin.ktor.ext.inject
+import org.koin.ktor.ext.getKoin
 
 fun Route.authRoutes() {
-    val authService: AuthService by inject()
+    val authService = application.getKoin().get<AuthService>()
 
     route("/api/v1/auth") {
         

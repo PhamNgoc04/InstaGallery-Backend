@@ -23,32 +23,35 @@ class PostRepository {
         }
         val newPostId = insertStatement.value
 
-        // 2. Link Media. (Assuming Media items are already uploaded and exist in PostMediaTable but orphaned, 
-        // or here we assume frontend creates media first, then creates post. For simplicity of the scope, 
-        // if media exists, we update them to point to this postId with order, or insert if they don't.
-        // Actually, in typical flow, media is uploaded -> gets ID. Then Create Post assigns these existing IDs to this Post.
-        // Let's UPDATE the existing media records to associate with this new post.
+        // 2. Insert Media.
         var order = 1
         val updatedMediaList = mutableListOf<FeedMediaDto>()
+        val firstMediaIdList = mutableListOf<Long>()
         
-        request.mediaIds.forEach { mId ->
-            PostMediaTable.update({ PostMediaTable.id eq mId }) {
+        request.media.forEach { mediaItem ->
+            val insertedMediaId = PostMediaTable.insertAndGetId {
                 it[postId] = newPostId
+                it[mediaFileUrl] = mediaItem.mediaFileUrl
+                it[thumbnailUrl] = mediaItem.thumbnailUrl
+                it[mediaType] = mediaItem.mediaType
                 it[position] = order
+                it[width] = mediaItem.width
+                it[height] = mediaItem.height
+                it[duration] = mediaItem.duration
+            }.value
+
+            if (order == 1) {
+                firstMediaIdList.add(insertedMediaId)
             }
             
-            // Fetch to return
-            val row = PostMediaTable.selectAll().where { PostMediaTable.id eq mId }.singleOrNull()
-            if (row != null) {
-                updatedMediaList.add(
-                    FeedMediaDto(
-                        id = row[PostMediaTable.id].value,
-                        url = row[PostMediaTable.mediaFileUrl],
-                        type = row[PostMediaTable.mediaType].name,
-                        orderIndex = row[PostMediaTable.position]
-                    )
+            updatedMediaList.add(
+                FeedMediaDto(
+                    id = insertedMediaId,
+                    url = mediaItem.mediaFileUrl,
+                    type = mediaItem.mediaType.name,
+                    orderIndex = order
                 )
-            }
+            )
             order++
         }
 
@@ -61,11 +64,8 @@ class PostRepository {
                 ?: MediaTagsTable.insertAndGetId { it[MediaTagsTable.name] = tagName }.value
                 
             // Link Tag to Post 
-            // In our schema we have PostMediaTagsTable connecting PostMedia and Tag.
-            // For simplicity, we just link the tag to the first media of the post, or change the schema implicitly.
-            // Looking at `instagallery_db_analysis.md`, `post_media_tags` links `media_id` and `tag_id`.
-            if (request.mediaIds.isNotEmpty()) {
-                val firstMediaId = request.mediaIds.first()
+            if (firstMediaIdList.isNotEmpty()) {
+                val firstMediaId = firstMediaIdList.first()
                 PostMediaTagsTable.insertIgnore { // custom or try catch
                     it[mediaId] = firstMediaId
                     it[PostMediaTagsTable.tagId] = tagId
@@ -88,6 +88,37 @@ class PostRepository {
                 media = updatedMediaList.map { m -> m as FeedMediaDto }
             )
         }
+    }
+
+    suspend fun updatePost(postId: Long, userId: Long, request: com.instagallery.models.request.UpdatePostRequest): Boolean = dbQuery {
+        val updatedCount = PostsTable.update({ (PostsTable.id eq postId) and (PostsTable.userId eq userId) and (PostsTable.deletedAt.isNull()) }) {
+            request.caption?.let { cap -> it[caption] = cap }
+            request.location?.let { loc -> it[location] = loc }
+            request.visibility?.let { vis -> it[visibility] = vis }
+        }
+
+        if (updatedCount > 0 && request.tags != null) {
+            // Re-process tags
+            val existingMediaId = PostMediaTable.selectAll().where { PostMediaTable.postId eq postId }.firstOrNull()?.get(PostMediaTable.id)?.value
+            
+            if (existingMediaId != null) {
+                // Remove old tags
+                PostMediaTagsTable.deleteWhere { PostMediaTagsTable.mediaId eq existingMediaId }
+                
+                // Add new tags
+                request.tags.forEach { tagName ->
+                    val existingTag = MediaTagsTable.selectAll().where { MediaTagsTable.name eq tagName }.singleOrNull()
+                    val tagId = existingTag?.get(MediaTagsTable.id)?.value 
+                        ?: MediaTagsTable.insertAndGetId { it[MediaTagsTable.name] = tagName }.value
+                        
+                    PostMediaTagsTable.insertIgnore {
+                        it[mediaId] = existingMediaId
+                        it[PostMediaTagsTable.tagId] = tagId
+                    }
+                }
+            }
+        }
+        updatedCount > 0
     }
 
     suspend fun logicSoftDeletePost(postId: Long, userId: Long): Boolean = dbQuery {

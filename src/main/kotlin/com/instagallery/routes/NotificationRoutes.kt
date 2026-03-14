@@ -8,10 +8,10 @@ import io.ktor.server.auth.*
 import io.ktor.server.auth.jwt.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
-import org.koin.ktor.ext.inject
+import org.koin.ktor.ext.getKoin
 
 fun Route.notificationRoutes() {
-    val notificationService: NotificationService by inject()
+    val notificationService = application.getKoin().get<NotificationService>()
 
     route("/api/v1/notifications") {
         

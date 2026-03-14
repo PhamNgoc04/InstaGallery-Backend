@@ -11,10 +11,10 @@ import io.ktor.server.auth.jwt.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
-import org.koin.ktor.ext.inject
+import org.koin.ktor.ext.getKoin
 
 fun Route.adminRoutes() {
-    val adminService: AdminService by inject()
+    val adminService = application.getKoin().get<AdminService>()
 
     route("/api/v1/admin") {
         

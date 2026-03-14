@@ -27,6 +27,7 @@ val appModule = module {
     single { InteractionRepository() }
     single { InteractionService() }
     single { BookingRepository() }
+    single { BookingService() }
     single { com.instagallery.repositories.ChatRepository() }
     single { com.instagallery.services.ChatService() }
     single { com.instagallery.repositories.NotificationRepository() }

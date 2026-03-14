@@ -16,7 +16,7 @@ class PostService : KoinComponent {
 
     suspend fun createPost(userId: Long, request: CreatePostRequest): PostDto {
         // Validation 
-        if (request.mediaIds.isEmpty()) {
+        if (request.media.isEmpty()) {
             throw ValidationException("EMPTY_MEDIA", "A post must have at least one media item.")
         }
 
@@ -36,6 +36,13 @@ class PostService : KoinComponent {
         val success = postRepository.logicSoftDeletePost(postId, userId)
         if (!success) {
             throw AuthException("FORBIDDEN_ACTION", "Post not found or you don't have permission to delete it.")
+        }
+    }
+
+    suspend fun updatePost(userId: Long, postId: Long, request: com.instagallery.models.request.UpdatePostRequest) {
+        val success = postRepository.updatePost(postId, userId, request)
+        if (!success) {
+            throw AuthException("FORBIDDEN_ACTION", "Post not found or you don't have permission to edit it.")
         }
     }
 

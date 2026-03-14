@@ -8,10 +8,10 @@ import io.ktor.server.auth.*
 import io.ktor.server.auth.jwt.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
-import org.koin.ktor.ext.inject
+import org.koin.ktor.ext.getKoin
 
 fun Route.searchRoutes() {
-    val searchService: SearchService by inject()
+    val searchService = application.getKoin().get<SearchService>()
 
     route("/api/v1/search") {
         

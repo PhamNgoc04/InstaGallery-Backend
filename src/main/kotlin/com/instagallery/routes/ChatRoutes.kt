@@ -15,10 +15,10 @@ import io.ktor.server.websocket.*
 import io.ktor.websocket.*
 import kotlinx.coroutines.channels.consumeEach
 import kotlinx.serialization.json.Json
-import org.koin.ktor.ext.inject
+import org.koin.ktor.ext.getKoin
 
 fun Route.chatRoutes() {
-    val chatService: ChatService by inject()
+    val chatService = application.getKoin().get<ChatService>()
 
     route("/api/v1/chat") {
         

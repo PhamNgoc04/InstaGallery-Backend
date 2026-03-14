@@ -17,6 +17,6 @@ object ActivityLogsTable : LongIdTable("activity_logs") {
     val createdAt = timestamp("created_at").defaultExpression(CurrentTimestamp).index()
 
     init {
-        index("idx_target", isUnique = false, targetType, targetId)
+        index("idx_activity_target", isUnique = false, targetType, targetId)
     }
 }

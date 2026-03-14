@@ -10,10 +10,10 @@ import io.ktor.server.auth.jwt.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
-import org.koin.ktor.ext.inject
+import org.koin.ktor.ext.getKoin
 
 fun Route.postRoutes() {
-    val postService: PostService by inject()
+    val postService = application.getKoin().get<PostService>()
 
     route("/api/v1/posts") {
         
@@ -40,6 +40,20 @@ fun Route.postRoutes() {
 
                 val feed = postService.getFeed(userId, page, limit)
                 call.respond(HttpStatusCode.OK, ApiResponse.success(data = feed))
+            }
+
+            put("/{id}") {
+                val principal = call.principal<JWTPrincipal>()
+                val userId = principal?.payload?.getClaim("userId")?.asLong()
+                    ?: return@put call.respond(HttpStatusCode.Unauthorized, ApiResponse.error("UNAUTHORIZED", "Token không hợp lệ."))
+
+                val postId = call.parameters["id"]?.toLongOrNull()
+                    ?: return@put call.respond(HttpStatusCode.BadRequest, ApiResponse.error("INVALID_ID", "ID bài viết không hợp lệ."))
+
+                val request = call.receive<com.instagallery.models.request.UpdatePostRequest>()
+                postService.updatePost(userId, postId, request)
+                
+                call.respond(HttpStatusCode.OK, ApiResponse.success(data = null, message = "Đã cập nhật bài viết thành công"))
             }
 
             delete("/{id}") {

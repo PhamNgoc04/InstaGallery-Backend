@@ -7,9 +7,9 @@ import io.ktor.server.config.*
 import java.util.Date
 
 class JwtManager(private val config: ApplicationConfig) {
-    private val secret = config.property("jwt.secret").getString()
-    private val issuer = config.property("jwt.issuer").getString()
-    private val audience = config.property("jwt.audience").getString()
+    private val secret = config.propertyOrNull("jwt.secret")?.getString() ?: "my-super-secret-key-for-instagallery-app-which-is-at-least-32-bytes"
+    private val issuer = config.propertyOrNull("jwt.issuer")?.getString() ?: "http://localhost:8080/"
+    private val audience = config.propertyOrNull("jwt.audience")?.getString() ?: "http://localhost:8080/api/v1"
     // Default expiration: 7 days
     private val expirationMs = 7L * 24 * 60 * 60 * 1000
 

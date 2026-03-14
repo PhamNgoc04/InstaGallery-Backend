@@ -19,6 +19,6 @@ object ReportsTable : LongIdTable("reports") {
     val updatedAt = timestamp("updated_at").defaultExpression(CurrentTimestamp)
 
     init {
-        index("idx_target", isUnique = false, targetType, targetId)
+        index("idx_report_target", isUnique = false, targetType, targetId)
     }
 }

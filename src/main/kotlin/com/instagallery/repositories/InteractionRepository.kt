@@ -230,8 +230,10 @@ class InteractionRepository {
     suspend fun getFollowers(userId: Long, page: Int, limit: Int): com.instagallery.models.common.PaginatedFollowsResponse = dbQuery {
         val offsetVal = ((page - 1) * limit).toLong()
 
-        // Fetch those who follow userId
-        val query = (FollowersTable innerJoin UsersTable).selectAll().where { FollowersTable.followingId eq userId }
+        // Fetch those who follow userId (UsersTable id = FollowersTable followerId)
+        val query = UsersTable.innerJoin(FollowersTable, { UsersTable.id }, { FollowersTable.followerId })
+            .selectAll().where { FollowersTable.followingId eq userId }
+            
         val totalRecords = query.count()
         val totalPages = Math.ceil(totalRecords.toDouble() / limit).toInt()
 
@@ -257,9 +259,7 @@ class InteractionRepository {
     suspend fun getFollowing(userId: Long, page: Int, limit: Int): com.instagallery.models.common.PaginatedFollowsResponse = dbQuery {
         val offsetVal = ((page - 1) * limit).toLong()
 
-        // Fetch those whom userId is following
-        // We need to join UsersTable on followingId instead of default
-        // In Exposed, we can write an explicit join or just select from two tables with a where clause
+        // Fetch those whom userId is following (UsersTable id = FollowersTable followingId); user is follower
         val query = UsersTable.innerJoin(FollowersTable, { UsersTable.id }, { FollowersTable.followingId })
             .selectAll().where { FollowersTable.followerId eq userId }
             

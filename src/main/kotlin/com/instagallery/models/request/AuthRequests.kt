@@ -2,20 +2,24 @@ package com.instagallery.models.request
 
 import com.instagallery.models.common.UserType
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonNames
+import kotlinx.serialization.ExperimentalSerializationApi
 
+@OptIn(ExperimentalSerializationApi::class)
 @Serializable
 data class RegisterRequest(
     val email: String,
     val username: String,
-    val passwordHash: String, // From frontend, will be hashed again or validated
+    @JsonNames("password") val passwordHash: String, // From frontend, will be hashed again or validated
     val fullName: String,
     val userType: UserType = UserType.ENTHUSIAST
 )
 
+@OptIn(ExperimentalSerializationApi::class)
 @Serializable
 data class LoginRequest(
-    val email: String,
-    val passwordHash: String // From frontend
+    @JsonNames("usernameOrEmail") val email: String,
+    @JsonNames("password") val passwordHash: String // From frontend
 )
 
 @Serializable

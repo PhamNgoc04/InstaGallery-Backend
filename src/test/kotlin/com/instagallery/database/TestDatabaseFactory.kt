@@ -11,7 +11,11 @@ import com.instagallery.database.tables.*
 import java.util.UUID
 
 object TestDatabaseFactory {
+    private var isInitialized = false
+
     fun init() {
+        if (isInitialized) return
+        isInitialized = true
         // Use a unique database name per test run to ensure total isolation.
         val uniqueDbName = UUID.randomUUID().toString()
         val config = HikariConfig().apply {
