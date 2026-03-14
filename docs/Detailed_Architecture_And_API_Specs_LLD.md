@@ -121,3 +121,49 @@ Tài liệu trên là Bản Đồ Tối Thượng. Khi bạn chuyển sang làm 
    * Tab Search: Bắn `GET /explore/trending` ngay lần đầu mở, lúc gõ thì gọi `GET /search`.
    * Tab Profile: Gắn `GET /users/me`. Lưới ảnh gọi API tải theo ID.
 4. **Chat Màn Hình:** Tạo Coroutines Scope chạy ngầm giữ `WebSocketSession` để nghe chuông tin nhắn.
+
+---
+
+## 4. CHUYÊN ĐỀ MẠNG MÁY TÍNH: KẾT NỐI APP ANDROID VỚI KTOR SERVER
+
+> Lỗi kinh điển nhất mà 99% lập trình viên Mobile gặp phải khi ráp nối Frontend vào Backend đang chạy trên máy tính cá nhân là dùng sai địa chỉ IP. Dưới đây là kiến thức nền tảng bắt buộc phải nhớ.
+
+### 🔴 Tại sao KHÔNG THỂ dùng `http://localhost:8080` trên Mobile?
+Khi bạn test bằng Postman trên Máy tính (Laptop), `localhost` (hoặc `127.0.0.1`) hiểu là **"chính cái máy tính này"**. Do Server Ktor cũng nằm trên đó nên gọi 1 phát là dính.
+Mặt khác, điện thoại hoặc Máy ảo Android là **một cỗ máy hoàn toàn độc lập**.
+- Nếu bên trong Code Android bạn khai báo gọi API tới `http://localhost:8080`, hệ điều hành Android sẽ tưởng bạn đang bảo nó gọi... **chính bản thân cái điện thoại đó**.
+- Vì trên cái điện thoại KHÔNG HỀ chạy Ktor Server nào cả -> Gọi API sẽ báo lỗi văng App ngay lập tức (Lỗi `Connection Refused`).
+
+### 🟢 Cách Khắc Phục Chuẩn (Có 2 Nhóm Thiết Bị)
+
+**Trường hợp 1: Bạn Code bằng Máy Ảo Android Studio (Emulator)**
+Máy ảo Android có một "cánh cửa thần kỳ" đặc biệt. Các kỹ sư Google đã quy định mã IP giả lập `10.0.2.2`.
+- `10.0.2.2` trên Simulator sẽ tự động "Xuyên hầm đục tường" bay thẳng sang cái `localhost` của cái Máy Tính đang chạy nó.
+- Cấu hình `BASE_URL` cho Android: `http://10.0.2.2:8080`
+
+**Trường hợp 2: Bạn cắm Dây điện thoại thật (Physical Device) để Code**
+Điện thoại thật thì không có "cửa thần kỳ" như máy ảo. Nó phải dùng tín hiệu Cục WiFi (Router mạng LAN) trong nhà bạn. Yêu cầu: Điện thoại và Laptop phải bắt CHUNG 1 CỤC WIFI.
+1. Mở `cmd` trên Laptop -> Gõ `ipconfig`.
+2. Tìm dòng `IPv4 Address` (Ví dụ: `192.168.1.55`). Đây là "Số nhà" của Laptop bạn trên mạng LAN.
+3. Ktor Server của bạn đang mở cổng ảo `8080`. Giờ đây, chỉ cần đứng từ Điện thoại gọi tới IP của Laptop là vào được thẳng Server.
+4. Cấu hình `BASE_URL` cho Android: `http://192.168.1.55:8080` *(Thay 192.168.1.55 thành số thật của máy bạn).*
+
+**LƯU Ý CỘNG THÊM MỤC ANDROID MANIFEST:**
+Kể từ Android 9 (API 28), Google cấm tiệt gọi API HTTP (Không mã hóa), ép buộc phải gọi HTTPS. Để ép App cho phép gọi HTTP nội bộ trong lúc đang code (Dev Environment), bạn buộc phải thêm dòng này vào `AndroidManifest.xml` (Thẻ `<application>`):
+`android:usesCleartextTraffic="true"`
+
+---
+
+### 🚨 3 CÁI BẪY CHẾT NGƯỜI KHÁC KHI LÀM ANDROID (Cần Né Tránh)
+
+**1. Bẫy WebSockets (URL Protocol Mismatch)**
+- Khi gọi API bình thường (Đăng nhập, Lấy bài viết), bạn dùng chữ `http://...`
+- NHƯNG khi cấu hình Ktor Client cho WebSockets (Chat), bạn BẮT BUỘC phải đổi giao thức thành chữ `ws://...` (Ví dụ `ws://10.0.2.2:8080`). Nếu bạn quên đổi và dùng chữ `http`, Ktor Client sẽ báo lỗi Socket sập ngay lập tức.
+
+**2. Bẫy Tải Ảnh bằng Thư viện Coil (Hình Mờ Căm/Không Hiện)**
+- Nếu Server trả về link ảnh là `http://localhost/image.png`, trên điện thoại sẽ méo mỏ vì không thể tải được gốc `localhost`.
+- **Giải pháp:** Trong giai đoạn này (chưa có S3 thật), bạn phải config hàm `BaseUrl` cho toàn bộ các link ảnh chắp vá vào, luôn trả về IP thật `http://192.168.x.x/...` trước khi nhét vào thẻ `AsyncImage` của Jetpack Compose.
+
+**3. Bẫy Vòng Lặp Vô Tận (Infinite Refresh Loop)**
+- Token của hệ thống InstaGallery có thời hạn cực ngắn. Ktor Client (Android) có chức năng viết Interceptor: Hễ API báo `401 Unauthorized`, tự động gọi API `POST /refresh` rồi cầm Token mới gửi lại Request hỏng ban nãy.
+- **Nguy hiểm:** Rất ngây thơ, nhiều người cấu hình sai đoạn `Interceptor` này. Dẫn đến việc Token Refresh cũng bị gọi liên tục -> Server Ktor lãnh đạn nghẽn mạng -> App Android sụp nguồn vì Memory Leak. Phải đặc biệt cẩn thận khi Setup `AuthPlugin` trong mã Android.
