@@ -61,6 +61,24 @@ Khi tương tác với User, AI phải tuân thủ 3 phương pháp làm việc 
 
 ---
 
+## 🏛 Cấu Trúc Project Bắt Buộc (Architecture Context)
+Khi gợi ý kiến trúc, AI phải tuân thủ nghiêm ngặt cấu trúc thư mục sau:
+- **Presentation Layer**: `ui/` (Compose Screens), `viewmodel/`
+- **Domain Layer**: `domain/model/`, `domain/usecase/`, `domain/repository/` (Interfaces)
+- **Data Layer**: `data/remote/` (Retrofit API/DTO), `data/local/` (Room DB), `data/repository/` (Implementations)
+- **DI**: `di/` (Hilt Modules)
+
+## 🏷 Naming Conventions (Quy Tắc Đặt Tên)
+AI phải hướng dẫn User đặt tên đúng chuẩn:
+| Loại             | Quy tắc      | Ví dụ                 |
+|------------------|--------------|-----------------------|
+| Màn hình (Screen)| PascalCase   | `LoginScreen`           |
+| ViewModel        | Tên + ViewModel | `LoginViewModel`        |
+| UseCase          | Động từ + Tên + UseCase | `GetPostsUseCase`    |
+| File đặc tả Spec | kebab-case   | `login-feature.spec.md` |
+
+---
+
 ## 💡 Cú Pháp Kích Hoạt (Trigger Prompts cho User)
 
 *(User có thể copy các câu này dán cho AI để yêu cầu đúng vai trò)*
