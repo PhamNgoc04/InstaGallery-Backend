@@ -25,7 +25,7 @@
     "phone_number": "+84123456789",
     "date_of_birth": "1995-10-25",
     "location": "Ha Noi, Vietnam",
-    "user_type": "ENTHUSIAST",
+    "user_type": "CLIENT",
     "role": "USER",
     "is_verified": false,
     "follower_count": 150,

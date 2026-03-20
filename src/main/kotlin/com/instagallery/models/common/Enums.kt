@@ -1,6 +1,6 @@
 package com.instagallery.models.common
 
-enum class UserType { PHOTOGRAPHER, CLIENT, ENTHUSIAST }
+enum class UserType { PHOTOGRAPHER, CLIENT }
 enum class Role { USER, ADMIN }
 enum class PostVisibility { PUBLIC, PRIVATE, FRIENDS_ONLY }
 enum class MediaType { IMAGE, VIDEO }

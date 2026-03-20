@@ -12,7 +12,7 @@ data class RegisterRequest(
     val username: String,
     @JsonNames("password") val passwordHash: String, // From frontend, will be hashed again or validated
     val fullName: String,
-    val userType: UserType = UserType.ENTHUSIAST
+    val userType: UserType = UserType.CLIENT
 )
 
 @OptIn(ExperimentalSerializationApi::class)

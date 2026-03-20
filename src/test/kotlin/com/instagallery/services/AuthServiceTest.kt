@@ -106,7 +106,7 @@ class AuthServiceTest : KoinTest {
             fullName = "test user",
             profilePictureUrl = null,
             role = com.instagallery.models.common.Role.USER,
-            userType = com.instagallery.models.common.UserType.ENTHUSIAST,
+            userType = com.instagallery.models.common.UserType.CLIENT,
             isActive = true,
             isVerified = false
         )
@@ -133,7 +133,7 @@ class AuthServiceTest : KoinTest {
     @Test
     fun `login should successfully return token`() = runTest {
         val req = LoginRequest("test@test.com", "password")
-        val mockUser = UserDto(1L, "testuser", "test@test.com", "hashedPass", "Test User", null, com.instagallery.models.common.Role.USER, com.instagallery.models.common.UserType.ENTHUSIAST, true, false)
+        val mockUser = UserDto(1L, "testuser", "test@test.com", "hashedPass", "Test User", null, com.instagallery.models.common.Role.USER, com.instagallery.models.common.UserType.CLIENT, true, false)
         
         coEvery { userRepository.getUserByEmail(req.email) } returns mockUser
         

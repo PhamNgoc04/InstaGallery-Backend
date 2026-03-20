@@ -19,7 +19,7 @@ object UsersTable : LongIdTable("users") {
     val phoneNumber = varchar("phone_number", 20).nullable()
     val dateOfBirth = date("date_of_birth").nullable()
     val location = varchar("location", 255).nullable()
-    val userType = enumerationByName("user_type", 20, UserType::class).default(UserType.ENTHUSIAST)
+    val userType = enumerationByName("user_type", 20, UserType::class).default(UserType.CLIENT)
     val role = enumerationByName("role", 10, Role::class).default(Role.USER)
     
     val isVerified = bool("is_verified").default(false)

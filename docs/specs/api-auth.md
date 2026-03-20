@@ -13,7 +13,7 @@
   "username": "ngocpham",
   "password": "Password123!",
   "full_name": "John Doe",
-  "user_type": "ENTHUSIAST" // Lấy từ Enum UserType
+  "user_type": "CLIENT" // Lấy từ Enum UserType
 }
 ```
 
