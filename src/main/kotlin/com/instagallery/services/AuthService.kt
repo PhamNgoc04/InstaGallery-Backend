@@ -55,6 +55,8 @@ class AuthService : KoinComponent {
             userId = newUser.id,
             email = newUser.email,
             username = newUser.username,
+            role = newUser.role,
+            userType = newUser.userType,
             token = token,
             refreshToken = refreshToken
         )
@@ -83,7 +85,10 @@ class AuthService : KoinComponent {
             userId = user.id,
             email = user.email,
             username = user.username,
+            fullName = user.fullName,
+            profilePictureUrl = user.profilePictureUrl,
             role = user.role,
+            userType = user.userType,
             token = token,
             refreshToken = refreshToken
         )

@@ -1,6 +1,7 @@
 package com.instagallery.models.response
 
 import com.instagallery.models.common.Role
+import com.instagallery.models.common.UserType
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -8,7 +9,10 @@ data class LoginResponse(
     val userId: Long,
     val email: String,
     val username: String,
+    val fullName: String,
+    val profilePictureUrl: String?,
     val role: Role,
+    val userType: UserType,
     val token: String,
     val refreshToken: String
 )
@@ -18,6 +22,8 @@ data class RegisterResponse(
     val userId: Long,
     val email: String,
     val username: String,
+    val role: Role,
+    val userType: UserType,
     val token: String,
     val refreshToken: String
 )

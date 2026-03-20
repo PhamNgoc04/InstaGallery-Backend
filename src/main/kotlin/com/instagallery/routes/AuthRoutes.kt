@@ -44,13 +44,12 @@ fun Route.authRoutes() {
             )
         }
         post("/refresh") {
-            val refreshToken = call.request.headers["Authorization"]?.removePrefix("Bearer ")
-                ?: return@post call.respond(HttpStatusCode.Unauthorized, ApiResponse.error("MISSING_TOKEN", "Refresh Token không được cung cấp."))
+            val request = call.receive<com.instagallery.models.request.RefreshTokenRequest>()
             
             val deviceInfo = call.request.headers["User-Agent"]
             val ipAddress = call.request.origin.remoteHost
 
-            val response = authService.refreshToken(refreshToken, deviceInfo, ipAddress)
+            val response = authService.refreshToken(request.refreshToken, deviceInfo, ipAddress)
             call.respond(HttpStatusCode.OK, ApiResponse.success(data = response, message = "Lấy Token mới thành công"))
         }
 

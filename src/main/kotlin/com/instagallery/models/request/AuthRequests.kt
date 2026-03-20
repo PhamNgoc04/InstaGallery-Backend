@@ -30,3 +30,6 @@ data class ResetPasswordRequest(val resetToken: String, val newPasswordHash: Str
 
 @Serializable
 data class ChangePasswordRequest(val oldPasswordHash: String, val newPasswordHash: String)
+
+@Serializable
+data class RefreshTokenRequest(val refreshToken: String)
