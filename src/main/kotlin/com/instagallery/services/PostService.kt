@@ -2,6 +2,7 @@ package com.instagallery.services
 
 import com.instagallery.models.common.PaginatedFeedResponse
 import com.instagallery.models.common.PostDto
+import com.instagallery.models.common.PostDetailDto
 import com.instagallery.models.request.CreatePostRequest
 import com.instagallery.plugins.AuthException
 import com.instagallery.plugins.ValidationException
@@ -14,6 +15,7 @@ class PostService : KoinComponent {
     private val postRepository: PostRepository by inject()
     private val userRepository: UserRepository by inject()
 
+    // --- CREATE POST ---
     suspend fun createPost(userId: Long, request: CreatePostRequest): PostDto {
         // Validation 
         if (request.media.isEmpty()) {
@@ -25,6 +27,7 @@ class PostService : KoinComponent {
             ?: throw Exception("Failed to create post")
     }
 
+    // --- GET FEED --- 
     suspend fun getFeed(userId: Long, page: Int, limit: Int): PaginatedFeedResponse {
         val verifiedPage = if (page < 1) 1 else page
         val verifiedLimit = if (limit < 1) 10 else if (limit > 50) 50 else limit
@@ -32,6 +35,18 @@ class PostService : KoinComponent {
         return postRepository.getFeedPosts(userId, verifiedPage, verifiedLimit)
     }
 
+    // --- POST DETAIL ---
+    suspend fun getPostDetail(postId: Long, currentUserId: Long): PostDetailDto {
+        return when (val result = postRepository.getPostDetail(postId, currentUserId)) {
+            is PostRepository.PostDetailResult.Success -> result.post
+            is PostRepository.PostDetailResult.NotFound ->
+                throw AuthException("POST_NOT_FOUND", "Bài đăng không tồn tại hoặc đã bị xóa.")
+            is PostRepository.PostDetailResult.Forbidden ->
+                throw AuthException("FORBIDDEN", "Bạn không có quyền xem bài đăng này.")
+        }
+    }
+
+    // --- DELETE POST ---
     suspend fun deletePost(userId: Long, postId: Long) {
         val success = postRepository.logicSoftDeletePost(postId, userId)
         if (!success) {
@@ -39,6 +54,7 @@ class PostService : KoinComponent {
         }
     }
 
+    // --- UPDATE POST ---
     suspend fun updatePost(userId: Long, postId: Long, request: com.instagallery.models.request.UpdatePostRequest) {
         val success = postRepository.updatePost(postId, userId, request)
         if (!success) {
@@ -46,6 +62,7 @@ class PostService : KoinComponent {
         }
     }
 
+    // --- GET EXPLORE POSTS ---
     suspend fun getExplorePosts(page: Int, limit: Int, tag: String?): PaginatedFeedResponse {
         val verifiedPage = if (page < 1) 1 else page
         val verifiedLimit = if (limit < 1) 20 else if (limit > 50) 50 else limit
@@ -53,6 +70,7 @@ class PostService : KoinComponent {
         return postRepository.getExplorePosts(verifiedPage, verifiedLimit, tag)
     }
 
+    // --- GET TRENDING TAGS ---
     suspend fun getTrendingTags(limit: Int): List<com.instagallery.models.common.TrendingTagDto> {
         val verifiedLimit = if (limit < 1) 10 else if (limit > 50) 50 else limit
         return postRepository.getTrendingTags(verifiedLimit)

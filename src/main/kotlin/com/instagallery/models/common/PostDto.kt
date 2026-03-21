@@ -37,6 +37,24 @@ data class FeedPostDto(
     val media: List<FeedMediaDto>
 )
 
+// --- POST DETAIL ---
+@Serializable
+data class PostDetailDto(
+    val postId: Long,
+    val userId: Long,
+    val username: String,
+    val userAvatar: String?,
+    val caption: String?,
+    val location: String?,
+    val visibility: PostVisibility,
+    val likeCount: Int,
+    val commentCount: Int,
+    val createdAt: String,
+    val media: List<FeedMediaDto>,
+    val isLiked: Boolean,
+    val isSaved: Boolean
+)
+
 @Serializable
 data class PaginatedFeedResponse(
     val posts: List<FeedPostDto>,

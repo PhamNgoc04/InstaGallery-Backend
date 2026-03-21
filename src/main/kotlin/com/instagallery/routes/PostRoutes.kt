@@ -42,6 +42,18 @@ fun Route.postRoutes() {
                 call.respond(HttpStatusCode.OK, ApiResponse.success(data = feed))
             }
 
+            get("/{id}") {
+                val principal = call.principal<JWTPrincipal>()
+                val userId = principal?.payload?.getClaim("userId")?.asLong()
+                    ?: return@get call.respond(HttpStatusCode.Unauthorized, ApiResponse.error("UNAUTHORIZED", "Token không hợp lệ."))
+
+                val postId = call.parameters["id"]?.toLongOrNull()
+                    ?: return@get call.respond(HttpStatusCode.BadRequest, ApiResponse.error("INVALID_ID", "ID bài viết không hợp lệ."))
+
+                val detail = postService.getPostDetail(postId, userId)
+                call.respond(HttpStatusCode.OK, ApiResponse.success(data = detail))
+            }
+
             put("/{id}") {
                 val principal = call.principal<JWTPrincipal>()
                 val userId = principal?.payload?.getClaim("userId")?.asLong()
