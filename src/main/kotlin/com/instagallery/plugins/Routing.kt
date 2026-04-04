@@ -14,6 +14,7 @@ import com.instagallery.routes.mediaRoutes
 import com.instagallery.routes.exploreRoutes
 import com.instagallery.routes.reportRoutes
 import com.instagallery.routes.adminRoutes
+import com.instagallery.routes.albumRoutes
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.response.*
@@ -32,10 +33,11 @@ fun Application.configureRouting() {
                     com.instagallery.database.tables.PostsTable, com.instagallery.database.tables.FiltersTable, com.instagallery.database.tables.PostMediaTable, com.instagallery.database.tables.MediaTagsTable, com.instagallery.database.tables.PostMediaTagsTable,
                     com.instagallery.database.tables.FollowersTable, com.instagallery.database.tables.LikesTable, com.instagallery.database.tables.CommentsTable, com.instagallery.database.tables.CommentLikesTable, com.instagallery.database.tables.SavedPostsTable,
                     com.instagallery.database.tables.BookingsTable, com.instagallery.database.tables.RatingsTable, com.instagallery.database.tables.ConversationsTable, com.instagallery.database.tables.ConversationMembersTable, com.instagallery.database.tables.MessagesTable,
-                    com.instagallery.database.tables.NotificationsTable, com.instagallery.database.tables.ActivityLogsTable, com.instagallery.database.tables.ReportsTable, com.instagallery.database.tables.SearchHistoriesTable, com.instagallery.database.tables.PasswordResetTokensTable
+                    com.instagallery.database.tables.NotificationsTable, com.instagallery.database.tables.ActivityLogsTable, com.instagallery.database.tables.ReportsTable, com.instagallery.database.tables.SearchHistoriesTable, com.instagallery.database.tables.PasswordResetTokensTable,
+                    com.instagallery.database.tables.FollowRequestsTable, com.instagallery.database.tables.AlbumsTable, com.instagallery.database.tables.AlbumMediaTable, com.instagallery.database.tables.BlockedUsersTable, com.instagallery.database.tables.MutedUsersTable, com.instagallery.database.tables.AvailabilitySchedulesTable, com.instagallery.database.tables.BannedWordsTable
                 )
             }
-            call.respondText("Tự động tạo 22 Bảng Dữ Liệu thành công!", status = HttpStatusCode.OK)
+            call.respondText("Tự động tạo 30 Bảng Dữ Liệu thành công!", status = HttpStatusCode.OK)
         }
 
         get("/reset-db") {
@@ -46,7 +48,8 @@ fun Application.configureRouting() {
                     com.instagallery.database.tables.PostsTable, com.instagallery.database.tables.FiltersTable, com.instagallery.database.tables.PostMediaTable, com.instagallery.database.tables.MediaTagsTable, com.instagallery.database.tables.PostMediaTagsTable,
                     com.instagallery.database.tables.FollowersTable, com.instagallery.database.tables.LikesTable, com.instagallery.database.tables.CommentsTable, com.instagallery.database.tables.CommentLikesTable, com.instagallery.database.tables.SavedPostsTable,
                     com.instagallery.database.tables.BookingsTable, com.instagallery.database.tables.RatingsTable, com.instagallery.database.tables.ConversationsTable, com.instagallery.database.tables.ConversationMembersTable, com.instagallery.database.tables.MessagesTable,
-                    com.instagallery.database.tables.NotificationsTable, com.instagallery.database.tables.ActivityLogsTable, com.instagallery.database.tables.ReportsTable, com.instagallery.database.tables.SearchHistoriesTable, com.instagallery.database.tables.PasswordResetTokensTable
+                    com.instagallery.database.tables.NotificationsTable, com.instagallery.database.tables.ActivityLogsTable, com.instagallery.database.tables.ReportsTable, com.instagallery.database.tables.SearchHistoriesTable, com.instagallery.database.tables.PasswordResetTokensTable,
+                    com.instagallery.database.tables.FollowRequestsTable, com.instagallery.database.tables.AlbumsTable, com.instagallery.database.tables.AlbumMediaTable, com.instagallery.database.tables.BlockedUsersTable, com.instagallery.database.tables.MutedUsersTable, com.instagallery.database.tables.AvailabilitySchedulesTable, com.instagallery.database.tables.BannedWordsTable
                 )
                 // Tạo lại bảng mới tinh tươm
                 org.jetbrains.exposed.sql.SchemaUtils.create(
@@ -54,7 +57,8 @@ fun Application.configureRouting() {
                     com.instagallery.database.tables.PostsTable, com.instagallery.database.tables.FiltersTable, com.instagallery.database.tables.PostMediaTable, com.instagallery.database.tables.MediaTagsTable, com.instagallery.database.tables.PostMediaTagsTable,
                     com.instagallery.database.tables.FollowersTable, com.instagallery.database.tables.LikesTable, com.instagallery.database.tables.CommentsTable, com.instagallery.database.tables.CommentLikesTable, com.instagallery.database.tables.SavedPostsTable,
                     com.instagallery.database.tables.BookingsTable, com.instagallery.database.tables.RatingsTable, com.instagallery.database.tables.ConversationsTable, com.instagallery.database.tables.ConversationMembersTable, com.instagallery.database.tables.MessagesTable,
-                    com.instagallery.database.tables.NotificationsTable, com.instagallery.database.tables.ActivityLogsTable, com.instagallery.database.tables.ReportsTable, com.instagallery.database.tables.SearchHistoriesTable, com.instagallery.database.tables.PasswordResetTokensTable
+                    com.instagallery.database.tables.NotificationsTable, com.instagallery.database.tables.ActivityLogsTable, com.instagallery.database.tables.ReportsTable, com.instagallery.database.tables.SearchHistoriesTable, com.instagallery.database.tables.PasswordResetTokensTable,
+                    com.instagallery.database.tables.FollowRequestsTable, com.instagallery.database.tables.AlbumsTable, com.instagallery.database.tables.AlbumMediaTable, com.instagallery.database.tables.BlockedUsersTable, com.instagallery.database.tables.MutedUsersTable, com.instagallery.database.tables.AvailabilitySchedulesTable, com.instagallery.database.tables.BannedWordsTable
                 )
             }
             call.respondText("Đã dọn dẹp và Reset toàn bộ Database! ID sẽ bắt đầu lại từ 1.", status = HttpStatusCode.OK)
@@ -73,6 +77,20 @@ fun Application.configureRouting() {
             }
             call.respondText("Thành công: Đã ép User ID 2 lùi về 1, và Set Auto_Increment tiếp theo là 2!", status = HttpStatusCode.OK)
         }
+
+        get("/migrate-db") {
+            org.jetbrains.exposed.sql.transactions.transaction {
+                org.jetbrains.exposed.sql.SchemaUtils.createMissingTablesAndColumns(
+                    com.instagallery.database.tables.UsersTable, com.instagallery.database.tables.UserSessionsTable, com.instagallery.database.tables.PortfoliosTable,
+                    com.instagallery.database.tables.PostsTable, com.instagallery.database.tables.FiltersTable, com.instagallery.database.tables.PostMediaTable, com.instagallery.database.tables.MediaTagsTable, com.instagallery.database.tables.PostMediaTagsTable,
+                    com.instagallery.database.tables.FollowersTable, com.instagallery.database.tables.LikesTable, com.instagallery.database.tables.CommentsTable, com.instagallery.database.tables.CommentLikesTable, com.instagallery.database.tables.SavedPostsTable,
+                    com.instagallery.database.tables.BookingsTable, com.instagallery.database.tables.RatingsTable, com.instagallery.database.tables.ConversationsTable, com.instagallery.database.tables.ConversationMembersTable, com.instagallery.database.tables.MessagesTable,
+                    com.instagallery.database.tables.NotificationsTable, com.instagallery.database.tables.ActivityLogsTable, com.instagallery.database.tables.ReportsTable, com.instagallery.database.tables.SearchHistoriesTable, com.instagallery.database.tables.PasswordResetTokensTable,
+                    com.instagallery.database.tables.FollowRequestsTable, com.instagallery.database.tables.AlbumsTable, com.instagallery.database.tables.AlbumMediaTable, com.instagallery.database.tables.BlockedUsersTable, com.instagallery.database.tables.MutedUsersTable, com.instagallery.database.tables.AvailabilitySchedulesTable, com.instagallery.database.tables.BannedWordsTable
+                )
+            }
+            call.respondText("Thành công: Đã tự động chèn các cột còn thiếu (provider, is_private...) vào Database mà không làm mất dữ liệu!", status = HttpStatusCode.OK)
+        }
         
         // Register feature routes here
         authRoutes()
@@ -89,9 +107,6 @@ fun Application.configureRouting() {
         exploreRoutes()
         reportRoutes()
         adminRoutes()
-
-        route("/api/v1") {
-            // Include modular routes here like authRoutes(), userRoutes(), etc.
-        }
+        albumRoutes()
     }
 }

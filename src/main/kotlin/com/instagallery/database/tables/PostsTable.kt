@@ -11,6 +11,7 @@ object PostsTable : LongIdTable("posts") {
     val caption = text("caption").nullable()
     val location = varchar("location", 255).nullable()
     val visibility = enumerationByName("visibility", 20, PostVisibility::class).default(PostVisibility.PUBLIC).index()
+    val commentVisibility = enumerationByName("comment_visibility", 20, com.instagallery.models.common.CommentVisibility::class).default(com.instagallery.models.common.CommentVisibility.ALLOW_ALL)
     val likeCount = integer("like_count").default(0)
     val commentCount = integer("comment_count").default(0)
     val shareCount = integer("share_count").default(0)

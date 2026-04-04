@@ -1164,6 +1164,68 @@
                     "response": []
                 }
             ]
+        },
+        {
+            "name": "5. Portfolios & Availability",
+            "item": [
+                {
+                    "name": "POST Specific Availability",
+                    "request": {
+                        "auth": {"type": "bearer", "bearer": [{"key": "token", "value": "{{JWT_TOKEN}}", "type": "string"}]},
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"date\": \"2026-05-12\",\n    \"intervals\": [{\"start\": \"08:00\", \"end\": \"12:00\"}]\n}",
+                            "options": {"raw": {"language": "json"}}
+                        },
+                        "url": {
+                            "raw": "{{BASE_URL}}/api/v1/portfolios/me/availability",
+                            "host": ["{{BASE_URL}}"],
+                            "path": ["api", "v1", "portfolios", "me", "availability"]
+                        }
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "6. Admin Dashboard",
+            "item": [
+                {
+                    "name": "GET System Stats",
+                    "request": {
+                        "auth": {"type": "bearer", "bearer": [{"key": "token", "value": "{{JWT_TOKEN}}", "type": "string"}]},
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{BASE_URL}}/api/v1/admin/stats",
+                            "host": ["{{BASE_URL}}"],
+                            "path": ["api", "v1", "admin", "stats"]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "PUT Ban User",
+                    "request": {
+                        "auth": {"type": "bearer", "bearer": [{"key": "token", "value": "{{JWT_TOKEN}}", "type": "string"}]},
+                        "method": "PUT",
+                        "header": [],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"isBanned\": true,\n    \"reason\": \"Vi phạm tiêu chuẩn cộng đồng\"\n}",
+                            "options": {"raw": {"language": "json"}}
+                        },
+                        "url": {
+                            "raw": "{{BASE_URL}}/api/v1/admin/users/2/ban",
+                            "host": ["{{BASE_URL}}"],
+                            "path": ["api", "v1", "admin", "users", "2", "ban"]
+                        }
+                    },
+                    "response": []
+                }
+            ]
         }
     ],
     "event": [

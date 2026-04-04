@@ -105,6 +105,41 @@ fun Route.userRoutes() {
 
                 call.respond(HttpStatusCode.OK, ApiResponse.success(data = suggestions))
             }
+
+            // --- PRIVATE FOLLOW REQUESTS ---
+            get("/me/follow-requests") {
+                val principal = call.principal<JWTPrincipal>()
+                val userId = principal?.payload?.getClaim("userId")?.asLong()
+                    ?: return@get call.respond(HttpStatusCode.Unauthorized, ApiResponse.error("UNAUTHORIZED", "Token không hợp lệ."))
+                // TODO: Query FollowRequestsTable where followingId = userId AND status = PENDING
+                call.respond(HttpStatusCode.OK, ApiResponse.success(data = listOf<Any>()))
+            }
+
+            post("/me/follow-requests/{followerId}/{action}") {
+                val userId = call.principal<JWTPrincipal>()?.payload?.getClaim("userId")?.asLong()
+                    ?: return@post call.respond(HttpStatusCode.Unauthorized, ApiResponse.error("UNAUTHORIZED", "Token không hợp lệ."))
+                val followerId = call.parameters["followerId"]?.toLongOrNull()
+                val action = call.parameters["action"] // accept or reject
+                // TODO: Update FollowRequestsTable status, if ACCEPTED -> insert to FollowersTable
+                call.respond(HttpStatusCode.OK, ApiResponse.success(data = null, message = "Request $action"))
+            }
+
+            // --- BLOCK & MUTE ---
+            post("/{id}/block") {
+                val userId = call.principal<JWTPrincipal>()?.payload?.getClaim("userId")?.asLong()
+                    ?: return@post call.respond(HttpStatusCode.Unauthorized, ApiResponse.error("UNAUTHORIZED", "Token không hợp lệ."))
+                val blockedId = call.parameters["id"]?.toLongOrNull()
+                // TODO: Insert/Delete into BlockedUsersTable. Remove from FollowersTable.
+                call.respond(HttpStatusCode.OK, ApiResponse.success(data = null, message = "Đã thay đổi trạng thái chặn"))
+            }
+
+            post("/{id}/mute") {
+                val userId = call.principal<JWTPrincipal>()?.payload?.getClaim("userId")?.asLong()
+                    ?: return@post call.respond(HttpStatusCode.Unauthorized, ApiResponse.error("UNAUTHORIZED", "Token không hợp lệ."))
+                val mutedId = call.parameters["id"]?.toLongOrNull()
+                // TODO: Insert/Delete into MutedUsersTable
+                call.respond(HttpStatusCode.OK, ApiResponse.success(data = null, message = "Đã thay đổi trạng thái tắt tiếng"))
+            }
         }
 
         // --- PUBLIC GET PROFILE ---

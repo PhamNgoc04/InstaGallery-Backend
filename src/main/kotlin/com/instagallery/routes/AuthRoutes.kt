@@ -73,6 +73,21 @@ fun Route.authRoutes() {
             call.respond(HttpStatusCode.OK, ApiResponse.success(data = null, message = "Mật khẩu đã được thiết lập lại thành công."))
         }
 
+        post("/google") {
+            // TODO: Receive Google JWT Token
+            // TODO: Verify with Google Auth Library
+            // TODO: Upsert into UsersTable (with provider=GOOGLE, providerId)
+            // TODO: Generate and return local JWT Access Token
+            call.respond(HttpStatusCode.OK, ApiResponse.success(data = null, message = "Đăng nhập Google thành công"))
+        }
+
+        post("/2fa/verify-login") {
+            // TODO: Receive UserId and OTP Code
+            // TODO: Verify OTP against twoFactorSecret
+            // TODO: Generate and return JWT tokens if OTP is valid
+            call.respond(HttpStatusCode.OK, ApiResponse.success(data = null, message = "Xác thực 2FA thành công"))
+        }
+
         authenticate("jwt") {
             post("/logout") {
                 val refreshToken = call.request.headers["X-Refresh-Token"]
@@ -91,6 +106,25 @@ fun Route.authRoutes() {
                 authService.changePassword(userId, request)
                 
                 call.respond(HttpStatusCode.OK, ApiResponse.success(data = null, message = "Đổi mật khẩu thành công. Vui lòng đăng nhập lại trên các thiết bị."))
+            }
+
+            post("/2fa/setup") {
+                val principal = call.principal<io.ktor.server.auth.jwt.JWTPrincipal>()
+                val userId = principal?.payload?.getClaim("userId")?.asLong()
+                    ?: return@post call.respond(HttpStatusCode.Unauthorized, ApiResponse.error("UNAUTHORIZED", "Token không hợp lệ."))
+                
+                // TODO: Generate new TOTP Secret, update UsersTable.twoFactorSecret
+                // TODO: Generate QR Code URI
+                call.respond(HttpStatusCode.OK, ApiResponse.success(data = null, message = "Cấu hình 2FA thành công"))
+            }
+
+            post("/2fa/enable") {
+                val principal = call.principal<io.ktor.server.auth.jwt.JWTPrincipal>()
+                val userId = principal?.payload?.getClaim("userId")?.asLong()
+                    ?: return@post call.respond(HttpStatusCode.Unauthorized, ApiResponse.error("UNAUTHORIZED", "Token không hợp lệ."))
+                
+                // TODO: Receive OTP, verify against secret. If true, set isTwoFactorEnabled = true
+                call.respond(HttpStatusCode.OK, ApiResponse.success(data = null, message = "Đã bật xác thực 2 bước"))
             }
         }
     }

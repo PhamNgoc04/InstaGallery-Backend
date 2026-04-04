@@ -22,6 +22,17 @@ object UsersTable : LongIdTable("users") {
     val userType = enumerationByName("user_type", 20, UserType::class).default(UserType.CLIENT)
     val role = enumerationByName("role", 10, Role::class).default(Role.USER)
     
+    // OAuth & Auth Extensions
+    val provider = enumerationByName("provider", 20, com.instagallery.models.common.AuthProvider::class).default(com.instagallery.models.common.AuthProvider.LOCAL)
+    val providerId = varchar("provider_id", 255).nullable().uniqueIndex()
+    
+    // 2FA Configuration
+    val isTwoFactorEnabled = bool("is_two_factor_enabled").default(false)
+    val twoFactorSecret = varchar("two_factor_secret", 255).nullable()
+    
+    // Privacy
+    val isPrivate = bool("is_private").default(false)
+    
     val isVerified = bool("is_verified").default(false)
     val isActive = bool("is_active").default(true)
     
