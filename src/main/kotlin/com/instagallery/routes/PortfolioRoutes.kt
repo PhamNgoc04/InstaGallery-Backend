@@ -61,6 +61,24 @@ fun Route.portfolioRoutes() {
 
                 call.respond(HttpStatusCode.OK, ApiResponse.success(data = updatedPortfolio, message = "Cập nhật hồ sơ nhiếp ảnh gia thành công."))
             }
+
+            post("/me/availability") {
+                val principal = call.principal<JWTPrincipal>()
+                val userId = principal?.payload?.getClaim("userId")?.asLong()
+                    ?: return@post call.respond(HttpStatusCode.Unauthorized, ApiResponse.error("UNAUTHORIZED", "Token không hợp lệ."))
+                
+                // TODO: Receive Availability array, upsert into AvailabilitySchedulesTable
+                call.respond(HttpStatusCode.OK, ApiResponse.success(data = null, message = "Cập nhật thời gian làm việc thành công."))
+            }
+
+            get("/me/availability") {
+                val principal = call.principal<JWTPrincipal>()
+                val userId = principal?.payload?.getClaim("userId")?.asLong()
+                    ?: return@get call.respond(HttpStatusCode.Unauthorized, ApiResponse.error("UNAUTHORIZED", "Token không hợp lệ."))
+                
+                // TODO: Setup query to get schedule slots
+                call.respond(HttpStatusCode.OK, ApiResponse.success(data = listOf<Any>()))
+            }
         }
     }
 }
