@@ -25,6 +25,11 @@ class PostService : KoinComponent {
             ?: throw Exception("Failed to create post")
     }
 
+    suspend fun getPostDetails(postId: Long): com.instagallery.models.common.FeedPostDto {
+        return postRepository.getPostById(postId)
+            ?: throw ValidationException("POST_NOT_FOUND", "Bài viết không tồn tại hoặc đã bị xóa.")
+    }
+
     suspend fun getFeed(userId: Long, page: Int, limit: Int): PaginatedFeedResponse {
         val verifiedPage = if (page < 1) 1 else page
         val verifiedLimit = if (limit < 1) 10 else if (limit > 50) 50 else limit

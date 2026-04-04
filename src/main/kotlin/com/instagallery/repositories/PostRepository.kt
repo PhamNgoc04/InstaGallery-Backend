@@ -121,6 +121,36 @@ class PostRepository {
         updatedCount > 0
     }
 
+    suspend fun getPostById(postId: Long): FeedPostDto? = dbQuery {
+        val row = (PostsTable innerJoin UsersTable)
+            .selectAll()
+            .where { (PostsTable.id eq postId) and (PostsTable.deletedAt.isNull()) }
+            .singleOrNull() ?: return@dbQuery null
+
+        val mediaRows = PostMediaTable.selectAll().where { PostMediaTable.postId eq postId }.orderBy(PostMediaTable.position to SortOrder.ASC).toList()
+        val mediaList = mediaRows.map { mRow ->
+            FeedMediaDto(
+                id = mRow[PostMediaTable.id].value,
+                url = mRow[PostMediaTable.mediaFileUrl],
+                type = mRow[PostMediaTable.mediaType].name,
+                orderIndex = mRow[PostMediaTable.position]
+            )
+        }
+
+        FeedPostDto(
+            postId = postId,
+            userId = row[UsersTable.id].value,
+            username = row[UsersTable.username],
+            userAvatar = row[UsersTable.profilePictureUrl],
+            caption = row[PostsTable.caption],
+            location = row[PostsTable.location],
+            likeCount = row[PostsTable.likeCount],
+            commentCount = row[PostsTable.commentCount],
+            createdAt = row[PostsTable.createdAt].toString(),
+            media = mediaList
+        )
+    }
+
     suspend fun logicSoftDeletePost(postId: Long, userId: Long): Boolean = dbQuery {
         val count = PostsTable.update({ (PostsTable.id eq postId) and (PostsTable.userId eq userId) }) {
             it[deletedAt] = Instant.now()

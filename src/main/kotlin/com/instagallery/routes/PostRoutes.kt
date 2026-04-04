@@ -42,6 +42,14 @@ fun Route.postRoutes() {
                 call.respond(HttpStatusCode.OK, ApiResponse.success(data = feed))
             }
 
+            get("/{id}") {
+                val postId = call.parameters["id"]?.toLongOrNull()
+                    ?: return@get call.respond(HttpStatusCode.BadRequest, ApiResponse.error("INVALID_ID", "ID bài viết không hợp lệ."))
+
+                val post = postService.getPostDetails(postId)
+                call.respond(HttpStatusCode.OK, ApiResponse.success(data = post))
+            }
+
             put("/{id}") {
                 val principal = call.principal<JWTPrincipal>()
                 val userId = principal?.payload?.getClaim("userId")?.asLong()

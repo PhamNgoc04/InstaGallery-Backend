@@ -835,6 +835,42 @@
                     "response": []
                 },
                 {
+                    "name": "GET Get Post Details",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{JWT_TOKEN}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{BASE_URL}}/api/v1/posts/:id",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "posts",
+                                ":id"
+                            ],
+                            "variable": [
+                                {
+                                    "key": "id",
+                                    "value": "1"
+                                }
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
                     "name": "DELETE Delete Post",
                     "request": {
                         "auth": {
@@ -868,167 +904,10 @@
             ]
         },
         {
-            "name": "5. Explore (Khám phá)",
+            "name": "5. Admin (Admin)",
             "item": [
                 {
-                    "name": "GET Trending Hashtags",
-                    "request": {
-                        "auth": {
-                            "type": "bearer",
-                            "bearer": [
-                                {
-                                    "key": "token",
-                                    "value": "{{JWT_TOKEN}}",
-                                    "type": "string"
-                                }
-                            ]
-                        },
-                        "method": "GET",
-                        "header": [],
-                        "url": {
-                            "raw": "{{BASE_URL}}/api/v1/explore/trending?limit=10",
-                            "host": [
-                                "{{BASE_URL}}"
-                            ],
-                            "path": [
-                                "api",
-                                "v1",
-                                "explore",
-                                "trending"
-                            ],
-                            "query": [
-                                {
-                                    "key": "limit",
-                                    "value": "10"
-                                }
-                            ]
-                        }
-                    },
-                    "response": []
-                },
-                {
-                    "name": "GET Explore Feed",
-                    "request": {
-                        "auth": {
-                            "type": "bearer",
-                            "bearer": [
-                                {
-                                    "key": "token",
-                                    "value": "{{JWT_TOKEN}}",
-                                    "type": "string"
-                                }
-                            ]
-                        },
-                        "method": "GET",
-                        "header": [],
-                        "url": {
-                            "raw": "{{BASE_URL}}/api/v1/explore?page=1&limit=20&tag=nature",
-                            "host": [
-                                "{{BASE_URL}}"
-                            ],
-                            "path": [
-                                "api",
-                                "v1",
-                                "explore"
-                            ],
-                            "query": [
-                                {
-                                    "key": "page",
-                                    "value": "1"
-                                },
-                                {
-                                    "key": "limit",
-                                    "value": "20"
-                                },
-                                {
-                                    "key": "tag",
-                                    "value": "nature"
-                                }
-                            ]
-                        }
-                    },
-                    "response": []
-                }
-            ]
-        },
-        {
-            "name": "6. Search (Tìm kiếm)",
-            "item": [
-                {
-                    "name": "GET Global Search",
-                    "request": {
-                        "auth": {
-                            "type": "bearer",
-                            "bearer": [
-                                {
-                                    "key": "token",
-                                    "value": "{{JWT_TOKEN}}",
-                                    "type": "string"
-                                }
-                            ]
-                        },
-                        "method": "GET",
-                        "header": [],
-                        "url": {
-                            "raw": "{{BASE_URL}}/api/v1/search?q=ngoc&type=ALL&limit=20",
-                            "host": [
-                                "{{BASE_URL}}"
-                            ],
-                            "path": [
-                                "api",
-                                "v1",
-                                "search"
-                            ],
-                            "query": [
-                                {
-                                    "key": "q",
-                                    "value": "ngoc"
-                                },
-                                {
-                                    "key": "type",
-                                    "value": "ALL"
-                                },
-                                {
-                                    "key": "limit",
-                                    "value": "20"
-                                }
-                            ]
-                        }
-                    },
-                    "response": []
-                },
-                {
-                    "name": "GET Search History",
-                    "request": {
-                        "auth": {
-                            "type": "bearer",
-                            "bearer": [
-                                {
-                                    "key": "token",
-                                    "value": "{{JWT_TOKEN}}",
-                                    "type": "string"
-                                }
-                            ]
-                        },
-                        "method": "GET",
-                        "header": [],
-                        "url": {
-                            "raw": "{{BASE_URL}}/api/v1/search/history",
-                            "host": [
-                                "{{BASE_URL}}"
-                            ],
-                            "path": [
-                                "api",
-                                "v1",
-                                "search",
-                                "history"
-                            ]
-                        }
-                    },
-                    "response": []
-                },
-                {
-                    "name": "DELETE Clear Search History",
+                    "name": "DELETE /api/v1/admin/comments/{commentId}",
                     "request": {
                         "auth": {
                             "type": "bearer",
@@ -1043,16 +922,176 @@
                         "method": "DELETE",
                         "header": [],
                         "url": {
-                            "raw": "{{BASE_URL}}/api/v1/search/history",
+                            "raw": "{{BASE_URL}}/api/v1/admin/comments/{commentId}",
                             "host": [
                                 "{{BASE_URL}}"
                             ],
                             "path": [
                                 "api",
                                 "v1",
-                                "search",
-                                "history"
+                                "admin",
+                                "comments",
+                                ":commentId"
+                            ],
+                            "variable": [
+                                {
+                                    "key": "commentId",
+                                    "value": "1"
+                                }
                             ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "DELETE /api/v1/admin/posts/{postId}",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{JWT_TOKEN}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "DELETE",
+                        "header": [],
+                        "url": {
+                            "raw": "{{BASE_URL}}/api/v1/admin/posts/{postId}",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "admin",
+                                "posts",
+                                ":postId"
+                            ],
+                            "variable": [
+                                {
+                                    "key": "postId",
+                                    "value": "1"
+                                }
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "GET /api/v1/admin/stats",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{JWT_TOKEN}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{BASE_URL}}/api/v1/admin/stats",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "admin",
+                                "stats"
+                            ],
+                            "variable": []
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "GET /api/v1/admin/stats/growth",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{JWT_TOKEN}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{BASE_URL}}/api/v1/admin/stats/growth",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "admin",
+                                "stats",
+                                "growth"
+                            ],
+                            "variable": []
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "PUT /api/v1/admin/users/{userId}/ban",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{JWT_TOKEN}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{BASE_URL}}/api/v1/admin/users/{userId}/ban",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "admin",
+                                "users",
+                                ":userId",
+                                "ban"
+                            ],
+                            "variable": [
+                                {
+                                    "key": "userId",
+                                    "value": "1"
+                                }
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    // TODO: Add payload \n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
                         }
                     },
                     "response": []
@@ -1060,10 +1099,473 @@
             ]
         },
         {
-            "name": "7. Chat & Messages (Tin nhắn)",
+            "name": "6. Album (Album)",
             "item": [
                 {
-                    "name": "GET Conversations List",
+                    "name": "DELETE /api/v1/albums/{id}",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{JWT_TOKEN}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "DELETE",
+                        "header": [],
+                        "url": {
+                            "raw": "{{BASE_URL}}/api/v1/albums/{id}",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "albums",
+                                ":id"
+                            ],
+                            "variable": [
+                                {
+                                    "key": "id",
+                                    "value": "1"
+                                }
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "DELETE /api/v1/albums/{id}/media/{mediaId}",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{JWT_TOKEN}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "DELETE",
+                        "header": [],
+                        "url": {
+                            "raw": "{{BASE_URL}}/api/v1/albums/{id}/media/{mediaId}",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "albums",
+                                ":id",
+                                "media",
+                                ":mediaId"
+                            ],
+                            "variable": [
+                                {
+                                    "key": "id",
+                                    "value": "1"
+                                },
+                                {
+                                    "key": "mediaId",
+                                    "value": "1"
+                                }
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "GET /api/v1/albums",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{JWT_TOKEN}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{BASE_URL}}/api/v1/albums",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "albums"
+                            ],
+                            "variable": []
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "GET /api/v1/albums/{id}",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{JWT_TOKEN}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{BASE_URL}}/api/v1/albums/{id}",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "albums",
+                                ":id"
+                            ],
+                            "variable": [
+                                {
+                                    "key": "id",
+                                    "value": "1"
+                                }
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "POST /api/v1/albums",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{JWT_TOKEN}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{BASE_URL}}/api/v1/albums",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "albums"
+                            ],
+                            "variable": []
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    // TODO: Add payload \n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "POST /api/v1/albums/{id}/media",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{JWT_TOKEN}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{BASE_URL}}/api/v1/albums/{id}/media",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "albums",
+                                ":id",
+                                "media"
+                            ],
+                            "variable": [
+                                {
+                                    "key": "id",
+                                    "value": "1"
+                                }
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    // TODO: Add payload \n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "PUT /api/v1/albums/{id}",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{JWT_TOKEN}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{BASE_URL}}/api/v1/albums/{id}",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "albums",
+                                ":id"
+                            ],
+                            "variable": [
+                                {
+                                    "key": "id",
+                                    "value": "1"
+                                }
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    // TODO: Add payload \n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "7. Booking (Booking)",
+            "item": [
+                {
+                    "name": "GET /api/v1/bookings",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{JWT_TOKEN}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{BASE_URL}}/api/v1/bookings",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "bookings"
+                            ],
+                            "variable": []
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "POST /api/v1/bookings",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{JWT_TOKEN}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{BASE_URL}}/api/v1/bookings",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "bookings"
+                            ],
+                            "variable": []
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    // TODO: Add payload \n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "PUT /api/v1/bookings/{id}/status",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{JWT_TOKEN}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{BASE_URL}}/api/v1/bookings/{id}/status",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "bookings",
+                                ":id",
+                                "status"
+                            ],
+                            "variable": [
+                                {
+                                    "key": "id",
+                                    "value": "1"
+                                }
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    // TODO: Add payload \n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "8. Chat (Chat)",
+            "item": [
+                {
+                    "name": "GET /api/v1/chat/api/v1/ws/chat",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{JWT_TOKEN}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{BASE_URL}}/api/v1/chat/api/v1/ws/chat",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "chat",
+                                "api",
+                                "v1",
+                                "ws",
+                                "chat"
+                            ],
+                            "variable": []
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "GET /api/v1/chat/conversations",
                     "request": {
                         "auth": {
                             "type": "bearer",
@@ -1087,13 +1589,14 @@
                                 "v1",
                                 "chat",
                                 "conversations"
-                            ]
+                            ],
+                            "variable": []
                         }
                     },
                     "response": []
                 },
                 {
-                    "name": "GET Messages in Conversation",
+                    "name": "GET /api/v1/chat/conversations/{id}/messages",
                     "request": {
                         "auth": {
                             "type": "bearer",
@@ -1108,7 +1611,7 @@
                         "method": "GET",
                         "header": [],
                         "url": {
-                            "raw": "{{BASE_URL}}/api/v1/chat/conversations/1/messages?page=1&limit=50",
+                            "raw": "{{BASE_URL}}/api/v1/chat/conversations/{id}/messages",
                             "host": [
                                 "{{BASE_URL}}"
                             ],
@@ -1117,110 +1620,995 @@
                                 "v1",
                                 "chat",
                                 "conversations",
-                                "1",
+                                ":id",
                                 "messages"
                             ],
-                            "query": [
+                            "variable": [
                                 {
-                                    "key": "page",
+                                    "key": "id",
                                     "value": "1"
-                                },
-                                {
-                                    "key": "limit",
-                                    "value": "50"
                                 }
                             ]
                         }
                     },
                     "response": []
-                },
+                }
+            ]
+        },
+        {
+            "name": "9. Explore (Explore)",
+            "item": [
                 {
-                    "name": "WS Real-time Connection (Note: Use Postman WebSocket Request type)",
+                    "name": "GET /api/v1/explore",
                     "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{JWT_TOKEN}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
                         "method": "GET",
                         "header": [],
                         "url": {
-                            "raw": "ws://localhost:8080/api/v1/ws/chat?token={{JWT_TOKEN}}",
-                            "protocol": "ws",
+                            "raw": "{{BASE_URL}}/api/v1/explore",
                             "host": [
-                                "localhost"
+                                "{{BASE_URL}}"
                             ],
-                            "port": "8080",
                             "path": [
                                 "api",
                                 "v1",
-                                "ws",
-                                "chat"
+                                "explore"
                             ],
-                            "query": [
-                                {
-                                    "key": "token",
-                                    "value": "{{JWT_TOKEN}}"
-                                }
-                            ]
-                        },
-                        "description": "BẠN HÃY TẢI POSTMAN MỚI NHẤT -> BẤM VÀO NÚT 'NEW' -> CHỌN 'WEBSOCKET REQUEST' ĐỂ KẾT NỐI VÀO ĐƯỜNG DẪN NÀY LÀ ĐƯỢC NHÉ!"
-                    },
-                    "response": []
-                }
-            ]
-        },
-        {
-            "name": "5. Portfolios & Availability",
-            "item": [
-                {
-                    "name": "POST Specific Availability",
-                    "request": {
-                        "auth": {"type": "bearer", "bearer": [{"key": "token", "value": "{{JWT_TOKEN}}", "type": "string"}]},
-                        "method": "POST",
-                        "header": [],
-                        "body": {
-                            "mode": "raw",
-                            "raw": "{\n    \"date\": \"2026-05-12\",\n    \"intervals\": [{\"start\": \"08:00\", \"end\": \"12:00\"}]\n}",
-                            "options": {"raw": {"language": "json"}}
-                        },
-                        "url": {
-                            "raw": "{{BASE_URL}}/api/v1/portfolios/me/availability",
-                            "host": ["{{BASE_URL}}"],
-                            "path": ["api", "v1", "portfolios", "me", "availability"]
-                        }
-                    },
-                    "response": []
-                }
-            ]
-        },
-        {
-            "name": "6. Admin Dashboard",
-            "item": [
-                {
-                    "name": "GET System Stats",
-                    "request": {
-                        "auth": {"type": "bearer", "bearer": [{"key": "token", "value": "{{JWT_TOKEN}}", "type": "string"}]},
-                        "method": "GET",
-                        "header": [],
-                        "url": {
-                            "raw": "{{BASE_URL}}/api/v1/admin/stats",
-                            "host": ["{{BASE_URL}}"],
-                            "path": ["api", "v1", "admin", "stats"]
+                            "variable": []
                         }
                     },
                     "response": []
                 },
                 {
-                    "name": "PUT Ban User",
+                    "name": "GET /api/v1/explore/trending",
                     "request": {
-                        "auth": {"type": "bearer", "bearer": [{"key": "token", "value": "{{JWT_TOKEN}}", "type": "string"}]},
-                        "method": "PUT",
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{JWT_TOKEN}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "GET",
                         "header": [],
+                        "url": {
+                            "raw": "{{BASE_URL}}/api/v1/explore/trending",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "explore",
+                                "trending"
+                            ],
+                            "variable": []
+                        }
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "10. Media (Media)",
+            "item": [
+                {
+                    "name": "DELETE /api/v1/posts/media/{mediaId}",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{JWT_TOKEN}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "DELETE",
+                        "header": [],
+                        "url": {
+                            "raw": "{{BASE_URL}}/api/v1/posts/media/{mediaId}",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "posts",
+                                "media",
+                                ":mediaId"
+                            ],
+                            "variable": [
+                                {
+                                    "key": "mediaId",
+                                    "value": "1"
+                                }
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "POST /api/v1/media/presigned-url",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{JWT_TOKEN}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{BASE_URL}}/api/v1/media/presigned-url",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "media",
+                                "presigned-url"
+                            ],
+                            "variable": []
+                        },
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n    \"isBanned\": true,\n    \"reason\": \"Vi phạm tiêu chuẩn cộng đồng\"\n}",
-                            "options": {"raw": {"language": "json"}}
+                            "raw": "{\n    // TODO: Add payload \n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "POST /api/v1/posts/{postId}/media",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{JWT_TOKEN}}",
+                                    "type": "string"
+                                }
+                            ]
                         },
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
                         "url": {
-                            "raw": "{{BASE_URL}}/api/v1/admin/users/2/ban",
-                            "host": ["{{BASE_URL}}"],
-                            "path": ["api", "v1", "admin", "users", "2", "ban"]
+                            "raw": "{{BASE_URL}}/api/v1/posts/{postId}/media",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "posts",
+                                ":postId",
+                                "media"
+                            ],
+                            "variable": [
+                                {
+                                    "key": "postId",
+                                    "value": "1"
+                                }
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    // TODO: Add payload \n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "PUT /api/v1/posts/{postId}/media/reorder",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{JWT_TOKEN}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{BASE_URL}}/api/v1/posts/{postId}/media/reorder",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "posts",
+                                ":postId",
+                                "media",
+                                "reorder"
+                            ],
+                            "variable": [
+                                {
+                                    "key": "postId",
+                                    "value": "1"
+                                }
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    // TODO: Add payload \n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "11. Notification (Notification)",
+            "item": [
+                {
+                    "name": "GET /api/v1/notifications",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{JWT_TOKEN}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{BASE_URL}}/api/v1/notifications",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "notifications"
+                            ],
+                            "variable": []
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "PUT /api/v1/notifications/{id}/read",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{JWT_TOKEN}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{BASE_URL}}/api/v1/notifications/{id}/read",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "notifications",
+                                ":id",
+                                "read"
+                            ],
+                            "variable": [
+                                {
+                                    "key": "id",
+                                    "value": "1"
+                                }
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    // TODO: Add payload \n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "PUT /api/v1/notifications/read-all",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{JWT_TOKEN}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{BASE_URL}}/api/v1/notifications/read-all",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "notifications",
+                                "read-all"
+                            ],
+                            "variable": []
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    // TODO: Add payload \n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "12. Portfolio (Portfolio)",
+            "item": [
+                {
+                    "name": "GET /api/v1/portfolios",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{JWT_TOKEN}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{BASE_URL}}/api/v1/portfolios",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "portfolios"
+                            ],
+                            "variable": []
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "GET /api/v1/portfolios/me",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{JWT_TOKEN}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{BASE_URL}}/api/v1/portfolios/me",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "portfolios",
+                                "me"
+                            ],
+                            "variable": []
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "GET /api/v1/portfolios/me/availability",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{JWT_TOKEN}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{BASE_URL}}/api/v1/portfolios/me/availability",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "portfolios",
+                                "me",
+                                "availability"
+                            ],
+                            "variable": []
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "GET /api/v1/portfolios/users/{userId}",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{JWT_TOKEN}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{BASE_URL}}/api/v1/portfolios/users/{userId}",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "portfolios",
+                                "users",
+                                ":userId"
+                            ],
+                            "variable": [
+                                {
+                                    "key": "userId",
+                                    "value": "1"
+                                }
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "POST /api/v1/portfolios/me/availability",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{JWT_TOKEN}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{BASE_URL}}/api/v1/portfolios/me/availability",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "portfolios",
+                                "me",
+                                "availability"
+                            ],
+                            "variable": []
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    // TODO: Add payload \n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "PUT /api/v1/portfolios/me",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{JWT_TOKEN}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{BASE_URL}}/api/v1/portfolios/me",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "portfolios",
+                                "me"
+                            ],
+                            "variable": []
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    // TODO: Add payload \n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "13. Rating (Rating)",
+            "item": [
+                {
+                    "name": "DELETE /api/v1/ratings/{ratingId}",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{JWT_TOKEN}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "DELETE",
+                        "header": [],
+                        "url": {
+                            "raw": "{{BASE_URL}}/api/v1/ratings/{ratingId}",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "ratings",
+                                ":ratingId"
+                            ],
+                            "variable": [
+                                {
+                                    "key": "ratingId",
+                                    "value": "1"
+                                }
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "GET /api/v1/users/{photographerId}/ratings",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{JWT_TOKEN}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{BASE_URL}}/api/v1/users/{photographerId}/ratings",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "users",
+                                ":photographerId",
+                                "ratings"
+                            ],
+                            "variable": [
+                                {
+                                    "key": "photographerId",
+                                    "value": "1"
+                                }
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "POST /api/v1/users/{photographerId}/ratings",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{JWT_TOKEN}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{BASE_URL}}/api/v1/users/{photographerId}/ratings",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "users",
+                                ":photographerId",
+                                "ratings"
+                            ],
+                            "variable": [
+                                {
+                                    "key": "photographerId",
+                                    "value": "1"
+                                }
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    // TODO: Add payload \n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "14. Report (Report)",
+            "item": [
+                {
+                    "name": "GET /api/v1/admin/reports",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{JWT_TOKEN}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{BASE_URL}}/api/v1/admin/reports",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "admin",
+                                "reports"
+                            ],
+                            "variable": []
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "POST /api/v1/reports",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{JWT_TOKEN}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{BASE_URL}}/api/v1/reports",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "reports"
+                            ],
+                            "variable": []
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    // TODO: Add payload \n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "PUT /api/v1/admin/reports/{reportId}",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{JWT_TOKEN}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{BASE_URL}}/api/v1/admin/reports/{reportId}",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "admin",
+                                "reports",
+                                ":reportId"
+                            ],
+                            "variable": [
+                                {
+                                    "key": "reportId",
+                                    "value": "1"
+                                }
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    // TODO: Add payload \n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "15. Search (Search)",
+            "item": [
+                {
+                    "name": "DELETE /api/v1/search/history",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{JWT_TOKEN}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "DELETE",
+                        "header": [],
+                        "url": {
+                            "raw": "{{BASE_URL}}/api/v1/search/history",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "search",
+                                "history"
+                            ],
+                            "variable": []
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "GET /api/v1/search",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{JWT_TOKEN}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{BASE_URL}}/api/v1/search",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "search"
+                            ],
+                            "variable": []
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "GET /api/v1/search/history",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{JWT_TOKEN}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{BASE_URL}}/api/v1/search/history",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "search",
+                                "history"
+                            ],
+                            "variable": []
                         }
                     },
                     "response": []
