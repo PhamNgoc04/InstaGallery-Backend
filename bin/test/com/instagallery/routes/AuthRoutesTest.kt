@@ -56,7 +56,10 @@ class AuthRoutesTest {
                 userId = 1L,
                 email = "u1@test.com",
                 username = "user1",
+                fullName = "User One",
+                profilePictureUrl = null,
                 role = com.instagallery.models.common.Role.USER,
+                userType = UserType.CLIENT,
                 token = "access_token_123",
                 refreshToken = "refresh_token_123"
             )

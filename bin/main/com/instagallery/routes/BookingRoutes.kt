@@ -44,6 +44,19 @@ fun Route.bookingRoutes() {
                 call.respond(HttpStatusCode.OK, ApiResponse.success(data = result))
             }
 
+            // --- FR-38: XEM CHI TIẾT MỘT BOOKING ---
+            get("/{id}") {
+                val principal = call.principal<JWTPrincipal>()
+                val userId = principal?.payload?.getClaim("userId")?.asLong()
+                    ?: return@get call.respond(HttpStatusCode.Unauthorized, ApiResponse.error("UNAUTHORIZED", "Token không hợp lệ."))
+
+                val bookingId = call.parameters["id"]?.toLongOrNull()
+                    ?: return@get call.respond(HttpStatusCode.BadRequest, ApiResponse.error("INVALID_ID", "ID đơn đặt lịch không hợp lệ."))
+
+                val booking = bookingService.getBookingDetail(userId, bookingId)
+                call.respond(HttpStatusCode.OK, ApiResponse.success(data = booking))
+            }
+
             put("/{id}/status") {
                 val principal = call.principal<JWTPrincipal>()
                 val userId = principal?.payload?.getClaim("userId")?.asLong()
@@ -56,6 +69,18 @@ fun Route.bookingRoutes() {
                 bookingService.updateBookingStatus(userId, bookingId, request)
                 
                 call.respond(HttpStatusCode.OK, ApiResponse.success(data = null, message = "Trạng thái đơn hàng đã được cập nhật thành ${request.status}"))
+            }
+
+            // --- FR-38: HỦY BOOKING ---
+            delete("/{id}") {
+                val userId = call.principal<JWTPrincipal>()?.payload?.getClaim("userId")?.asLong()
+                    ?: return@delete call.respond(HttpStatusCode.Unauthorized, ApiResponse.error("UNAUTHORIZED", "Token không hợp lệ."))
+
+                val bookingId = call.parameters["id"]?.toLongOrNull()
+                    ?: return@delete call.respond(HttpStatusCode.BadRequest, ApiResponse.error("INVALID_ID", "ID đơn đặt lịch không hợp lệ."))
+
+                bookingService.cancelBooking(userId, bookingId)
+                call.respond(HttpStatusCode.OK, ApiResponse.success(data = null, message = "Đã hủy đơn đặt lịch."))
             }
         }
     }

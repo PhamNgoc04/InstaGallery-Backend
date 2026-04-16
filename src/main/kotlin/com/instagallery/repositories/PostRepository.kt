@@ -297,4 +297,72 @@ class PostRepository {
             )
         }
     }
+
+    // --- FR-10: GET POSTS BY USER ---
+    suspend fun getPostsByUser(userId: Long, page: Int, limit: Int): PaginatedFeedResponse = dbQuery {
+        val offsetVal = ((page - 1) * limit).toLong()
+        val baseQuery = (PostsTable innerJoin UsersTable)
+            .selectAll()
+            .where { (PostsTable.userId eq userId) and PostsTable.deletedAt.isNull() }
+        val totalRecords = baseQuery.count()
+        val totalPages = Math.ceil(totalRecords.toDouble() / limit).toInt()
+
+        val postRows = baseQuery.orderBy(PostsTable.createdAt to SortOrder.DESC)
+            .limit(limit, offsetVal)
+            .toList()
+
+        val posts = postRows.map { row ->
+            val pId = row[PostsTable.id].value
+            val mediaRows = PostMediaTable.selectAll().where { PostMediaTable.postId eq pId }
+                .orderBy(PostMediaTable.position to SortOrder.ASC).toList()
+            val mediaList = mediaRows.map { mRow ->
+                FeedMediaDto(
+                    id = mRow[PostMediaTable.id].value,
+                    url = mRow[PostMediaTable.mediaFileUrl],
+                    type = mRow[PostMediaTable.mediaType].name,
+                    orderIndex = mRow[PostMediaTable.position]
+                )
+            }
+            FeedPostDto(
+                postId = pId,
+                userId = row[UsersTable.id].value,
+                username = row[UsersTable.username],
+                userAvatar = row[UsersTable.profilePictureUrl],
+                caption = row[PostsTable.caption],
+                location = row[PostsTable.location],
+                likeCount = row[PostsTable.likeCount],
+                commentCount = row[PostsTable.commentCount],
+                createdAt = row[PostsTable.createdAt].toString(),
+                media = mediaList
+            )
+        }
+
+        PaginatedFeedResponse(
+            posts = posts,
+            meta = PaginationMeta(currentPage = page, totalPages = totalPages, hasNext = page < totalPages)
+        )
+    }
+
+    // --- FR-19: TAG USER IN POST ---
+    suspend fun tagUserInPost(ownerId: Long, postId: Long, taggedUserId: Long) = dbQuery {
+        // TODO: Insert into PostTaggedUsersTable when table is created
+    }
+
+    suspend fun removeTagFromPost(ownerId: Long, postId: Long, taggedUserId: Long) = dbQuery {
+        // TODO: Delete from PostTaggedUsersTable when table is created
+    }
+
+    // --- FR-33: COMMENT SETTINGS ---
+    suspend fun updateCommentSettings(ownerId: Long, postId: Long, setting: String) = dbQuery {
+        // PostsTable already has commentVisibility column as enum CommentVisibility
+        // Map the string setting to the enum
+        val visibility = when (setting) {
+            "NONE" -> com.instagallery.models.common.CommentVisibility.NO_ONE
+            "FOLLOWING" -> com.instagallery.models.common.CommentVisibility.FOLLOWERS_ONLY
+            else -> com.instagallery.models.common.CommentVisibility.ALLOW_ALL
+        }
+        PostsTable.update({ (PostsTable.id eq postId) and (PostsTable.userId eq ownerId) }) {
+            it[commentVisibility] = visibility
+        }
+    }
 }

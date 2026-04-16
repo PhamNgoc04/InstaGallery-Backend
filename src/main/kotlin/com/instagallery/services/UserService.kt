@@ -73,4 +73,17 @@ class UserService : KoinComponent {
         val verifiedLimit = if (limit < 1) 10 else if (limit > 50) 50 else limit
         return userRepository.getSuggestedUsers(userId, verifiedLimit)
     }
+
+    // --- FR-09: CẬP NHẬT PRIVACY ---
+    suspend fun updatePrivacy(userId: Long, isPrivate: Boolean) {
+        userRepository.getUserById(userId)
+            ?: throw AuthException("USER_NOT_FOUND", "Tài khoản không tồn tại.")
+
+        com.instagallery.database.DatabaseFactory.dbQuery {
+            com.instagallery.database.tables.UsersTable.update({ com.instagallery.database.tables.UsersTable.id eq userId }) {
+                it[com.instagallery.database.tables.UsersTable.isPrivate] = isPrivate
+                it[updatedAt] = java.time.Instant.now()
+            }
+        }
+    }
 }

@@ -52,4 +52,34 @@ class AdminService : KoinComponent {
         }
         return true
     }
+
+    // --- FR-43: DANH SÁCH NGƯỜI DÙNG ---
+    suspend fun listUsers(page: Int, limit: Int, search: String?, status: String?): Any {
+        val verifiedPage = if (page < 1) 1 else page
+        val verifiedLimit = if (limit < 1) 20 else if (limit > 100) 100 else limit
+        return adminRepository.listUsers(verifiedPage, verifiedLimit, search, status)
+    }
+
+    // --- FR-43: CHI TIẾT NGƯỜI DÙNG ---
+    suspend fun getUserDetail(userId: Long): Any {
+        return adminRepository.getUserDetail(userId)
+            ?: throw AuthException("USER_NOT_FOUND", "Người dùng không tồn tại.")
+    }
+
+    // --- FR-46: TỪ KHÓA CẤM ---
+    suspend fun getBannedKeywords(): Any {
+        return adminRepository.getBannedKeywords()
+    }
+
+    suspend fun addBannedKeyword(keyword: String): Boolean {
+        val clean = keyword.trim().lowercase()
+        if (clean.isBlank()) {
+            throw com.instagallery.plugins.ValidationException("INVALID_KEYWORD", "Từ khóa không được để trống.")
+        }
+        return adminRepository.addBannedKeyword(clean)
+    }
+
+    suspend fun removeBannedKeyword(keywordId: Long): Boolean {
+        return adminRepository.removeBannedKeyword(keywordId)
+    }
 }

@@ -150,4 +150,51 @@ class ChatRepository {
             meta = PaginationMeta(currentPage = page, totalPages = totalPages, hasNext = page < totalPages)
         )
     }
+
+    // --- FR-41: GET OR CREATE CONVERSATION ---
+    suspend fun getOrCreateConversation(userId: Long, targetUserId: Long): Any = dbQuery {
+        // Try to find existing 1-1 conversation between the two users
+        val existingConvIds = ConversationMembersTable
+            .select(ConversationMembersTable.conversationId)
+            .where { ConversationMembersTable.userId eq userId }
+            .map { it[ConversationMembersTable.conversationId].value }
+            .toSet()
+
+        val targetConvIds = ConversationMembersTable
+            .select(ConversationMembersTable.conversationId)
+            .where { ConversationMembersTable.userId eq targetUserId }
+            .map { it[ConversationMembersTable.conversationId].value }
+            .toSet()
+
+        val commonConvId = existingConvIds.intersect(targetConvIds).firstOrNull()
+
+        if (commonConvId != null) {
+            mapOf("conversationId" to commonConvId, "isNew" to false)
+        } else {
+            // Create new conversation
+            val newConvId = ConversationsTable.insertAndGetId {
+                it[type] = com.instagallery.models.common.ConversationType.DIRECT
+            }.value
+
+            ConversationMembersTable.insert {
+                it[ConversationMembersTable.conversationId] = newConvId
+                it[ConversationMembersTable.userId] = userId
+            }
+            ConversationMembersTable.insert {
+                it[ConversationMembersTable.conversationId] = newConvId
+                it[ConversationMembersTable.userId] = targetUserId
+            }
+
+            mapOf("conversationId" to newConvId, "isNew" to true)
+        }
+    }
+
+    // --- FR-41: HIDE CONVERSATION FOR USER ---
+    suspend fun hideConversationForUser(userId: Long, conversationId: Long) = dbQuery {
+        // Soft-delete by removing the participant record (only for this user)
+        ConversationMembersTable.deleteWhere {
+            (ConversationMembersTable.conversationId eq conversationId) and
+            (ConversationMembersTable.userId eq userId)
+        }
+    }
 }

@@ -122,4 +122,61 @@ class InteractionService : KoinComponent {
 
         return interactionRepo.getFollowing(userId, verifiedPage, verifiedLimit)
     }
+
+    // --- FR-22: SAVED POSTS ---
+    suspend fun getSavedPosts(userId: Long, page: Int, limit: Int): Any {
+        val verifiedPage = if (page < 1) 1 else page
+        val verifiedLimit = if (limit < 1) 20 else if (limit > 50) 50 else limit
+        return interactionRepo.getSavedPosts(userId, verifiedPage, verifiedLimit)
+    }
+
+    // --- FR-20: LIKED POSTS ---
+    suspend fun getLikedPosts(userId: Long, page: Int, limit: Int): Any {
+        val verifiedPage = if (page < 1) 1 else page
+        val verifiedLimit = if (limit < 1) 20 else if (limit > 50) 50 else limit
+        return interactionRepo.getLikedPosts(userId, verifiedPage, verifiedLimit)
+    }
+
+    // --- FR-19: TAGGED POSTS ---
+    suspend fun getTaggedPosts(userId: Long, page: Int, limit: Int): Any {
+        val verifiedPage = if (page < 1) 1 else page
+        val verifiedLimit = if (limit < 1) 20 else if (limit > 50) 50 else limit
+        return interactionRepo.getTaggedPosts(userId, verifiedPage, verifiedLimit)
+    }
+
+    // --- FR-28: ACTIVITY LOG ---
+    suspend fun getActivityLog(userId: Long, page: Int, limit: Int): Any {
+        val verifiedPage = if (page < 1) 1 else page
+        val verifiedLimit = if (limit < 1) 20 else if (limit > 50) 50 else limit
+        return interactionRepo.getActivityLog(userId, verifiedPage, verifiedLimit)
+    }
+
+    // --- FR-31: BLOCKED USERS LIST ---
+    suspend fun getBlockedUsers(userId: Long): Any {
+        return interactionRepo.getBlockedUsers(userId)
+    }
+
+    // --- FR-20: WHO LIKED A POST ---
+    suspend fun getPostLikes(postId: Long, page: Int, limit: Int): Any {
+        val postExists = interactionRepo.checkPostExists(postId)
+        if (!postExists) throw AuthException("POST_NOT_FOUND", "Bài viết không tồn tại hoặc đã bị xóa.")
+
+        val verifiedPage = if (page < 1) 1 else page
+        val verifiedLimit = if (limit < 1) 20 else if (limit > 50) 50 else limit
+        return interactionRepo.getPostLikes(postId, verifiedPage, verifiedLimit)
+    }
+
+    // --- FR-27: SHARE POST ---
+    suspend fun sharePost(userId: Long, postId: Long): Long {
+        val postExists = interactionRepo.checkPostExists(postId)
+        if (!postExists) throw AuthException("POST_NOT_FOUND", "Bài viết không tồn tại hoặc đã bị xóa.")
+        return interactionRepo.incrementShareCount(userId, postId)
+    }
+
+    // --- FR-27: GET SHARE COUNT ---
+    suspend fun getShareCount(postId: Long): Long {
+        val postExists = interactionRepo.checkPostExists(postId)
+        if (!postExists) throw AuthException("POST_NOT_FOUND", "Bài viết không tồn tại hoặc đã bị xóa.")
+        return interactionRepo.getShareCount(postId)
+    }
 }

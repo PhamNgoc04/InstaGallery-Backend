@@ -314,4 +314,71 @@ class InteractionRepository {
             meta = com.instagallery.models.common.FollowPaginationMeta(currentPage = page, totalPages = totalPages, totalRecords = totalRecords.toInt())
         )
     }
+
+    // --- FR-22: SAVED POSTS ---
+    suspend fun getSavedPosts(userId: Long, page: Int, limit: Int): Any = dbQuery {
+        // TODO: Query SavedPostsTable JOIN PostsTable
+        mapOf("posts" to emptyList<Any>(), "meta" to mapOf("currentPage" to page, "totalPages" to 0))
+    }
+
+    // --- FR-20: LIKED POSTS ---
+    suspend fun getLikedPosts(userId: Long, page: Int, limit: Int): Any = dbQuery {
+        // TODO: Query PostLikesTable WHERE userId JOIN PostsTable
+        mapOf("posts" to emptyList<Any>(), "meta" to mapOf("currentPage" to page, "totalPages" to 0))
+    }
+
+    // --- FR-19: TAGGED POSTS ---
+    suspend fun getTaggedPosts(userId: Long, page: Int, limit: Int): Any = dbQuery {
+        // TODO: Query PostTaggedUsersTable WHERE taggedUserId JOIN PostsTable
+        mapOf("posts" to emptyList<Any>(), "meta" to mapOf("currentPage" to page, "totalPages" to 0))
+    }
+
+    // --- FR-28: ACTIVITY LOG ---
+    suspend fun getActivityLog(userId: Long, page: Int, limit: Int): Any = dbQuery {
+        // TODO: Query ActivityLogsTable WHERE actorId = userId ORDER BY createdAt DESC
+        mapOf("activities" to emptyList<Any>(), "meta" to mapOf("currentPage" to page, "totalPages" to 0))
+    }
+
+    // --- FR-31: BLOCKED USERS ---
+    suspend fun getBlockedUsers(userId: Long): Any = dbQuery {
+        // TODO: Query BlockedUsersTable WHERE blockerId = userId JOIN UsersTable
+        listOf<Any>()
+    }
+
+    // --- FR-20: WHO LIKED A POST ---
+    suspend fun getPostLikes(postId: Long, page: Int, limit: Int): Any = dbQuery {
+        val offset = ((page - 1) * limit).toLong()
+        val rows = LikesTable
+            .join(UsersTable, JoinType.INNER, LikesTable.userId, UsersTable.id)
+            .selectAll()
+            .where { LikesTable.postId eq postId }
+            .orderBy(LikesTable.createdAt to SortOrder.DESC)
+            .limit(limit, offset)
+            .map { row ->
+                mapOf(
+                    "userId" to row[UsersTable.id].value,
+                    "username" to row[UsersTable.username],
+                    "fullName" to row[UsersTable.fullName],
+                    "avatar" to row[UsersTable.profilePictureUrl]
+                )
+            }
+        mapOf("users" to rows, "page" to page)
+    }
+
+    // --- FR-27: INCREMENT SHARE COUNT ---
+    suspend fun incrementShareCount(userId: Long, postId: Long): Long = dbQuery {
+        PostsTable.update({ PostsTable.id eq postId }) {
+            with(SqlExpressionBuilder) {
+                it.update(PostsTable.shareCount, PostsTable.shareCount + 1)
+            }
+        }
+        PostsTable.selectAll().where { PostsTable.id eq postId }
+            .first()[PostsTable.shareCount].toLong()
+    }
+
+    // --- FR-27: GET SHARE COUNT ---
+    suspend fun getShareCount(postId: Long): Long = dbQuery {
+        PostsTable.selectAll().where { PostsTable.id eq postId }
+            .firstOrNull()?.get(PostsTable.shareCount)?.toLong() ?: 0L
+    }
 }

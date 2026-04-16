@@ -62,6 +62,19 @@ fun Route.ratingRoutes() {
                 ratingService.deleteRating(userId, ratingId)
                 call.respond(HttpStatusCode.OK, ApiResponse.success(data = null, message = "Đã xóa đánh giá."))
             }
+
+            // --- FR-39: SỬA ĐÁNH GIÁ ---
+            put("/ratings/{ratingId}") {
+                val userId = call.principal<JWTPrincipal>()?.payload?.getClaim("userId")?.asLong()
+                    ?: return@put call.respond(HttpStatusCode.Unauthorized, ApiResponse.error("UNAUTHORIZED", "Token không hợp lệ."))
+
+                val ratingId = call.parameters["ratingId"]?.toLongOrNull()
+                    ?: return@put call.respond(HttpStatusCode.BadRequest, ApiResponse.error("INVALID_ID", "ID đánh giá không hợp lệ."))
+
+                val request = call.receive<CreateRatingRequest>()
+                val updated = ratingService.updateRating(userId, ratingId, request)
+                call.respond(HttpStatusCode.OK, ApiResponse.success(data = updated, message = "Đánh giá đã được cập nhật."))
+            }
         }
     }
 }

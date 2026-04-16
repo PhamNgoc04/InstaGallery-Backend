@@ -34,6 +34,17 @@ fun Route.interactionRoutes() {
                 call.respond(HttpStatusCode.OK, ApiResponse.success(data = res, message = msg))
             }
 
+            // --- FR-20: WHO LIKED THIS POST ---
+            get("/{id}/likes") {
+                val postId = call.parameters["id"]?.toLongOrNull()
+                    ?: return@get call.respond(HttpStatusCode.BadRequest, ApiResponse.error("INVALID_ID", "ID bài viết không hợp lệ."))
+
+                val page = call.request.queryParameters["page"]?.toIntOrNull() ?: 1
+                val limit = call.request.queryParameters["limit"]?.toIntOrNull() ?: 20
+                val likes = interactionService.getPostLikes(postId, page, limit)
+                call.respond(HttpStatusCode.OK, ApiResponse.success(data = likes))
+            }
+
             // --- SAVES (BOOKMARKS) ---
             post("/{id}/save") {
                 val principal = call.principal<JWTPrincipal>()
@@ -76,6 +87,27 @@ fun Route.interactionRoutes() {
 
                 val res = interactionService.getComments(postId, page, limit)
                 call.respond(HttpStatusCode.OK, ApiResponse.success(data = res))
+            }
+
+            // --- FR-27: SHARE POST ---
+            post("/{id}/share") {
+                val userId = call.principal<JWTPrincipal>()?.payload?.getClaim("userId")?.asLong()
+                    ?: return@post call.respond(HttpStatusCode.Unauthorized, ApiResponse.error("UNAUTHORIZED", "Token không hợp lệ."))
+
+                val postId = call.parameters["id"]?.toLongOrNull()
+                    ?: return@post call.respond(HttpStatusCode.BadRequest, ApiResponse.error("INVALID_ID", "ID bài viết không hợp lệ."))
+
+                val shareCount = interactionService.sharePost(userId, postId)
+                call.respond(HttpStatusCode.OK, ApiResponse.success(data = mapOf("shareCount" to shareCount), message = "Đã chia sẻ bài viết."))
+            }
+
+            // --- FR-27: GET SHARE COUNT ---
+            get("/{id}/shares") {
+                val postId = call.parameters["id"]?.toLongOrNull()
+                    ?: return@get call.respond(HttpStatusCode.BadRequest, ApiResponse.error("INVALID_ID", "ID bài viết không hợp lệ."))
+
+                val shareCount = interactionService.getShareCount(postId)
+                call.respond(HttpStatusCode.OK, ApiResponse.success(data = mapOf("shareCount" to shareCount)))
             }
         }
     }

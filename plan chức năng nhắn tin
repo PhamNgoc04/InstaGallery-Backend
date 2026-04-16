@@ -1,0 +1,136 @@
+# 💬 Kế hoạch Triển Khai Kiến Trúc Chức Năng Nhắn Tin (Chat Feature)
+
+## Nhận định từ Chuyên gia (Expert Highlights)
+
+Bản nâng cấp này đã được thiết kế lại dựa trên **5 Đóng góp cốt lõi** từ chuyên gia:
+1. **Kiến trúc Real-time Độc lập**: Quản lý WebSocket bằng `ChatSocketService` (Singleton/Scoped) thay vì nhốt trong ViewModel. Đảm bảo kết nối tồn tại ngay cả khi thoát khỏi màn hình chat chi tiết, luân chuyển tin nhắn qua Flow.
+2. **Room Database (Offline-first / Caching Layer)**: API đẩy về Room → Room emit dạng Flow lên ViewModel. Tin nhắn luôn hiển thị mượt và lập tức dù offline (Single Source of Truth).
+3. **Quản trị Message Status**: Thêm enum trạng thái (`SENDING`, `SENT`, `DELIVERED`, `READ`, `FAILED`) để kiểm soát chặt vòng đời của một tin nhắn.
+4. **Độ tinh xảo UI/UX (Messenger level)**: Xử lý Keyboard mượt mà với `Modifier.imePadding()` và `WindowInsets`. Phân nhóm logic theo Date Header ("Hôm nay", "T6"). Bổ sung Animation "Người kia đang nhập...".
+5. **Flow triển khai ổn định**: Lặp lại quy trình vàng (REST trước → DB Local & UI → Đắp WebSocket lên đỉnh) để không gãy gánh giữa chừng.
+
+---
+
+## Phân tích Reference UI & Trải nghiệm
+
+### Màn hình 1: Conversations List
+- Header: "Messages" + icon Compose.
+- Chuyển **Tab 3 (Bottom Navigation)** thành Cổng tin nhắn 💬.
+- Cải thiện Offline: Render lập tức từ Room DB ngay cả khi không có mạng. Giao diện Skeleton Loading xịn xò.
+- Danh sách chứa Avatar, Username in đậm, Tin nhắn cuối + Thời gian + Badge đỏ chưa đọc.
+
+### Màn hình 2: Chat Detail
+- **Top Bar**: ← Back | Avatar + Username + Status "Active now" | Icons Call, Video, Info.
+- **Message Bubbles**: 
+  - Khung Chat: *Nhóm theo cụm Ngày tháng ở giữa màn hình.*
+  - Tin nhắn gửi (Mình): Xanh dương (`#0084FF`) bo tròn, status nhỏ cạnh viền. Nếu rớt mạng hiện icon `FAILED` 🔴 (Click để retry). Đang gửi thì làm mờ 50%.
+  - Tin nhắn nhận (Họ): Xám nhạt (`#E4E6EB`), có rớt lề avatar nhỏ.
+  - Typing Indicator: Hiện bong bóng với 3 dấu chấm nhấp nháy khi bắt được event.
+  - Xử lý bàn phím `imePadding()`: Không làm giật khung LazyColumn.
+- **Bottom Input Bar**: Khung gửi chữ "Aa", icon chụp ảnh/gửi ảnh. (Phase 1 hiển thị hình từ URL, Phase sau làm tính năng push file).
+
+---
+
+## Lộ Trình Triển Khai (Roadmap Phase)
+
+> [!TIP]
+> **Thêm Dependencies mới vào build.gradle.kts**:
+> 1. `io.ktor:ktor-client-websockets:2.3.11` (WebSocket)
+> 2. `androidx.room:room-runtime`, `room-ktx`, `room-compiler` (Phiên bản phù hợp KSP hoặc KAPT) cho Room DB.
+
+---
+
+### Phase 1: Core Foundation (REST + Domain + DTO) 
+
+Xây bộ Model vững chắc hỗ trợ *Offline Enum Status*.
+
+#### [NEW] `domain/chat/model/MessageStatus.kt`
+Enum Tracking:
+```kotlin
+enum class MessageStatus {
+    SENDING, SENT, DELIVERED, READ, FAILED
+}
+```
+
+#### [NEW] `domain/chat/model/Message.kt` & `Conversation.kt`
+Bổ sung `val status: MessageStatus` cho Message.
+
+#### [NEW] `data/chat/remote/dto/...`
+Tạo DTO parsing từ REST API: GET `/api/v1/chat/conversations` và GET `/api/v1/chat/conversations/{id}/messages`.
+
+---
+
+### Phase 2: Nền tảng Local Cache (Offline-First via Room DB)
+
+Sức mạnh Single Source of Truth — App không giật lag khi tải lại.
+
+#### [NEW] `data/local/db/AppDatabase.kt` & Entities
+Tạo các bảng `ConversationEntity`, `MessageEntity`.
+Cấu hình Module DI `DatabaseModule.kt`.
+
+#### [NEW] `data/local/db/dao/ChatDao.kt`
+Khai báo các Queries dưới dạng Flow.
+```kotlin
+@Dao
+interface ChatDao {
+    @Query("SELECT * FROM conversations_table ORDER BY lastMessageTime DESC")
+    fun getConversationsFlow(): Flow<List<ConversationEntity>>
+    
+    @Query("SELECT * FROM messages_table WHERE conversationId = :id ORDER BY createdAt ASC")
+    fun getMessagesFlow(id: Int): Flow<List<MessageEntity>>
+    // Insert/Update commands
+}
+```
+
+#### [NEW] `domain/chat/ChatRepository.kt` & `ChatRepositoryImpl.kt`
+Hoàn thiện kiến trúc Offline-First:
+1. `ChatRepository` gọi REST.
+2. Dữ liệu vớt về được đẩn vào `ChatDao.insertAll()`.
+3. Hàm lấy dữ liệu cho ViewModel được trả trực tiếp bằng `Flow<List<Message>>` (đọc từ Room DB lên). Khi Room cập nhật thì UI tự động nẩy lên.
+
+---
+
+### Phase 3: Presentation UI (List & Detail)
+
+Áp dụng các kĩ thuật UI tinh xảo nhất.
+
+#### [NEW] `presentation/chat/list/...`
+Tạo `ConversationListScreen`, `ViewModel`, `ConversationListUiState`.
+Lấy `Flow` từ DB đổ ra UI.
+
+#### [NEW] `presentation/chat/detail/...`
+Tạo `ChatDetailScreen`, `ViewModel`, `ChatDetailUiState`.
+- Bổ sung `Modifier.imePadding()` ở cấp độ Root của Detail Screen.
+- Dùng logic tính toán trong UI (hoặc ViewModel map) để lồng phần Header "Hôm nay", "Thứ Hai" vào giữa cụm các tick tin nhắn.
+
+#### [NEW] `presentation/chat/detail/components/MessageBubble.kt`
+Thiết kế Bubble Status. Gắn thêm Layout báo lỗi (Failed retry) hoặc làm mờ (Sending).
+
+---
+
+### Phase 4: Sắp Xếp Tuyến Navigation
+
+#### [MODIFY] `presentation/navigation/Screen.kt` & `AppNavGraph.kt`
+Tạo trạm Route mới.
+
+#### [MODIFY] `presentation/home/BottomNavBar.kt`
+Cải tổ thanh dưới cùng. Bứng `Notifications` ra thay bằng `Messages 💬`.
+
+---
+
+### Phase 5: Hơi Thở Real-time (Trái Tim WebSocket)
+
+Lắp bộ đẩy Event động cơ ngầm.
+
+#### [NEW] `data/chat/remote/ws/ChatSocketService.kt`
+Một thành phần Service/Manager duy trì qua Context/Singleton.
+- Khởi tạo kết nối phiên bản Web Socket tới `/api/v1/ws/chat`.
+- Cấu trúc các Event Frame: `CONNECT`, `NEW_MESSAGE`, `TYPING`.
+- Service bắn Event xuống cho Repository update vào DB, từ DB Room tự đánh động lên ViewModel và báo cho View vẽ thêm cục bong bóng mới. Quá trình luân chuyển dữ liệu mạch lạc và không lo mất tin nhắn!
+
+## Kiểm thử & Phê duyệt
+
+> [!IMPORTANT]
+> Toàn bộ 5 lưu ý quý giá từ bạn đã được bổ sung trực tiếp vào bản thiết kế 5 Phase này. Đảm bảo UI/UX mượt mà, Offline vững vàng với Room DB, và Data Flow theo triết lý Single Source of Truth chuẩn Enterprise!
+> 
+> Xác nhận để chúng ta bay ngay vào Phase 1 nhé!

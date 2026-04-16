@@ -29,6 +29,15 @@ fun Route.notificationRoutes() {
                 call.respond(HttpStatusCode.OK, ApiResponse.success(data = result))
             }
 
+            // --- FR-42: UNREAD COUNT ---
+            get("/unread-count") {
+                val userId = call.principal<JWTPrincipal>()?.payload?.getClaim("userId")?.asLong()
+                    ?: return@get call.respond(HttpStatusCode.Unauthorized, ApiResponse.error("UNAUTHORIZED", "Token không hợp lệ."))
+
+                val count = notificationService.getUnreadCount(userId)
+                call.respond(HttpStatusCode.OK, ApiResponse.success(data = mapOf("unreadCount" to count)))
+            }
+
             put("/{id}/read") {
                 val principal = call.principal<JWTPrincipal>()
                 val userId = principal?.payload?.getClaim("userId")?.asLong()
@@ -50,6 +59,17 @@ fun Route.notificationRoutes() {
                 call.respond(HttpStatusCode.OK, ApiResponse.success(data = null, message = "Đã đánh dấu tất cả thông báo là đã đọc"))
             }
 
+            // --- FR-42: DELETE NOTIFICATION ---
+            delete("/{id}") {
+                val userId = call.principal<JWTPrincipal>()?.payload?.getClaim("userId")?.asLong()
+                    ?: return@delete call.respond(HttpStatusCode.Unauthorized, ApiResponse.error("UNAUTHORIZED", "Token không hợp lệ."))
+
+                val notiId = call.parameters["id"]?.toLongOrNull()
+                    ?: return@delete call.respond(HttpStatusCode.BadRequest, ApiResponse.error("INVALID_ID", "ID thông báo không hợp lệ."))
+
+                notificationService.deleteNotification(userId, notiId)
+                call.respond(HttpStatusCode.OK, ApiResponse.success(data = null, message = "Đã xóa thông báo."))
+            }
         }
     }
 }

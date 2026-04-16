@@ -97,4 +97,39 @@ class BookingService : KoinComponent {
         // 3. Update execution
         bookingRepo.updateBookingStatus(bookingId, request.status, request.cancellationReason)
     }
+
+    // --- FR-38: GET BOOKING DETAIL ---
+    suspend fun getBookingDetail(userId: Long, bookingId: Long): BookingDto {
+        val bookingRow = bookingRepo.getBookingById(bookingId)
+            ?: throw AuthException("BOOKING_NOT_FOUND", "Đơn đặt lịch không tồn tại.")
+
+        val clientId = bookingRow[BookingsTable.clientId].value
+        val photoId = bookingRow[BookingsTable.photographerId].value
+
+        if (userId != clientId && userId != photoId) {
+            throw AuthException("UNAUTHORIZED_ACTION", "Bạn không có quyền xem đơn này.")
+        }
+
+        return bookingRepo.getBookingsList(userId, 1, 1, null)
+            .bookings.first { it.bookingId == bookingId }
+    }
+
+    // --- FR-38: HỦY BOOKING ---
+    suspend fun cancelBooking(userId: Long, bookingId: Long) {
+        val bookingRow = bookingRepo.getBookingById(bookingId)
+            ?: throw AuthException("BOOKING_NOT_FOUND", "Đơn đặt lịch không tồn tại.")
+
+        val clientId = bookingRow[BookingsTable.clientId].value
+        val currentStatus = bookingRow[BookingsTable.status]
+
+        if (userId != clientId) {
+            throw AuthException("UNAUTHORIZED_ACTION", "Chỉ khách hàng mới có thể hủy đơn.")
+        }
+
+        if (currentStatus == BookingStatus.CANCELLED || currentStatus == BookingStatus.COMPLETED) {
+            throw ValidationException("INVALID_STATE", "Không thể hủy đơn đã hoàn thành hoặc đã bị hủy.")
+        }
+
+        bookingRepo.updateBookingStatus(bookingId, BookingStatus.CANCELLED, "Khách hàng tự hủy")
+    }
 }

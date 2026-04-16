@@ -19,6 +19,9 @@ class PostService : KoinComponent {
         if (request.media.isEmpty()) {
             throw ValidationException("EMPTY_MEDIA", "A post must have at least one media item.")
         }
+        if (request.media.size > 10) {
+            throw ValidationException("MEDIA_LIMIT_EXCEEDED", "Chỉ được đăng tối đa 10 ảnh hoặc video trong một bài viết (chuẩn Instagram).")
+        }
 
         // Action
         return postRepository.createPost(userId, request) 
@@ -61,5 +64,33 @@ class PostService : KoinComponent {
     suspend fun getTrendingTags(limit: Int): List<com.instagallery.models.common.TrendingTagDto> {
         val verifiedLimit = if (limit < 1) 10 else if (limit > 50) 50 else limit
         return postRepository.getTrendingTags(verifiedLimit)
+    }
+
+    // --- FR-10: GET USER'S POSTS ---
+    suspend fun getUserPosts(userId: Long, page: Int, limit: Int): PaginatedFeedResponse {
+        val verifiedPage = if (page < 1) 1 else page
+        val verifiedLimit = if (limit < 1) 20 else if (limit > 50) 50 else limit
+        return postRepository.getPostsByUser(userId, verifiedPage, verifiedLimit)
+    }
+
+    // --- FR-19: TAG USER IN POST ---
+    suspend fun tagUserInPost(ownerId: Long, postId: Long, taggedUserId: Long) {
+        val post = postRepository.getPostById(postId)
+            ?: throw AuthException("POST_NOT_FOUND", "Бài viết không tồn tại.")
+        postRepository.tagUserInPost(ownerId, postId, taggedUserId)
+    }
+
+    // --- FR-19: REMOVE TAG ---
+    suspend fun removeTagFromPost(ownerId: Long, postId: Long, taggedUserId: Long) {
+        postRepository.removeTagFromPost(ownerId, postId, taggedUserId)
+    }
+
+    // --- FR-33: COMMENT SETTINGS ---
+    suspend fun updateCommentSettings(ownerId: Long, postId: Long, setting: String) {
+        val validSettings = listOf("ALL", "FOLLOWING", "NONE")
+        if (setting.uppercase() !in validSettings) {
+            throw ValidationException("INVALID_SETTING", "Cài đặt bình luận phải là ALL, FOLLOWING hoặc NONE.")
+        }
+        postRepository.updateCommentSettings(ownerId, postId, setting.uppercase())
     }
 }

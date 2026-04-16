@@ -75,6 +75,49 @@ fun Route.adminRoutes() {
                 adminService.deleteComment(commentId)
                 call.respond(HttpStatusCode.OK, ApiResponse.success(data = null, message = "Bình luận đã bị xóa bởi Quản trị viên."))
             }
+
+            // --- FR-43: QUẢN LÝ NGƯỜI DÙNG ---
+            get("/users") {
+                val page = call.request.queryParameters["page"]?.toIntOrNull() ?: 1
+                val limit = call.request.queryParameters["limit"]?.toIntOrNull() ?: 20
+                val search = call.request.queryParameters["search"]
+                val status = call.request.queryParameters["status"] // ACTIVE, BANNED, DEACTIVATED
+
+                val users = adminService.listUsers(page, limit, search, status)
+                call.respond(HttpStatusCode.OK, ApiResponse.success(data = users))
+            }
+
+            get("/users/{userId}") {
+                val targetUserId = call.parameters["userId"]?.toLongOrNull()
+                    ?: return@get call.respond(HttpStatusCode.BadRequest, ApiResponse.error("INVALID_ID", "ID người dùng không hợp lệ."))
+
+                val user = adminService.getUserDetail(targetUserId)
+                call.respond(HttpStatusCode.OK, ApiResponse.success(data = user))
+            }
+
+            // --- FR-46: TỪ KHÓA CẤM ---
+            get("/banned-keywords") {
+                val keywords = adminService.getBannedKeywords()
+                call.respond(HttpStatusCode.OK, ApiResponse.success(data = keywords))
+            }
+
+            post("/banned-keywords") {
+                val body = call.receiveText()
+                val keyword = kotlinx.serialization.json.Json { ignoreUnknownKeys = true }
+                    .decodeFromString<Map<String, String>>(body)["keyword"]
+                    ?: return@post call.respond(HttpStatusCode.BadRequest, ApiResponse.error("MISSING_FIELD", "Thiếu trường keyword."))
+
+                adminService.addBannedKeyword(keyword)
+                call.respond(HttpStatusCode.Created, ApiResponse.success(data = null, message = "Đã thêm từ khóa cấm: \"$keyword\"."))
+            }
+
+            delete("/banned-keywords/{id}") {
+                val keywordId = call.parameters["id"]?.toLongOrNull()
+                    ?: return@delete call.respond(HttpStatusCode.BadRequest, ApiResponse.error("INVALID_ID", "ID từ khóa không hợp lệ."))
+
+                adminService.removeBannedKeyword(keywordId)
+                call.respond(HttpStatusCode.OK, ApiResponse.success(data = null, message = "Đã xóa từ khóa cấm."))
+            }
         }
     }
 }

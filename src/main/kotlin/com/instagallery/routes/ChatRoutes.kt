@@ -9,6 +9,7 @@ import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
 import io.ktor.server.auth.jwt.*
+import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.server.websocket.*
@@ -24,6 +25,22 @@ fun Route.chatRoutes() {
         
         // --- REST APIs cho Lịch sử Chat ---
         authenticate("jwt") {
+            // --- FR-41: TẠO CONVERSATION MỚI ---
+            post("/conversations") {
+                val userId = call.principal<JWTPrincipal>()?.payload?.getClaim("userId")?.asLong()
+                    ?: return@post call.respond(HttpStatusCode.Unauthorized, ApiResponse.error("UNAUTHORIZED", "Token không hợp lệ."))
+
+                val bodyText = call.receiveText()
+                val jsonMap = kotlinx.serialization.json.Json { ignoreUnknownKeys = true }
+                    .decodeFromString<Map<String, Long>>(bodyText)
+
+                val targetUserId = jsonMap["targetUserId"]
+                    ?: return@post call.respond(HttpStatusCode.BadRequest, ApiResponse.error("MISSING_FIELD", "Thiếu trường targetUserId."))
+
+                val conversation = chatService.getOrCreateConversation(userId, targetUserId)
+                call.respond(HttpStatusCode.Created, ApiResponse.success(data = conversation, message = "Cuộc trò chuyện đã được tạo hoặc đã tồn tại."))
+            }
+
             get("/conversations") {
                 val principal = call.principal<JWTPrincipal>()
                 val userId = principal?.payload?.getClaim("userId")?.asLong()
@@ -46,6 +63,37 @@ fun Route.chatRoutes() {
 
                 val result = chatService.getMessages(userId, conversationId, page, limit)
                 call.respond(HttpStatusCode.OK, ApiResponse.success(data = result))
+            }
+
+            post("/conversations/{id}/messages") {
+                val principal = call.principal<JWTPrincipal>()
+                val userId = principal?.payload?.getClaim("userId")?.asLong()
+                    ?: return@post call.respond(HttpStatusCode.Unauthorized, ApiResponse.error("UNAUTHORIZED", "Token không hợp lệ."))
+
+                val conversationId = call.parameters["id"]?.toLongOrNull()
+                    ?: return@post call.respond(HttpStatusCode.BadRequest, ApiResponse.error("INVALID_ID", "ID hội thoại không hợp lệ."))
+
+                val bodyText = call.receiveText()
+                val jsonMap = kotlinx.serialization.json.Json { ignoreUnknownKeys = true }
+                    .decodeFromString<Map<String, String>>(bodyText)
+
+                val content = jsonMap["content"] ?: ""
+                val type = jsonMap["messageType"] ?: "TEXT"
+
+                val result = chatService.sendMessageHTTP(userId, conversationId, content, type, null)
+                call.respond(HttpStatusCode.OK, ApiResponse.success(data = result))
+            }
+
+            // --- FR-41: XÓA / ẨN CONVERSATION ---
+            delete("/conversations/{id}") {
+                val userId = call.principal<JWTPrincipal>()?.payload?.getClaim("userId")?.asLong()
+                    ?: return@delete call.respond(HttpStatusCode.Unauthorized, ApiResponse.error("UNAUTHORIZED", "Token không hợp lệ."))
+
+                val conversationId = call.parameters["id"]?.toLongOrNull()
+                    ?: return@delete call.respond(HttpStatusCode.BadRequest, ApiResponse.error("INVALID_ID", "ID hội thoại không hợp lệ."))
+
+                chatService.deleteConversation(userId, conversationId)
+                call.respond(HttpStatusCode.OK, ApiResponse.success(data = null, message = "Đã ẩn cuộc trò chuyện."))
             }
         }
     }

@@ -95,4 +95,19 @@ class SearchRepository {
         val rows = SearchHistoriesTable.deleteWhere { SearchHistoriesTable.userId eq userId }
         rows > 0
     }
+
+    suspend fun getTrendingSearches(limit: Int): List<Map<String, Any>> = dbQuery {
+        // Return top searched queries ordered by result frequency
+        SearchHistoriesTable
+            .select(SearchHistoriesTable.queryText, SearchHistoriesTable.queryText.count())
+            .groupBy(SearchHistoriesTable.queryText)
+            .orderBy(SearchHistoriesTable.queryText.count() to SortOrder.DESC)
+            .limit(limit)
+            .map { row ->
+                mapOf(
+                    "keyword" to row[SearchHistoriesTable.queryText],
+                    "count" to row[SearchHistoriesTable.queryText.count()]
+                )
+            }
+    }
 }

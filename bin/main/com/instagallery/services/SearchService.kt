@@ -44,4 +44,10 @@ class SearchService : KoinComponent {
     suspend fun clearSearchHistory(userId: Long) {
         searchRepo.clearSearchHistory(userId)
     }
+
+    // --- FR-24: TRENDING SEARCHES ---
+    suspend fun getTrendingSearches(limit: Int): List<Any> {
+        val verifiedLimit = if (limit < 1) 10 else if (limit > 50) 50 else limit
+        return searchRepo.getTrendingSearches(verifiedLimit)
+    }
 }

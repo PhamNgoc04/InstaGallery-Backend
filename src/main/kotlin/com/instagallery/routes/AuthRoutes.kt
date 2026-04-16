@@ -27,7 +27,7 @@ fun Route.authRoutes() {
                 ApiResponse.success(
                     data = response,
                     message = "Đăng ký thành công"
-                )
+                )  
             )
         }
 

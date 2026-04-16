@@ -78,4 +78,17 @@ class NotificationRepository {
         }
         rows > 0
     }
+
+    suspend fun getUnreadCount(userId: Long): Long = dbQuery {
+        NotificationsTable.selectAll()
+            .where { (NotificationsTable.userId eq userId) and (NotificationsTable.isRead eq false) }
+            .count()
+    }
+
+    suspend fun deleteNotification(userId: Long, notificationId: Long): Boolean = dbQuery {
+        val rows = NotificationsTable.deleteWhere {
+            (NotificationsTable.id eq notificationId) and (NotificationsTable.userId eq userId)
+        }
+        rows > 0
+    }
 }

@@ -68,16 +68,80 @@ fun Route.userRoutes() {
                 val userId = principal?.payload?.getClaim("userId")?.asLong()
                     ?: return@post call.respond(HttpStatusCode.Unauthorized, ApiResponse.error("UNAUTHORIZED", "Token không hợp lệ."))
 
-                // This logic usually sits in UserService, so we should call userService
                 userService.deactivateAccount(userId)
-                
                 call.respond(HttpStatusCode.OK, ApiResponse.success(data = null, message = "Tài khoản của bạn đã bị vô hiệu hóa tạm thời."))
             }
 
             put("/me/avatar") {
                 // In production, this would parse MultipartData and upload to S3/Firebase
-                // Currently returning a mock success to satisfy the 94 APIs endpoint map.
                 call.respond(HttpStatusCode.OK, ApiResponse.success(data = null, message = "Avatar đã được cập nhật (Mock S3)."))
+            }
+
+            // --- FR-09: PRIVACY TOGGLE ---
+            put("/me/privacy") {
+                val userId = call.principal<JWTPrincipal>()?.payload?.getClaim("userId")?.asLong()
+                    ?: return@put call.respond(HttpStatusCode.Unauthorized, ApiResponse.error("UNAUTHORIZED", "Token không hợp lệ."))
+
+                val body = call.receiveText()
+                val isPrivate = kotlinx.serialization.json.Json { ignoreUnknownKeys = true }
+                    .decodeFromString<Map<String, Boolean>>(body)["isPrivate"] ?: false
+
+                userService.updatePrivacy(userId, isPrivate)
+                val msg = if (isPrivate) "Tài khoản đã chuyển sang chế độ Riêng tư." else "Tài khoản đã chuyển sang chế độ Công khai."
+                call.respond(HttpStatusCode.OK, ApiResponse.success(data = mapOf("isPrivate" to isPrivate), message = msg))
+            }
+
+            // --- FR-22: SAVED POSTS ---
+            get("/me/saved-posts") {
+                val userId = call.principal<JWTPrincipal>()?.payload?.getClaim("userId")?.asLong()
+                    ?: return@get call.respond(HttpStatusCode.Unauthorized, ApiResponse.error("UNAUTHORIZED", "Token không hợp lệ."))
+
+                val page = call.request.queryParameters["page"]?.toIntOrNull() ?: 1
+                val limit = call.request.queryParameters["limit"]?.toIntOrNull() ?: 20
+                val saved = interactionService.getSavedPosts(userId, page, limit)
+                call.respond(HttpStatusCode.OK, ApiResponse.success(data = saved))
+            }
+
+            // --- FR-20: LIKED POSTS ---
+            get("/me/liked-posts") {
+                val userId = call.principal<JWTPrincipal>()?.payload?.getClaim("userId")?.asLong()
+                    ?: return@get call.respond(HttpStatusCode.Unauthorized, ApiResponse.error("UNAUTHORIZED", "Token không hợp lệ."))
+
+                val page = call.request.queryParameters["page"]?.toIntOrNull() ?: 1
+                val limit = call.request.queryParameters["limit"]?.toIntOrNull() ?: 20
+                val liked = interactionService.getLikedPosts(userId, page, limit)
+                call.respond(HttpStatusCode.OK, ApiResponse.success(data = liked))
+            }
+
+            // --- FR-19: TAGGED POSTS ---
+            get("/me/tagged-posts") {
+                val userId = call.principal<JWTPrincipal>()?.payload?.getClaim("userId")?.asLong()
+                    ?: return@get call.respond(HttpStatusCode.Unauthorized, ApiResponse.error("UNAUTHORIZED", "Token không hợp lệ."))
+
+                val page = call.request.queryParameters["page"]?.toIntOrNull() ?: 1
+                val limit = call.request.queryParameters["limit"]?.toIntOrNull() ?: 20
+                val tagged = interactionService.getTaggedPosts(userId, page, limit)
+                call.respond(HttpStatusCode.OK, ApiResponse.success(data = tagged))
+            }
+
+            // --- FR-28: ACTIVITY LOG ---
+            get("/me/activity-log") {
+                val userId = call.principal<JWTPrincipal>()?.payload?.getClaim("userId")?.asLong()
+                    ?: return@get call.respond(HttpStatusCode.Unauthorized, ApiResponse.error("UNAUTHORIZED", "Token không hợp lệ."))
+
+                val page = call.request.queryParameters["page"]?.toIntOrNull() ?: 1
+                val limit = call.request.queryParameters["limit"]?.toIntOrNull() ?: 20
+                val log = interactionService.getActivityLog(userId, page, limit)
+                call.respond(HttpStatusCode.OK, ApiResponse.success(data = log))
+            }
+
+            // --- FR-31: BLOCKED USERS LIST ---
+            get("/me/blocked") {
+                val userId = call.principal<JWTPrincipal>()?.payload?.getClaim("userId")?.asLong()
+                    ?: return@get call.respond(HttpStatusCode.Unauthorized, ApiResponse.error("UNAUTHORIZED", "Token không hợp lệ."))
+
+                val blocked = interactionService.getBlockedUsers(userId)
+                call.respond(HttpStatusCode.OK, ApiResponse.success(data = blocked))
             }
 
             // --- FOLLOWERS (Social) ---
@@ -91,7 +155,6 @@ fun Route.userRoutes() {
 
                 val isFollowing = interactionService.toggleFollow(followerId, followingId)
                 val msg = if (isFollowing) "Đã theo dõi người dùng này." else "Đã bỏ theo dõi người dùng này."
-                
                 call.respond(HttpStatusCode.OK, ApiResponse.success(data = mapOf("isFollowing" to isFollowing), message = msg))
             }
 
@@ -102,7 +165,6 @@ fun Route.userRoutes() {
 
                 val limit = call.request.queryParameters["limit"]?.toIntOrNull() ?: 10
                 val suggestions = userService.getSuggestedUsers(userId, limit)
-
                 call.respond(HttpStatusCode.OK, ApiResponse.success(data = suggestions))
             }
 

@@ -34,12 +34,38 @@ class ChatService : KoinComponent {
         return chatRepo.getMessages(userId, conversationId, verifiedPage, verifiedLimit)
     }
 
-    // --- WebSocket Logic ---
+    suspend fun sendMessageHTTP(senderId: Long, conversationId: Long, content: String, type: String, replyToId: Long?): MessageDto {
+        val contentClean = content.trim()
+        val inConv = chatRepo.isUserInConversation(senderId, conversationId)
+        if (!inConv) {
+            throw AuthException("UNAUTHORIZED_ACCESS", "Bạn không có quyền chat ở nhóm này.")
+        }
 
+        // Save to Database
+        val savedMessage = chatRepo.saveMessage(senderId, conversationId, contentClean, type, replyToId)
+
+        // Broadcast to all members currently connected via WebSocket
+        val membersList = chatRepo.getMembersInConversation(conversationId)
+        val eventObj = WsEventResponse("NEW_MESSAGE", savedMessage)
+
+        membersList.forEach { memberId ->
+            val wsSession = ConnectionManager.getSession(memberId)
+            if (wsSession != null && wsSession.isActive) {
+                val finalEvent = eventObj.copy(data = savedMessage.copy(isMe = (memberId == senderId)))
+                val finalPayload = Json.encodeToString(finalEvent)
+                try {
+                    wsSession.send(Frame.Text(finalPayload))
+                } catch (e: Exception) {
+                    ConnectionManager.removeSession(memberId)
+                }
+            }
+        }
+        return savedMessage.copy(isMe = true)
+    }
+
+    // --- WebSocket Logic ---
     suspend fun handleWsMessage(senderId: Long, conversationId: Long, content: String, type: String, replyToId: Long?) {
         val contentClean = content.trim()
-        if (contentClean.isBlank() && type == "TEXT") return
-
         val inConv = chatRepo.isUserInConversation(senderId, conversationId)
         if (!inConv) return // Ignore silently on WS or push error frame
 
@@ -67,5 +93,22 @@ class ChatService : KoinComponent {
                 }
             }
         }
+    }
+
+    // --- FR-41: TẠO HOẶC LẤY CONVERSATION ---
+    suspend fun getOrCreateConversation(userId: Long, targetUserId: Long): Any {
+        if (userId == targetUserId) {
+            throw ValidationException("SELF_CONVERSATION", "Không thể tạo cuộc trò chuyện với chính mình.")
+        }
+        return chatRepo.getOrCreateConversation(userId, targetUserId)
+    }
+
+    // --- FR-41: XÓA / ẨN CONVERSATION ---
+    suspend fun deleteConversation(userId: Long, conversationId: Long) {
+        val inConv = chatRepo.isUserInConversation(userId, conversationId)
+        if (!inConv) {
+            throw AuthException("UNAUTHORIZED_ACCESS", "Bạn không có quyền xóa cuộc trò chuyện này.")
+        }
+        chatRepo.hideConversationForUser(userId, conversationId)
     }
 }

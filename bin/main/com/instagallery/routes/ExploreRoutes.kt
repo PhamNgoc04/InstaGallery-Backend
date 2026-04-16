@@ -29,5 +29,15 @@ fun Route.exploreRoutes() {
             val feed = postService.getExplorePosts(page, limit, tag)
             call.respond(HttpStatusCode.OK, ApiResponse.success(data = feed))
         }
+
+        // --- FR-25: BROWSE BY HASHTAG ---
+        get("/hashtags/{tag}") {
+            val tag = call.parameters["tag"] ?: ""
+
+            val page = call.request.queryParameters["page"]?.toIntOrNull() ?: 1
+            val limit = call.request.queryParameters["limit"]?.toIntOrNull() ?: 20
+            val feed = postService.getExplorePosts(page, limit, tag)
+            call.respond(HttpStatusCode.OK, ApiResponse.success(data = feed))
+        }
     }
 }

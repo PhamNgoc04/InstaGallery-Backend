@@ -23,4 +23,14 @@ class NotificationService : KoinComponent {
     suspend fun markAllAsRead(userId: Long) {
         notificationRepo.markAllAsRead(userId)
     }
+
+    // --- FR-42: UNREAD COUNT ---
+    suspend fun getUnreadCount(userId: Long): Long {
+        return notificationRepo.getUnreadCount(userId)
+    }
+
+    // --- FR-42: DELETE NOTIFICATION ---
+    suspend fun deleteNotification(userId: Long, notificationId: Long) {
+        notificationRepo.deleteNotification(userId, notificationId)
+    }
 }

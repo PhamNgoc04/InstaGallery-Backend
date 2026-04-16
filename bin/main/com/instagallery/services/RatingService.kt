@@ -65,4 +65,21 @@ class RatingService : KoinComponent {
 
         return ratingRepository.deleteRating(ratingId)
     }
+
+    // --- FR-39: UPDATE RATING ---
+    suspend fun updateRating(userId: Long, ratingId: Long, request: CreateRatingRequest): RatingDto {
+        val rating = ratingRepository.getRatingById(ratingId)
+            ?: throw ValidationException("RATING_NOT_FOUND", "Đánh giá không tồn tại.")
+
+        if (rating.reviewerId != userId) {
+            throw AuthException("UNAUTHORIZED_ACTION", "Bạn không có quyền sửa đánh giá của người khác.")
+        }
+
+        if (request.score < 1 || request.score > 5) {
+            throw ValidationException("INVALID_SCORE", "Điểm đánh giá phải từ 1 đến 5.")
+        }
+
+        return ratingRepository.updateRating(ratingId, request)
+            ?: throw Exception("Lỗi không thể cập nhật đánh giá.")
+    }
 }

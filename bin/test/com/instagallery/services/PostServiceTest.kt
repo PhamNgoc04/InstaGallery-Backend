@@ -5,6 +5,7 @@ import com.instagallery.models.common.PostVisibility
 import com.instagallery.models.common.FeedPostDto
 import com.instagallery.models.common.PaginatedFeedResponse
 import com.instagallery.models.common.PaginationMeta
+import com.instagallery.models.request.CreateMediaItemRequest
 import com.instagallery.models.request.CreatePostRequest
 import com.instagallery.plugins.ValidationException
 import com.instagallery.plugins.AuthException
@@ -52,7 +53,8 @@ class PostServiceTest : KoinTest {
 
     @Test
     fun `createPost should call repository and return post id`() = runTest {
-        val req = CreatePostRequest("Hello world", "Thành phố Hồ Chí Minh", PostVisibility.PUBLIC, listOf(1L))
+        val mediaItem = CreateMediaItemRequest(mediaFileUrl = "https://example.com/photo.jpg")
+        val req = CreatePostRequest("Hello world", "Thành phố Hồ Chí Minh", PostVisibility.PUBLIC, listOf(mediaItem))
         val returnedMockPost = PostDto(100L, 1L, "Hello world", "Thành phố Hồ Chí Minh", PostVisibility.PUBLIC, 0, 0, "2024-01-01T00:00:00Z", emptyList())
         coEvery { postRepository.createPost(1L, req) } returns returnedMockPost
 

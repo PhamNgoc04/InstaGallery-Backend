@@ -61,5 +61,12 @@ fun Route.searchRoutes() {
                 call.respond(HttpStatusCode.OK, ApiResponse.success(data = null, message = "Đã xóa toàn bộ lịch sử tìm kiếm"))
             }
         }
+
+        // --- FR-24: TRENDING SEARCH TERMS ---
+        get("/trending") {
+            val limit = call.request.queryParameters["limit"]?.toIntOrNull() ?: 10
+            val trending = searchService.getTrendingSearches(limit)
+            call.respond(HttpStatusCode.OK, ApiResponse.success(data = trending))
+        }
     }
 }

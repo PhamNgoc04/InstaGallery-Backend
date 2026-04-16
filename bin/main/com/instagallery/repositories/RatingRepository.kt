@@ -119,4 +119,34 @@ class RatingRepository {
             it[PortfoliosTable.reviewCount] = reviewCount
         }
     }
+
+    // --- FR-39: UPDATE RATING ---
+    suspend fun updateRating(ratingId: Long, request: com.instagallery.models.request.CreateRatingRequest): RatingDto? = dbQuery {
+        val updatedRows = RatingsTable.update({ RatingsTable.id eq ratingId }) {
+            it[ratingValue] = request.score.toShort()
+            if (request.comment != null) it[comment] = request.comment
+        }
+
+        if (updatedRows == 0) return@dbQuery null
+
+        // Re-fetch to return updated DTO
+        val row = RatingsTable
+            .join(UsersTable, JoinType.INNER, RatingsTable.raterId, UsersTable.id)
+            .selectAll().where { RatingsTable.id eq ratingId }
+            .singleOrNull() ?: return@dbQuery null
+
+        val photographerId = row[RatingsTable.rateeId].value
+        recalculatePortfolioScore(photographerId)
+
+        RatingDto(
+            id = row[RatingsTable.id].value,
+            photographerId = photographerId,
+            reviewerId = row[RatingsTable.raterId].value,
+            reviewerUsername = row[UsersTable.username],
+            reviewerAvatar = row[UsersTable.profilePictureUrl],
+            score = row[RatingsTable.ratingValue].toInt(),
+            comment = row[RatingsTable.comment],
+            createdAt = row[RatingsTable.createdAt].toString()
+        )
+    }
 }
