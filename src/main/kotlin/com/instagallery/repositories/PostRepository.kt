@@ -158,6 +158,74 @@ class PostRepository {
         count > 0
     }
     
+    // --- POST DETAIL ---
+    sealed class PostDetailResult {
+        data class Success(val post: PostDetailDto) : PostDetailResult()
+        object NotFound : PostDetailResult()
+        object Forbidden : PostDetailResult()
+    }
+
+    suspend fun getPostDetail(postId: Long, currentUserId: Long): PostDetailResult = dbQuery {
+        // 1. Query post JOIN user
+        val postRow = (PostsTable innerJoin UsersTable)
+            .selectAll().where { PostsTable.id eq postId }
+            .singleOrNull()
+
+        // 2. Check existence & soft-delete
+        if (postRow == null || postRow[PostsTable.deletedAt] != null) {
+            return@dbQuery PostDetailResult.NotFound
+        }
+
+        // 3. Check visibility
+        val postOwnerId = postRow[UsersTable.id].value
+        val visibility = postRow[PostsTable.visibility]
+        if (visibility == PostVisibility.PRIVATE && currentUserId != postOwnerId) {
+            return@dbQuery PostDetailResult.Forbidden
+        }
+
+        // 4. Get media
+        val mediaList = PostMediaTable.selectAll()
+            .where { PostMediaTable.postId eq postId }
+            .orderBy(PostMediaTable.position to SortOrder.ASC)
+            .map { mRow ->
+                FeedMediaDto(
+                    id = mRow[PostMediaTable.id].value,
+                    url = mRow[PostMediaTable.mediaFileUrl],
+                    type = mRow[PostMediaTable.mediaType].name,
+                    orderIndex = mRow[PostMediaTable.position]
+                )
+            }
+
+        // 5. Check isLiked
+        val isLiked = LikesTable.selectAll()
+            .where { (LikesTable.userId eq currentUserId) and (LikesTable.postId eq postId) }
+            .count() > 0
+
+        // 6. Check isSaved
+        val isSaved = SavedPostsTable.selectAll()
+            .where { (SavedPostsTable.userId eq currentUserId) and (SavedPostsTable.postId eq postId) }
+            .count() > 0
+
+        // 7. Map to DTO
+        PostDetailResult.Success(
+            PostDetailDto(
+                postId = postRow[PostsTable.id].value,
+                userId = postOwnerId,
+                username = postRow[UsersTable.username],
+                userAvatar = postRow[UsersTable.profilePictureUrl],
+                caption = postRow[PostsTable.caption],
+                location = postRow[PostsTable.location],
+                visibility = visibility,
+                likeCount = postRow[PostsTable.likeCount],
+                commentCount = postRow[PostsTable.commentCount],
+                createdAt = postRow[PostsTable.createdAt].toString(),
+                media = mediaList,
+                isLiked = isLiked,
+                isSaved = isSaved
+            )
+        )
+    }
+
     // Helper function for raw pagination
     suspend fun getFeedPosts(userId: Long, page: Int, limit: Int): PaginatedFeedResponse = dbQuery {
         val offsetVal = ((page - 1) * limit).toLong()

@@ -1198,7 +1198,11 @@
                     "response": []
                 },
                 {
+<<<<<<< HEAD
                     "name": "GET Get Post Details",
+=======
+                    "name": "GET Post Detail",
+>>>>>>> ea5b4e3bb14174fcb5f97288fd22e57c087e39e3
                     "request": {
                         "auth": {
                             "type": "bearer",
@@ -1213,7 +1217,11 @@
                         "method": "GET",
                         "header": [],
                         "url": {
+<<<<<<< HEAD
                             "raw": "{{BASE_URL}}/api/v1/posts/:id",
+=======
+                            "raw": "{{BASE_URL}}/api/v1/posts/1",
+>>>>>>> ea5b4e3bb14174fcb5f97288fd22e57c087e39e3
                             "host": [
                                 "{{BASE_URL}}"
                             ],
@@ -1221,6 +1229,7 @@
                                 "api",
                                 "v1",
                                 "posts",
+<<<<<<< HEAD
                                 ":id"
                             ],
                             "variable": [
@@ -1228,6 +1237,39 @@
                                     "key": "id",
                                     "value": "1"
                                 }
+=======
+                                "1"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "GET Post Detail - Not Found",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{JWT_TOKEN}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{BASE_URL}}/api/v1/posts/99999",
+                            "host": [
+                                "{{BASE_URL}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "posts",
+                                "99999"
+>>>>>>> ea5b4e3bb14174fcb5f97288fd22e57c087e39e3
                             ]
                         }
                     },
