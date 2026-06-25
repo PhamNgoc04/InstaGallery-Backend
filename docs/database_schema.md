@@ -2,7 +2,7 @@
 
 > **Công nghệ**: MySQL · **ORM**: Jetbrains Exposed · **Tổng số bảng**: 30
 >
-> Cập nhật lần cuối: 2026-04-16
+> Cập nhật lần cuối: 2026-06-25
 
 ---
 

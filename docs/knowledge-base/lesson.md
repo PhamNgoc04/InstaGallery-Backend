@@ -9,7 +9,7 @@
 
 ### Phase 2: Exposed SQL Database (Hoàn thành)
 - Tạo Object DatabaseFactory kết nối Hikari.
-- Biên dịch 21 bảng cấu trúc thành Exposed Table Schema chuẩn hóa. 
+- Biên dịch 30 bảng cấu trúc thành Exposed Table Schema chuẩn hóa.
 
 ### Phase 3: Setup AI Agent Security
 - Thiết lập xong giới luật ASH 2.0 (`.agent/*` và thư mục `docs/knowledge-base`).

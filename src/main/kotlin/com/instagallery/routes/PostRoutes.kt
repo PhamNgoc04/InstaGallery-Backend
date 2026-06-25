@@ -16,24 +16,22 @@ fun Route.postRoutes() {
     val postService = application.getKoin().get<PostService>()
 
     route("/api/v1/posts") {
-        
         authenticate("jwt") {
-            
             post {
                 val principal = call.principal<JWTPrincipal>()
                 val userId = principal?.payload?.getClaim("userId")?.asLong()
-                    ?: return@post call.respond(HttpStatusCode.Unauthorized, ApiResponse.error("UNAUTHORIZED", "Token không hợp lệ."))
+                    ?: return@post call.respond(HttpStatusCode.Unauthorized, ApiResponse.error("UNAUTHORIZED", "Token khÃ´ng há»£p lá»‡."))
 
                 val request = call.receive<CreatePostRequest>()
                 val post = postService.createPost(userId, request)
-                
-                call.respond(HttpStatusCode.Created, ApiResponse.success(data = post, message = "Đăng bài viết thành công"))
+
+                call.respond(HttpStatusCode.Created, ApiResponse.success(data = post, message = "ÄÄƒng bÃ i viáº¿t thÃ nh cÃ´ng"))
             }
 
             get("/feed") {
                 val principal = call.principal<JWTPrincipal>()
                 val userId = principal?.payload?.getClaim("userId")?.asLong()
-                    ?: return@get call.respond(HttpStatusCode.Unauthorized, ApiResponse.error("UNAUTHORIZED", "Token không hợp lệ."))
+                    ?: return@get call.respond(HttpStatusCode.Unauthorized, ApiResponse.error("UNAUTHORIZED", "Token khÃ´ng há»£p lá»‡."))
 
                 val page = call.request.queryParameters["page"]?.toIntOrNull() ?: 1
                 val limit = call.request.queryParameters["limit"]?.toIntOrNull() ?: 10
@@ -43,55 +41,46 @@ fun Route.postRoutes() {
             }
 
             get("/{id}") {
-<<<<<<< HEAD
-                val postId = call.parameters["id"]?.toLongOrNull()
-                    ?: return@get call.respond(HttpStatusCode.BadRequest, ApiResponse.error("INVALID_ID", "ID bài viết không hợp lệ."))
-
-                val post = postService.getPostDetails(postId)
-                call.respond(HttpStatusCode.OK, ApiResponse.success(data = post))
-=======
                 val principal = call.principal<JWTPrincipal>()
                 val userId = principal?.payload?.getClaim("userId")?.asLong()
-                    ?: return@get call.respond(HttpStatusCode.Unauthorized, ApiResponse.error("UNAUTHORIZED", "Token không hợp lệ."))
+                    ?: return@get call.respond(HttpStatusCode.Unauthorized, ApiResponse.error("UNAUTHORIZED", "Token khÃ´ng há»£p lá»‡."))
 
                 val postId = call.parameters["id"]?.toLongOrNull()
-                    ?: return@get call.respond(HttpStatusCode.BadRequest, ApiResponse.error("INVALID_ID", "ID bài viết không hợp lệ."))
+                    ?: return@get call.respond(HttpStatusCode.BadRequest, ApiResponse.error("INVALID_ID", "ID bÃ i viáº¿t khÃ´ng há»£p lá»‡."))
 
                 val detail = postService.getPostDetail(postId, userId)
                 call.respond(HttpStatusCode.OK, ApiResponse.success(data = detail))
->>>>>>> ea5b4e3bb14174fcb5f97288fd22e57c087e39e3
             }
 
             put("/{id}") {
                 val principal = call.principal<JWTPrincipal>()
                 val userId = principal?.payload?.getClaim("userId")?.asLong()
-                    ?: return@put call.respond(HttpStatusCode.Unauthorized, ApiResponse.error("UNAUTHORIZED", "Token không hợp lệ."))
+                    ?: return@put call.respond(HttpStatusCode.Unauthorized, ApiResponse.error("UNAUTHORIZED", "Token khÃ´ng há»£p lá»‡."))
 
                 val postId = call.parameters["id"]?.toLongOrNull()
-                    ?: return@put call.respond(HttpStatusCode.BadRequest, ApiResponse.error("INVALID_ID", "ID bài viết không hợp lệ."))
+                    ?: return@put call.respond(HttpStatusCode.BadRequest, ApiResponse.error("INVALID_ID", "ID bÃ i viáº¿t khÃ´ng há»£p lá»‡."))
 
                 val request = call.receive<com.instagallery.models.request.UpdatePostRequest>()
                 postService.updatePost(userId, postId, request)
-                
-                call.respond(HttpStatusCode.OK, ApiResponse.success(data = null, message = "Đã cập nhật bài viết thành công"))
+
+                call.respond(HttpStatusCode.OK, ApiResponse.success(data = null, message = "ÄÃ£ cáº­p nháº­t bÃ i viáº¿t thÃ nh cÃ´ng"))
             }
 
             delete("/{id}") {
                 val principal = call.principal<JWTPrincipal>()
                 val userId = principal?.payload?.getClaim("userId")?.asLong()
-                    ?: return@delete call.respond(HttpStatusCode.Unauthorized, ApiResponse.error("UNAUTHORIZED", "Token không hợp lệ."))
+                    ?: return@delete call.respond(HttpStatusCode.Unauthorized, ApiResponse.error("UNAUTHORIZED", "Token khÃ´ng há»£p lá»‡."))
 
                 val postId = call.parameters["id"]?.toLongOrNull()
-                    ?: return@delete call.respond(HttpStatusCode.BadRequest, ApiResponse.error("INVALID_ID", "ID bài viết không hợp lệ."))
+                    ?: return@delete call.respond(HttpStatusCode.BadRequest, ApiResponse.error("INVALID_ID", "ID bÃ i viáº¿t khÃ´ng há»£p lá»‡."))
 
                 postService.deletePost(userId, postId)
-                call.respond(HttpStatusCode.OK, ApiResponse.success(data = null, message = "Đã xóa bài viết an toàn"))
+                call.respond(HttpStatusCode.OK, ApiResponse.success(data = null, message = "ÄÃ£ xÃ³a bÃ i viáº¿t an toÃ n"))
             }
 
-            // --- FR-10: GET USER'S POSTS ---
             get("/users/{userId}/posts") {
                 val targetUserId = call.parameters["userId"]?.toLongOrNull()
-                    ?: return@get call.respond(HttpStatusCode.BadRequest, ApiResponse.error("INVALID_ID", "ID người dùng không hợp lệ."))
+                    ?: return@get call.respond(HttpStatusCode.BadRequest, ApiResponse.error("INVALID_ID", "ID ngÆ°á»i dÃ¹ng khÃ´ng há»£p lá»‡."))
 
                 val page = call.request.queryParameters["page"]?.toIntOrNull() ?: 1
                 val limit = call.request.queryParameters["limit"]?.toIntOrNull() ?: 20
@@ -99,52 +88,49 @@ fun Route.postRoutes() {
                 call.respond(HttpStatusCode.OK, ApiResponse.success(data = posts))
             }
 
-            // --- FR-19: TAG USER IN POST ---
             post("/{id}/tags") {
                 val userId = call.principal<JWTPrincipal>()?.payload?.getClaim("userId")?.asLong()
-                    ?: return@post call.respond(HttpStatusCode.Unauthorized, ApiResponse.error("UNAUTHORIZED", "Token không hợp lệ."))
+                    ?: return@post call.respond(HttpStatusCode.Unauthorized, ApiResponse.error("UNAUTHORIZED", "Token khÃ´ng há»£p lá»‡."))
 
                 val postId = call.parameters["id"]?.toLongOrNull()
-                    ?: return@post call.respond(HttpStatusCode.BadRequest, ApiResponse.error("INVALID_ID", "ID bài viết không hợp lệ."))
+                    ?: return@post call.respond(HttpStatusCode.BadRequest, ApiResponse.error("INVALID_ID", "ID bÃ i viáº¿t khÃ´ng há»£p lá»‡."))
 
                 val body = call.receiveText()
                 val taggedUserId = kotlinx.serialization.json.Json { ignoreUnknownKeys = true }
                     .decodeFromString<Map<String, Long>>(body)["taggedUserId"]
-                    ?: return@post call.respond(HttpStatusCode.BadRequest, ApiResponse.error("MISSING_FIELD", "Thiếu trường taggedUserId."))
+                    ?: return@post call.respond(HttpStatusCode.BadRequest, ApiResponse.error("MISSING_FIELD", "Thiáº¿u trÆ°á»ng taggedUserId."))
 
                 postService.tagUserInPost(userId, postId, taggedUserId)
-                call.respond(HttpStatusCode.OK, ApiResponse.success(data = null, message = "Đã gắn thẻ người dùng vào bài viết."))
+                call.respond(HttpStatusCode.OK, ApiResponse.success(data = null, message = "ÄÃ£ gáº¯n tháº» ngÆ°á»i dÃ¹ng vÃ o bÃ i viáº¿t."))
             }
 
-            // --- FR-19: REMOVE TAG FROM POST ---
             delete("/{id}/tags/{taggedUserId}") {
                 val userId = call.principal<JWTPrincipal>()?.payload?.getClaim("userId")?.asLong()
-                    ?: return@delete call.respond(HttpStatusCode.Unauthorized, ApiResponse.error("UNAUTHORIZED", "Token không hợp lệ."))
+                    ?: return@delete call.respond(HttpStatusCode.Unauthorized, ApiResponse.error("UNAUTHORIZED", "Token khÃ´ng há»£p lá»‡."))
 
                 val postId = call.parameters["id"]?.toLongOrNull()
-                    ?: return@delete call.respond(HttpStatusCode.BadRequest, ApiResponse.error("INVALID_ID", "ID bài viết không hợp lệ."))
+                    ?: return@delete call.respond(HttpStatusCode.BadRequest, ApiResponse.error("INVALID_ID", "ID bÃ i viáº¿t khÃ´ng há»£p lá»‡."))
 
                 val taggedUserId = call.parameters["taggedUserId"]?.toLongOrNull()
-                    ?: return@delete call.respond(HttpStatusCode.BadRequest, ApiResponse.error("INVALID_ID", "ID người dùng được gắn thẻ không hợp lệ."))
+                    ?: return@delete call.respond(HttpStatusCode.BadRequest, ApiResponse.error("INVALID_ID", "ID ngÆ°á»i dÃ¹ng Ä‘Æ°á»£c gáº¯n tháº» khÃ´ng há»£p lá»‡."))
 
                 postService.removeTagFromPost(userId, postId, taggedUserId)
-                call.respond(HttpStatusCode.OK, ApiResponse.success(data = null, message = "Đã xóa thẻ người dùng khỏi bài viết."))
+                call.respond(HttpStatusCode.OK, ApiResponse.success(data = null, message = "ÄÃ£ xÃ³a tháº» ngÆ°á»i dÃ¹ng khá»i bÃ i viáº¿t."))
             }
 
-            // --- FR-33: COMMENT SETTINGS ---
             put("/{id}/comment-settings") {
                 val userId = call.principal<JWTPrincipal>()?.payload?.getClaim("userId")?.asLong()
-                    ?: return@put call.respond(HttpStatusCode.Unauthorized, ApiResponse.error("UNAUTHORIZED", "Token không hợp lệ."))
+                    ?: return@put call.respond(HttpStatusCode.Unauthorized, ApiResponse.error("UNAUTHORIZED", "Token khÃ´ng há»£p lá»‡."))
 
                 val postId = call.parameters["id"]?.toLongOrNull()
-                    ?: return@put call.respond(HttpStatusCode.BadRequest, ApiResponse.error("INVALID_ID", "ID bài viết không hợp lệ."))
+                    ?: return@put call.respond(HttpStatusCode.BadRequest, ApiResponse.error("INVALID_ID", "ID bÃ i viáº¿t khÃ´ng há»£p lá»‡."))
 
                 val body = call.receiveText()
                 val commentSetting = kotlinx.serialization.json.Json { ignoreUnknownKeys = true }
                     .decodeFromString<Map<String, String>>(body)["commentSetting"] ?: "ALL"
 
                 postService.updateCommentSettings(userId, postId, commentSetting)
-                call.respond(HttpStatusCode.OK, ApiResponse.success(data = null, message = "Đã cập nhật cài đặt bình luận."))
+                call.respond(HttpStatusCode.OK, ApiResponse.success(data = null, message = "ÄÃ£ cáº­p nháº­t cÃ i Ä‘áº·t bÃ¬nh luáº­n."))
             }
         }
     }

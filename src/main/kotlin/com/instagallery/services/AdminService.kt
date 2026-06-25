@@ -1,4 +1,4 @@
-package com.instagallery.services
+    package com.instagallery.services
 
 import com.instagallery.models.common.AdminGrowthDto
 import com.instagallery.models.common.AdminStatsDto

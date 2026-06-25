@@ -1,6 +1,6 @@
 # API Đặc Tả: Xác Thực Nâng Cao (Advanced Auth)
 
-*(Quản lý phiên đăng nhập, tạo mới token, và khôi phục mật khẩu - Các phần còn thiếu trong 94 API cốt lõi)*
+*(Quản lý phiên đăng nhập, tạo mới token, và khôi phục mật khẩu - thuộc nhóm 107 REST API hiện tại dưới `/api/v1`)*
 
 ## 1. Cấp Mới Access Token (Refresh Token) 
 - **Cụm:** `Auth`

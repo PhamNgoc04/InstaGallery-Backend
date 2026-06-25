@@ -1,66 +1,66 @@
-# 🤖 InstaGallery — AI Context & API Integration Guide (For Android Frontend)
+# InstaGallery - AI Context & API Integration Guide for Android
 
-> **Mục đích của file này:** Đây là "Cẩm nang Bối cảnh" (Context Prompt) toàn diện được thiết kế đặc biệt để cung cấp toàn bộ kiến thức về Backend của hệ thống InstaGallery cho các AI Assistant (Cursor, Github Copilot, Windsurf) hoặc các lập trình viên Android. File này chứa MỌI THỨ từ cấu hình mạng, cấu trúc thư mục, đến toàn bộ **94 API Endpoints** và Kotlin Data Models.
+File nay la context prompt cho Android developer/AI assistant. Noi dung da dong bo voi source Ktor hien tai.
 
----
+## 1. Network configuration
 
-## 1. 🌐 Cài Đặt Mạng & Môi Trường (Network Configuration)
+### Base URL
 
-Để App Android gọi được tới Ktor Backend Local, bắt buộc tuân thủ 3 quy tắc mạng sau:
+- Android Emulator: `http://10.0.2.2:8080`
+- Physical device cung WiFi: `http://<IP-MAY-TINH>:8080`
+- API base path: `/api/v1`
+- WebSocket chat: `ws://10.0.2.2:8080/api/v1/ws/chat?token=<JWT>`
 
-### 1.1 Khai báo Domain (Base URL)
-- **Android Emulator:** `BASE_URL = "http://10.0.2.2:8080"` (Do Emulator ánh xạ `localhost` sang IP này).
-- **Physical Device (cùng WiFi):** `BASE_URL = "http://<IPv4_CỦA_LAPTOP_TRÊN_LAN>:8080"` (Vd: `192.168.1.15:8080`).
+### Cleartext HTTP
 
-### 1.2 Quyền Giao Tiếp HTTP (Cleartext Traffic)
-Môi trường localhost chưa có chứng chỉ SSL. Kể từ Android 9 (API 28), Google cấm gọi API HTTP. Bạn CẦN PHẢI khai báo trong thẻ `<application>` của file `AndroidManifest.xml`:
+Moi truong local chua co HTTPS. Android 9+ can khai bao trong `AndroidManifest.xml`:
+
 ```xml
 <application
     ...
     android:usesCleartextTraffic="true">
 ```
 
-### 1.3 Giao thức WebSockets cho Chat Realtime
-Các endpoint dạng WebSockets BẮT BUỘC phải dùng tiền tố `ws://` thay vì `http://`.
-- `WS_BASE_URL = "ws://10.0.2.2:8080/api/v1"`
+### Localhost image trap
 
----
+Neu backend tra link mock dang `http://localhost/...` hoac `http://127.0.0.1/...`, Android Emulator phai map ve `10.0.2.2` truoc khi dua vao Coil/AsyncImage.
 
-## 2. 🚨 3 Cái Bẫy Chết Người (Critical Traps) Cần Lưu Ý
+## 2. Current backend metrics
 
-1. **Bẫy Load Ảnh bằng Coil (Màn hình đen):**
-   - Backend hiện trả về link ảnh mock: `http://localhost/image.png` hoặc `http://127.0.0.1/...`.
-   - 👉 **Giải pháp Frontend:** Viết 1 ext-function `String.toRealUrl()` để `replace("localhost", "10.0.2.2")` trước khi đưa URL vào thẻ `AsyncImage` của Jetpack Compose.
+- Database tables: **30**.
+- REST endpoints under `/api/v1`: **107**.
+- System/debug HTTP endpoints outside `/api/v1`: **5**.
+- Total HTTP endpoints: **112**.
+- WebSocket endpoints: **1**.
+- Total including WebSocket: **113**.
 
-2. **Bẫy Vòng Lặp Vô Tận (Memory Leak) Token Refresh:**
-   - Ktor Client sẽ dùng `Auth` plugin với `BearerTokens` và `loadTokens { ... }` để chặn lỗi `401 Unauthorized` và tự động gọi API `/api/v1/auth/refresh`.
-   - 👉 **Giải pháp Frontend:** Nếu bản thân API `/refresh` cũng trả về 401 (Nghĩa là RefreshToken cũng đã hết hạn), bạn **phải Stop quá trình gọi mạng**, Clear DataStore/SharedPreferences và đẩy User văng ra màn hình Login ngay lập tức! (Không được để nó loop tiếp).
+Source of truth:
 
-3. **Cơ chế truyền Token (Header):**
-   - Ngoại trừ các API thuộc nhóm public (Đăng Nhập, Đăng Ký, Quên Mật Khẩu, Khám phá...). Mọi API khác đều phải chứa header: `Authorization: Bearer <Access_Token_Của_User>`. (Ktor Auth Plugin sẽ tự lo nếu setup đúng).
+- API list: [Backend_APIs.md](Backend_APIs.md)
+- Database schema: [database_schema.md](database_schema.md)
 
----
+## 3. Auth integration rules
 
-## 3. 🧩 Cấu Trúc Model Chuẩn (Data Models)
+- Public endpoints: login/register/forgot password/reset password/google/2FA verify/explore/search public/profile public/ratings public.
+- Protected endpoints: gui `Authorization: Bearer <accessToken>`.
+- Refresh flow: goi `POST /api/v1/auth/refresh`.
+- Neu `/auth/refresh` cung tra `401`, clear local token va dua user ve login.
+- Logout co the can them `X-Refresh-Token`.
+- WebSocket chat truyen token bang query param: `/api/v1/ws/chat?token=<JWT>`.
 
-> **Hướng dẫn (Prompt) cho AI:** Dựa vào thiết kế dưới đây, hãy tạo các file Data Class bằng Kotlin (Sử dụng thư viện `kotlinx-serialization`).
+## 4. Response wrapper
 
-### 3.1 Base Response Wrapper
-Tất cả endpoint đều trả về theo định dạng chuẩn này.
 ```kotlin
-import kotlinx.serialization.Serializable
-
 @Serializable
 data class BaseResponse<T>(
-    val status: String, // "success" hoặc "error"
+    val status: String,
     val message: String? = null,
     val data: T? = null,
-    val errorCode: String? = null // Chỉ có khi status = "error"
+    val errorCode: String? = null
 )
 ```
 
-### 3.2 Core Data Models
-Đây là các Data Transfer Object (DTO) cốt lõi của toàn hệ thống:
+## 5. Core DTO hints
 
 ```kotlin
 @Serializable
@@ -71,54 +71,31 @@ data class User(
     val fullName: String,
     val profilePictureUrl: String? = null,
     val bio: String? = null,
-    val role: String, // "PHOTOGRAPHER", "CLIENT", "ADMIN"
-    val isVerified: Boolean,
-    val followerCount: Int,
-    val followingCount: Int,
-    val postCount: Int
+    val role: String,
+    val userType: String? = null,
+    val isVerified: Boolean = false,
+    val followerCount: Int = 0,
+    val followingCount: Int = 0,
+    val postCount: Int = 0
 )
 
 @Serializable
 data class Post(
     val id: Long,
     val userId: Long,
-    val user: User? = null, // Có thể đính kèm thông tin chủ bài viết
-    val caption: String?,
+    val caption: String? = null,
     val location: String? = null,
-    val likeCount: Int,
-    val commentCount: Int,
-    val isLiked: Boolean = false, // Field tính toán trả về cho Frontend
-    val isSaved: Boolean = false, // Field tính toán trả về cho Frontend
-    val media: List<MediaItem>,
-    val createdAt: String
-)
-
-@Serializable
-data class MediaItem(
-    val id: Long,
-    val mediaFileUrl: String,
-    val mediaType: String, // "IMAGE" hoặc "VIDEO"
-    val position: Int
-)
-
-@Serializable
-data class Comment(
-    val id: Long,
-    val postId: Long,
-    val user: User,
-    val content: String,
-    val likeCount: Int,
-    val replyCount: Int,
-    val createdAt: String
+    val likeCount: Int = 0,
+    val commentCount: Int = 0,
+    val shareCount: Int = 0,
+    val createdAt: String? = null
 )
 
 @Serializable
 data class Conversation(
     val id: Long,
     val title: String? = null,
-    val type: String, // "DIRECT" or "GROUP"
-    val unreadCount: Int = 0,
-    val targetUser: User? = null, // Dành cho DIRECT chat
+    val type: String,
     val lastMessage: Message? = null
 )
 
@@ -127,160 +104,154 @@ data class Message(
     val id: Long,
     val conversationId: Long,
     val senderId: Long,
-    val content: String,
-    val messageType: String, // "TEXT", "IMAGE"
-    val createdAt: String
-)
-
-@Serializable
-data class Booking(
-    val id: Long,
-    val clientId: Long,
-    val photographerId: Long,
-    val bookingDate: String,
-    val status: String, // "PENDING","CONFIRMED","COMPLETED","CANCELLED"
-    val price: Double? = null,
-    val photographer: User? = null
+    val content: String? = null,
+    val messageType: String = "TEXT",
+    val createdAt: String? = null
 )
 ```
 
----
+## 6. Current API map
 
-## 4. 📦 Bản Đồ API Toàn Diện (94 Endpoints)
+Dung `BASE_URL = http://10.0.2.2:8080/api/v1`. Cac endpoint ben duoi khong lap lai tien to `/api/v1`.
 
-Base Path cho mọi API là: `[BASE_URL]/api/v1`
-*(Lưu ý: Tất cả các Endpoint có ghi dấu `✅` ở cột Auth nghĩa là bắt buộc phải gắn Bearer Token)*
+### Auth
 
-### 4.1 Nhóm 1: Xác Thực & Vòng Đời Người Dùng (Auth & Tokens)
-| Phương thức | Endpoint | Auth | Chức năng & Input Payload |
-|---|---|---|---|
-| POST | `/auth/register` | ❌ | Body: `{username, email, password, full_name, role}` -> Trả về Tokens. |
-| POST | `/auth/login` | ❌ | Body: `{username, password}` -> Trả về `{accessToken, refreshToken}`. |
-| POST | `/auth/logout` | ✅ | Xóa Token session ở backend. |
-| POST | `/auth/refresh` | ❌ | Body: `{refreshToken}` -> Trả về Token mới. |
-| POST | `/auth/forgot-password` | ❌ | Body: `{email}` -> Gửi mail reset (mock). |
-| POST | `/auth/reset-password` | ❌ | Body: `{token, new_password}`. |
-| PUT | `/auth/change-password` | ✅ | Body: `{old_password, new_password}`. Xóa mọi session khác. |
-| POST | `/auth/verify-email` | ❌ | Xác thực email đăng ký. |
-| POST | `/auth/resend-verification`| ❌ | Gửi lại mail xác thực. |
-| DELETE| `/users/me/sessions/{id}`| ✅ | Remote logout 1 thiết bị cụ thể. |
-| GET | `/users/me/sessions` | ✅ | Lấy danh sách thiết bị đang đăng nhập. |
-| POST | `/users/me/deactivate` | ✅ | Vô hiệu hóa tài khoản (Soft delete). |
+| Method | Endpoint | Auth |
+|---|---|:---:|
+| POST | `/auth/register` | No |
+| POST | `/auth/login` | No |
+| POST | `/auth/refresh` | No |
+| POST | `/auth/forgot-password` | No |
+| POST | `/auth/reset-password` | No |
+| POST | `/auth/google` | No |
+| POST | `/auth/2fa/verify-login` | No |
+| POST | `/auth/logout` | Yes |
+| PUT | `/auth/change-password` | Yes |
+| POST | `/auth/2fa/setup` | Yes |
+| POST | `/auth/2fa/enable` | Yes |
 
-### 4.2 Nhóm 2: Hồ Sơ Cá Nhân (User Profile)
-| Phương thức | Endpoint | Auth | Chức năng & Input Payload |
-|---|---|---|---|
-| GET | `/users/me` | ✅ | Lấy full thông tin bản thân. |
-| PUT | `/users/me` | ✅ | Body: `{bio, website, full_name, gender...}`. |
-| PUT | `/users/me/avatar` | ✅ | Multipart Form: File ảnh -> Lấy Avatar URL. |
-| GET | `/users/{username}` | Opt | Xem tường nhà người khác (posts, followers). |
-| GET | `/photographers` | Opt | Danh sách chuyên gia nhiếp ảnh. |
+### Users
 
-### 4.3 Nhóm 3: Mạng Lưới Xã Hội (Followers & Following)
-| Phương thức | Endpoint | Auth | Chức năng & Input Payload |
-|---|---|---|---|
-| POST | `/users/{id}/follow` | ✅ | Bấm theo dõi. Nhả Notification nếu thành công. |
-| DELETE| `/users/{id}/follow` | ✅ | Hủy theo dõi. |
-| GET | `/users/{id}/followers`| Opt | Lấy list người theo dõi (Có phân trang). |
-| GET | `/users/{id}/following`| Opt | Lấy list người đang theo dõi (Có phân trang). |
-| GET | `/users/suggestions` | ✅ | AI gợi ý người dùng nên theo dõi. |
+| Method | Endpoint | Auth |
+|---|---|:---:|
+| GET | `/users/me` | Yes |
+| PUT | `/users/me` | Yes |
+| GET | `/users/me/sessions` | Yes |
+| DELETE | `/users/me/sessions/{id}` | Yes |
+| POST | `/users/me/deactivate` | Yes |
+| PUT | `/users/me/avatar` | Yes |
+| PUT | `/users/me/privacy` | Yes |
+| GET | `/users/me/saved-posts` | Yes |
+| GET | `/users/me/liked-posts` | Yes |
+| GET | `/users/me/tagged-posts` | Yes |
+| GET | `/users/me/activity-log` | Yes |
+| GET | `/users/me/blocked` | Yes |
+| GET | `/users/suggestions` | Yes |
+| GET | `/users/me/follow-requests` | Yes |
+| POST | `/users/me/follow-requests/{followerId}/{action}` | Yes |
+| GET | `/users/{id}` | No |
+| POST | `/users/{id}/follow` | Yes |
+| POST | `/users/{id}/block` | Yes |
+| POST | `/users/{id}/mute` | Yes |
+| GET | `/users/{id}/followers` | No |
+| GET | `/users/{id}/following` | No |
 
-### 4.4 Nhóm 4: Sáng Tạo Nội Dung & Trang Chủ (Posts & Feed)
-| Phương thức | Endpoint | Auth | Chức năng & Input Payload |
-|---|---|---|---|
-| POST | `/posts` | ✅ | Đăng bài. Body: `{caption, media: [{mediaUrl, mediaType}]}`. |
-| GET | `/posts/{id}` | Opt | Chi tiết bài viết. Tự Map is_liked, is_saved. |
-| PUT | `/posts/{id}` | ✅ | Sửa Caption bài. |
-| DELETE| `/posts/{id}` | ✅ | Gỡ bài viết. |
-| GET | `/feed` | ✅ | Lấy Feed tường nhà của người đang theo dõi (Pagination). |
-| GET | `/users/{username}/posts`| Opt| Các bài viết của 1 người cụ thể (Grid màn Profile). |
-| POST | `/posts/{id}/media` | ✅ | Upload thêm Media vào bài cũ. |
-| DELETE| `/posts/{id}/media/{mId}`| ✅ | Xóa 1 ảnh khỏi bài. |
-| PUT | `/posts/{id}/media/reorder`|✅ | Sắp xếp lại thứ tự ảnh trong bài. |
+### Posts, media and interactions
 
-### 4.5 Nhóm 5: Khám Phá & Tìm Kiếm (Explore & Search)
-| Phương thức | Endpoint | Auth | Chức năng & Input Payload |
-|---|---|---|---|
-| GET | `/explore` | Opt | Trang khám phá, thuật toán gợi ý ảnh đẹp. |
-| GET | `/search` | ✅ | Param: `?q="abc"`. Tìm Username, Tên, và Hashtag. |
-| GET | `/search/autocomplete` | ✅ | Gợi ý dropdown lúc type. |
-| GET | `/search/trending` | Opt | Danh sách Tags đang nổi. |
-| GET | `/search/history` | ✅ | Kéo lại những gì đã tìm trong quá khứ. |
-| DELETE| `/search/history` | ✅ | Xóa lịch sử tìm kiếm. |
-| GET | `/tags/{tagName}/posts` | Opt | Nhấn vào 1 hashtag -> Xem mọi ảnh gắn hashtag đó. |
+| Method | Endpoint | Auth |
+|---|---|:---:|
+| POST | `/posts` | Yes |
+| GET | `/posts/feed` | Yes |
+| GET | `/posts/{id}` | Yes |
+| PUT | `/posts/{id}` | Yes |
+| DELETE | `/posts/{id}` | Yes |
+| GET | `/posts/users/{userId}/posts` | Yes |
+| POST | `/posts/{id}/tags` | Yes |
+| DELETE | `/posts/{id}/tags/{taggedUserId}` | Yes |
+| PUT | `/posts/{id}/comment-settings` | Yes |
+| POST | `/posts/{id}/like` | Yes |
+| GET | `/posts/{id}/likes` | Yes |
+| POST | `/posts/{id}/save` | Yes |
+| POST | `/posts/{id}/comments` | Yes |
+| GET | `/posts/{id}/comments` | Yes |
+| POST | `/posts/{id}/share` | Yes |
+| GET | `/posts/{id}/shares` | Yes |
+| PUT | `/comments/{commentId}` | Yes |
+| DELETE | `/comments/{commentId}` | Yes |
+| POST | `/comments/{commentId}/like` | Yes |
+| POST | `/media/presigned-url` | Yes |
+| POST | `/posts/{postId}/media` | Yes |
+| DELETE | `/posts/media/{mediaId}` | Yes |
+| PUT | `/posts/{postId}/media/reorder` | Yes |
 
-### 4.6 Nhóm 6: Tương Tác Xã Hội (Likes, Comments, Saves)
-| Phương thức | Endpoint | Auth | Chức năng & Input Payload |
-|---|---|---|---|
-| POST | `/interactions/posts/{id}/like` | ✅ | Bấm thả tim. |
-| DELETE| `/interactions/posts/{id}/like` | ✅ | Bỏ thả tim. |
-| GET | `/posts/{id}/likers` | Opt | Xem những ai đã tim bài này. |
-| GET | `/posts/{id}/like/status`| ✅ | Check xem user hiện tại đã tim bài này chưa. |
-| POST | `/posts/{id}/comments` | ✅ | Đăng comment. Body: `{content, parentCommentId}`. |
-| GET | `/posts/{id}/comments` | Opt | Lấy Comments (Cấu trúc Tree, 2 level). |
-| PUT | `/comments/{commentId}` | ✅ | Sửa text comment. |
-| DELETE| `/comments/{commentId}` | ✅ | Thu hồi comment (3 cấp độ Auth: Owner, Post Owner, Admin). |
-| POST | `/comments/{id}/like` | ✅ | Tim một dòng comment. |
-| DELETE| `/comments/{id}/like` | ✅ | Bỏ tim comment. |
-| GET | `/comments/{id}/replies`| Opt | Tải danh sách Reply cho 1 comment cha. |
-| POST | `/posts/{id}/save` | ✅ | Lưu bài viết vào Bookmark cá nhân. |
-| DELETE| `/posts/{id}/save` | ✅ | Bỏ lưu bài. |
-| GET | `/users/me/saved-posts`| ✅ | Lấy grid bài viết đã lưu. |
+### Albums, explore and search
 
-### 4.7 Nhóm 7: Hợp Đồng Nhiếp Ảnh (Booking & Rating)
-| Phương thức | Endpoint | Auth | Chức năng & Input Payload |
-|---|---|---|---|
-| POST | `/bookings` | ✅ | Body: `{photographer_id, booking_date, duration...}`. |
-| GET | `/bookings` | ✅ | List booking của mình (Bao gồm cả người thuê & thợ). |
-| GET | `/bookings/{id}` | ✅ | Chi tiết 1 lịch (Hoá đơn). |
-| PUT | `/bookings/{id}` | ✅ | Photographer duyệt: Chuyển trạng thái `PENDING -> CONFIRMED`. |
-| POST | `/bookings/{id}/cancel` | ✅ | Hủy lịch (Kèm lý do). |
-| POST | `/ratings` | ✅ | Viết Review: Body `{booking_id, ratee_id, rating_value, comment}` (Chỉ booking COMPLETED). |
-| GET | `/users/{id}/ratings` | Opt | Đọc Review của thợ ảnh. |
-| GET | `/photographers/{id}/availability`| Opt | Check xem thợ này có rảnh ngày X không. |
-| GET | `/portfolios/me` | PHOTOG| Lấy Portfolio của thợ. |
-| PUT | `/portfolios/me` | PHOTOG| Cập nhật giá tiền `hourly_rate`, `service_area`. |
-| GET | `/users/{id}/portfolio`| Opt | Khách xem Portfolio thợ. |
+| Method | Endpoint | Auth |
+|---|---|:---:|
+| POST | `/albums` | Yes |
+| GET | `/albums` | Yes |
+| GET | `/albums/{id}` | Yes |
+| PUT | `/albums/{id}` | Yes |
+| DELETE | `/albums/{id}` | Yes |
+| POST | `/albums/{id}/media` | Yes |
+| DELETE | `/albums/{id}/media/{mediaId}` | Yes |
+| GET | `/explore` | No |
+| GET | `/explore/trending` | No |
+| GET | `/explore/hashtags/{tag}` | No |
+| GET | `/search` | Optional |
+| GET | `/search/history` | Yes |
+| DELETE | `/search/history` | Yes |
+| GET | `/search/trending` | No |
 
-### 4.8 Nhóm 8: Trò Chuyện Tức Thời (Real-Time WebSockets & Chat)
-| Phương thức | Endpoint | Auth | Chức năng & Input Payload |
-|---|---|---|---|
-| GET | `/chat/conversations` | ✅ | Hộp thư Inbox (Danh sách Chat). |
-| POST | `/chat/conversations` | ✅ | Mở Inbox mới (DIRECT hoặc GROUP). |
-| GET | `/chat/conversations/{id}`| ✅ | Chi tiết 1 cuộc trò chuyện. |
-| GET | `/chat/conversations/{id}/messages`|✅| Load History tin nhắn. |
-| WS | `/ws/chat?token={token}`| ✅ | **Ống cắm Realtime (WebSocket)**. Gửi JSON frame để nhả chat qua lại. |
-| POST | `/chat/conversations/{id}/messages`|✅| Fallback: Gửi tin nhắn qua REST API. |
-| PUT | `/chat/conversations/{id}/read` | ✅ | Đánh dấu đã đọc (Set `last_read_at`). |
-| POST | `/chat/conversations/{id}/members`|✅| Chức năng Group: Add người mới. |
-| DELETE| `/chat/conversations/{id}/members/{uId}`|✅| Chức năng Group: Kick người ra. |
-| PUT | `/chat/conversations/{id}/mute`| ✅ | Tắt chuông báo 1 box chat. |
+### Portfolio, booking and rating
 
-### 4.9 Nhóm 9: Hệ Thống Thông Báo (Notifications)
-| Phương thức | Endpoint | Auth | Chức năng & Input Payload |
-|---|---|---|---|
-| GET | `/notifications` | ✅ | Lịch sử thông báo (Like, Follow, Booking...). |
-| PUT | `/notifications/{id}/read` | ✅ | Đánh dấu 1 thông báo đã xem. |
-| PUT | `/notifications/read-all`| ✅ | Mark all as read. |
-| GET | `/notifications/unread-count`|✅| Hiển thị Badge chấm đỏ (Số lượg chưa đọc). |
+| Method | Endpoint | Auth |
+|---|---|:---:|
+| GET | `/portfolios` | No |
+| GET | `/portfolios/users/{userId}` | No |
+| GET | `/portfolios/me` | Yes |
+| PUT | `/portfolios/me` | Yes |
+| POST | `/portfolios/me/availability` | Yes |
+| GET | `/portfolios/me/availability` | Yes |
+| POST | `/bookings` | Yes |
+| GET | `/bookings` | Yes |
+| GET | `/bookings/{id}` | Yes |
+| PUT | `/bookings/{id}/status` | Yes |
+| DELETE | `/bookings/{id}` | Yes |
+| GET | `/users/{photographerId}/ratings` | No |
+| POST | `/users/{photographerId}/ratings` | Yes |
+| DELETE | `/ratings/{ratingId}` | Yes |
+| PUT | `/ratings/{ratingId}` | Yes |
 
-### 4.10 Nhóm 10: Server Utils, Upload & Admin
-| Phương thức | Endpoint | Auth | Chức năng & Input Payload |
-|---|---|---|---|
-| GET | `/health` | ❌ | Ping Heartbeat của Server Ktor. |
-| POST | `/upload/presigned-url`| ✅ | Xin link Storage Upload trực tiếp (S3/Firebase Bypass). |
-| POST | `/reports` | ✅ | Report nội dung vi phạm `{target_type, target_id, reason}`. |
-| (15 API Admin)| Khu vực `/admin/*` | ADMIN| Lấy Stats, Quản lý Users, Xóa Posts rác, Khóa ACC, Ban/Unban, Cấp Tích Xanh (is_verified). |
+### Chat, notifications, reports and admin
 
----
+| Method | Endpoint | Auth |
+|---|---|:---:|
+| POST | `/chat/conversations` | Yes |
+| GET | `/chat/conversations` | Yes |
+| GET | `/chat/conversations/{id}/messages` | Yes |
+| POST | `/chat/conversations/{id}/messages` | Yes |
+| DELETE | `/chat/conversations/{id}` | Yes |
+| WS | `/ws/chat?token=<JWT>` | Token query |
+| GET | `/notifications` | Yes |
+| GET | `/notifications/unread-count` | Yes |
+| PUT | `/notifications/{id}/read` | Yes |
+| PUT | `/notifications/read-all` | Yes |
+| DELETE | `/notifications/{id}` | Yes |
+| POST | `/reports` | Yes |
+| GET | `/admin/reports` | Admin |
+| PUT | `/admin/reports/{reportId}` | Admin |
+| GET | `/admin/stats` | Admin |
+| GET | `/admin/stats/growth` | Admin |
+| PUT | `/admin/users/{userId}/ban` | Admin |
+| DELETE | `/admin/posts/{postId}` | Admin |
+| DELETE | `/admin/comments/{commentId}` | Admin |
+| GET | `/admin/users` | Admin |
+| GET | `/admin/users/{userId}` | Admin |
+| GET | `/admin/banned-keywords` | Admin |
+| POST | `/admin/banned-keywords` | Admin |
+| DELETE | `/admin/banned-keywords/{id}` | Admin |
 
-## 5. 🤖 Lời Gọi Prompt Mẫu Dành Cho Khâu Build Frontend (Dành Cho AI Android)
+## 7. Prompt mau cho AI Android
 
-*(Khi bắt đầu một Phase code Android mới, bạn hãy copy đoạn text ở ô dưới gán cho Assistant của bạn ở Android Studio)*
-
-> "Tôi đang bắt đầu xây dựng App Android cho hệ thống InstaGallery. Hệ thống Backend Ktor đã hoàn thiện với 94 Endpoint như quy định trong file Context này. 
-> Nhiệm vụ của bạn là:
-> 1. Xây dựng một **Network Module (Dependency Injection bằng Koin)** cung cấp `Ktor HttpClient`. Nhớ bắt buộc handle Token Refresh (`AuthPlugin` BearerTokens) và đổi Base URL `10.0.2.2` để chạy máy ảo. Ngăn chặn bug Infinite Loop Token. 
-> 2. Generate ra các File **Kotlin Data Class Models** dựa vào cấu trúc ở mục 3 (có chứa `@Serializable`).
-> 3. Tự động tạo hệ thống Interface Service (ví dụ `AuthApiService`, `FeedApiService`, `ChatWebsocketService`) chứa các hàm bám sát theo các bảng Routing tại Mục 4.
-> 4. Hãy áp dụng Clean Architecture (Repository Pattern) và Jetpack Compose trong toàn bộ dự án."
+> Toi dang xay dung Android app cho InstaGallery. Backend Ktor hien co 30 bang, 107 REST endpoints duoi `/api/v1`, 5 system HTTP routes, va 1 WebSocket `/api/v1/ws/chat`. Hay tao Network Module bang Ktor Client/Koin, xu ly Bearer token + refresh token, dung `10.0.2.2` cho emulator, va chi sinh API service theo endpoint map trong file nay.

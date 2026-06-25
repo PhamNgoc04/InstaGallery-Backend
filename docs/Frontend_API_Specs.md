@@ -1,161 +1,205 @@
-# InstaGallery API Collection (Frontend Spec)
+# InstaGallery API Collection - Frontend Spec
 
-> **Lưu ý Quan Trọng dành cho Frontend (Mobile/Web):**
-> - **Base URL Nội bộ (Máy Ảo Android):** `http://10.0.2.2:8080/api/v1`
-> - **Base URL Dây thật / Wifi chung:** `http://<IP-MÁY-TÍNH>:8080/api/v1`
-> - Các API cần truyền ID trên đường dẫn sẽ có dạng `{id}` (Ví dụ: `/api/v1/posts/5`)
-> - Payload chuẩn trả về chung: `{ "status": "SUCCESS/ERROR", "message": "...", "data": { ... } }`
+Tai lieu nay danh cho Mobile/Web frontend va da dong bo voi source Ktor hien tai.
 
----
+## Base URLs
 
-## 📊 THỐNG KÊ TỔNG QUAN HỆ THỐNG (PROJECT METRICS)
-Dự án được xây dựng theo chuẩn **Clean Architecture** sử dụng Ktor Framework, Kotlin Coroutines và DB Exposed SQL.
-- **Tổng số Yêu cầu chức năng (FR):** Khớp đúng 46 Yêu cầu thực tiễn.
-- **Tổng số Use Cases Cốt lõi:** 18 Use Cases cho 4 Tác nhân (Client, Photographer, Admin, System).
-- **Tổng số Bảng Dữ Liệu (Database Tables):** **30 Tables** (Bao chùm toàn vẹn Dữ liệu tĩnh, Mạng xã hội, Bảo mật, Booking, Websocket).
-- **Tổng số lượng API Endpoints:** **74 APIs** (Gồm 66 RESTful APIs cho App Mobile, 1 WebSocket Server, và 7 APIs quản trị Web Admin).
+- Android Emulator: `http://10.0.2.2:8080/api/v1`
+- Physical device cung WiFi: `http://<IP-MAY-TINH>:8080/api/v1`
+- WebSocket Android Emulator: `ws://10.0.2.2:8080/api/v1/ws/chat?token=<JWT>`
+- WebSocket physical device: `ws://<IP-MAY-TINH>:8080/api/v1/ws/chat?token=<JWT>`
 
----
+## Project metrics
 
-## 1. 🔐 Cụm Auth & Quản lý Thông tin Thiết bị
-`Base Path: /api/v1/auth`
+- Database tables: **30 tables**.
+- REST API duoi `/api/v1`: **107 endpoints**.
+- System/debug HTTP routes ngoai `/api/v1`: **5 endpoints**.
+- Total HTTP endpoints: **112 endpoints**.
+- WebSocket: **1 endpoint**.
+- Total including WebSocket: **113 endpoints**.
 
-| HTTP Method | Endpoint | Yêu cầu Token? | Payload / Query | Mô tả chức năng |
-| :--- | :--- | :---: | :--- | :--- |
-| `POST` | `/register` | ❌ | `email`, `password`, `fullName` | Đăng ký tài khoản thường |
-| `POST` | `/login` | ❌ | `email`, `password` | Đăng nhập tài khoản thường (Trả Access/Refresh Token) |
-| `POST` | `/google` | ❌ | `googleTokenId` | Đăng nhập bằng tài khoản Google |
-| `POST` | `/refresh` | ❌ | Header: `X-Refresh-Token` | Cấp lại Access Token mới dựa trên Refresh Token |
-| `POST` | `/forgot-password` | ❌ | `email` | Gửi Email link khoá mã OTP quên mật khẩu |
-| `POST` | `/reset-password` | ❌ | `otp`, `newPassword` | Đặt lại mật khẩu mới dựa vào email link |
-| `POST` | `/2fa/verify-login`| ❌ | `userId`, `otpCode` | Nhập mã Google Authenticator nếu báo lỗi 2FA |
-| `POST` | `/logout` | ✅ | Header: `X-Refresh-Token` | Vô hiệu hóa phân vùng Token hiện tại trên thiết bị |
-| `PUT` | `/change-password` | ✅ | `oldPassword`, `newPassword` | Đổi mật khẩu. Bắt buộc đăng nhập lại sau khi đổi. |
-| `POST` | `/2fa/setup` | ✅ | None | Gen mã Secret mới/Trả QR Code để quét G-Auth |
-| `POST` | `/2fa/enable` | ✅ | `otpCode` | Nạp mã xác thực từ người dùng để chốt kích hoạt 2FA |
+> Full backend route list nam o [Backend_APIs.md](Backend_APIs.md). File nay tap trung vao endpoint frontend can goi va cac luu y tich hop.
 
----
+## Response wrapper
 
-## 2. 👤 Cụm User Settings & Profile
-`Base Path: /api/v1/users`
+Tat ca API nen duoc frontend parse theo wrapper chung:
 
-| HTTP Method | Endpoint | Yêu cầu Token? | Payload / Query | Mô tả chức năng |
-| :--- | :--- | :---: | :--- | :--- |
-| `GET` | `/me` | ✅ | None | Lấy thông tin cá nhân của người dùng hiện tại |
-| `PUT` | `/me` | ✅ | `bio`, `website`, `isPrivate`...| Cập nhật các trường thông tin cơ bản |
-| `PUT` | `/me/avatar` | ✅ | `MultipartFile` | Upload cất ảnh thẻ lên Server |
-| `GET` | `/me/sessions` | ✅ | None | Render danh sách các Điện thoại/Trình duyệt đang Login |
-| `DELETE` | `/me/sessions/{id}` | ✅ | None | Nút "Đăng xuất thiết bị khác" (Force Logout) |
-| `POST` | `/me/deactivate`| ✅ | None | Đóng băng (Vô hiệu hóa tạm thời) tài khoản mình |
+```json
+{
+  "status": "SUCCESS",
+  "message": "...",
+  "data": {}
+}
+```
 
----
+Khi co loi, backend tra ve `status = "ERROR"` va co the kem `errorCode`.
 
-## 3. 🌐 Cụm Mạng Xã Hội (Người theo dõi, Chặn)
-`Base Path: /api/v1/users`
+## Auth and token rules
 
-| HTTP Method | Endpoint | Yêu cầu Token? | Payload / Query | Mô tả chức năng |
-| :--- | :--- | :---: | :--- | :--- |
-| `GET` | `/{id}` | ✅ | None | Lấy hồ sơ tường nhà người khác (hiển thị bio/post count) |
-| `GET` | `/{id}/followers` | ✅ | `?page=&limit=` | Lấy danh sách Người bám đuôi (Fan) |
-| `GET` | `/{id}/following` | ✅ | `?page=&limit=` | Lấy danh sách Người đang theo dõi (Idols) |
-| `GET` | `/suggestions` | ✅ | `?limit=10` | Lưới Gợi ý kết bạn / Follow dạo |
-| `POST` | `/{id}/follow` | ✅ | None | Nút [Theo dõi] đúp (Toggle: Tự Follow / Tự Hủy) |
-| `GET` | `/me/follow-requests`| ✅ | None | Nhìn danh sách Đang chờ duyệt (Nếu account là Private) |
-| `POST` | `/me/follow-requests/{id}/{action}` | ✅ | Path action: `accept` / `reject` | Duyệt / Từ chối lời mời follow của 1 user khác |
-| `POST` | `/{id}/block` | ✅ | None | Chặn toàn bộ tường nhà người dùng này |
-| `POST` | `/{id}/mute` | ✅ | None | Tắt tiếng (ẩn bài viết thả xuống feed của mình) |
+- Public endpoints khong can `Authorization`.
+- Protected endpoints gui header: `Authorization: Bearer <accessToken>`.
+- Refresh token flow goi `POST /auth/refresh`.
+- Mot so auth actions, vi du logout, co the can them header `X-Refresh-Token`.
+- WebSocket chat truyen token qua query: `/ws/chat?token=<JWT>`.
 
----
+## Endpoint map by frontend domain
 
-## 4. 🖼️ Cụm Tương Tác Nội Dung Cốt Lõi (Posts & Feeds)
-`Base Path: /api/v1/posts` và `/api/v1/comments`
+### Auth - base `/auth`
 
-| HTTP Method | Endpoint | Yêu cầu Token? | Payload / Query | Mô tả chức năng |
-| :--- | :--- | :---: | :--- | :--- |
-| `GET` | `/api/v1/posts` | ✅ | `?page=&limit=` | Màn Hình Home: Lấy danh sách Bảng tin Feed mới nhất |
-| `POST` | `/api/v1/posts` | ✅ | `caption`, `commentVisibility`, `media[]` | Đăng tải 1 bộ hình ảnh / bài viết mới |
-| `GET` | `/api/v1/posts/{id}`| ✅ | None | Render Detail Bài viết |
-| `PUT` | `/api/v1/posts/{id}`| ✅ | `caption`, `location` | Sửa lại mô tả bài viết |
-| `DELETE` | `/api/v1/posts/{id}`| ✅ | None | Thùng rác xóa bài viết |
-| `POST` | `/api/v1/posts/{id}/like` | ✅ | None | Thả Trái tim cho 1 bài viết (Toggle logic) |
-| `POST` | `/api/v1/posts/{id}/save` | ✅ | None | Nút Ruy Băng lưu Bookmark |
-| `GET` | `/api/v1/posts/{id}/comments`| ✅ | `?page=&limit=` | Màn hình lưới Comments của 1 bài Post |
-| `POST` | `/api/v1/posts/{id}/comments`| ✅ | `content` | Bắn bình luận mới vào Post |
-| `PUT` | `/api/v1/comments/{id}` | ✅ | `content` | Chỉnh sửa nội dung Comment |
-| `DELETE` | `/api/v1/comments/{id}` | ✅ | None | Xóa nhanh Comment |
-| `POST` | `/api/v1/comments/{id}/like` | ✅ | None | Like (Thích) một lời bình ấn tượng của người ta |
+| Method | Endpoint | Auth |
+|---|---|:---:|
+| POST | `/register` | No |
+| POST | `/login` | No |
+| POST | `/refresh` | No |
+| POST | `/forgot-password` | No |
+| POST | `/reset-password` | No |
+| POST | `/google` | No |
+| POST | `/2fa/verify-login` | No |
+| POST | `/logout` | Yes |
+| PUT | `/change-password` | Yes |
+| POST | `/2fa/setup` | Yes |
+| POST | `/2fa/enable` | Yes |
 
----
+### Users - base `/users`
 
-## 5. 🔍 Cụm Thuật toán Khám phá & Lọc Tìm Kiếm
-`Base Path: /api/v1/explore` và `/api/v1/search`
+| Method | Endpoint | Auth |
+|---|---|:---:|
+| GET | `/me` | Yes |
+| PUT | `/me` | Yes |
+| GET | `/me/sessions` | Yes |
+| DELETE | `/me/sessions/{id}` | Yes |
+| POST | `/me/deactivate` | Yes |
+| PUT | `/me/avatar` | Yes |
+| PUT | `/me/privacy` | Yes |
+| GET | `/me/saved-posts` | Yes |
+| GET | `/me/liked-posts` | Yes |
+| GET | `/me/tagged-posts` | Yes |
+| GET | `/me/activity-log` | Yes |
+| GET | `/me/blocked` | Yes |
+| GET | `/suggestions` | Yes |
+| GET | `/me/follow-requests` | Yes |
+| POST | `/me/follow-requests/{followerId}/{action}` | Yes |
+| GET | `/{id}` | No |
+| POST | `/{id}/follow` | Yes |
+| POST | `/{id}/block` | Yes |
+| POST | `/{id}/mute` | Yes |
+| GET | `/{id}/followers` | No |
+| GET | `/{id}/following` | No |
 
-| HTTP Method | Endpoint | Yêu cầu Token? | Payload / Query | Mô tả chức năng |
-| :--- | :--- | :---: | :--- | :--- |
-| `GET` | `/explore` | ✅ | `?page=&limit=` | Thuật toán lưới rải đinh random Content HOT |
-| `GET` | `/explore/trending` | ✅ | None | Tìm danh sách Hastags (Thẻ tag) xịn thịnh hành |
-| `GET` | `/search` | ✅ | `?q=text` | Lọc bọc Tìm kiếm mảng Users, Posts, Tags |
-| `GET` | `/search/history` | ✅ | None | Bóc History gõ chữ bên dưới kính lúp |
-| `DELETE` | `/search/history` | ✅ | None | Nhấn "Xóa lịch sử gõ phím" |
+### Posts and interactions
 
----
+| Method | Endpoint | Auth |
+|---|---|:---:|
+| POST | `/posts` | Yes |
+| GET | `/posts/feed` | Yes |
+| GET | `/posts/{id}` | Yes |
+| PUT | `/posts/{id}` | Yes |
+| DELETE | `/posts/{id}` | Yes |
+| GET | `/posts/users/{userId}/posts` | Yes |
+| POST | `/posts/{id}/tags` | Yes |
+| DELETE | `/posts/{id}/tags/{taggedUserId}` | Yes |
+| PUT | `/posts/{id}/comment-settings` | Yes |
+| POST | `/posts/{id}/like` | Yes |
+| GET | `/posts/{id}/likes` | Yes |
+| POST | `/posts/{id}/save` | Yes |
+| POST | `/posts/{id}/comments` | Yes |
+| GET | `/posts/{id}/comments` | Yes |
+| POST | `/posts/{id}/share` | Yes |
+| GET | `/posts/{id}/shares` | Yes |
+| PUT | `/comments/{commentId}` | Yes |
+| DELETE | `/comments/{commentId}` | Yes |
+| POST | `/comments/{commentId}/like` | Yes |
 
-## 6. 📸 Cụm Tính Năng Nhiếp Ảnh (Portfolio & Booking)
+### Media and albums
 
-**A. Xếp hạng & Lịch đặt (Bookings / Portfolio)**
-| HTTP Method | Endpoint | Yêu cầu Token? | Payload / Query | Mô tả chức năng |
-| :--- | :--- | :---: | :--- | :--- |
-| `GET` | `/api/v1/portfolios` | ❌ | `?location=HN&minRate=...` | Bảng Search dành cho Khách thuê kiếm Thợ chụp |
-| `GET` | `/api/v1/portfolios/users/{id}`| ❌ | None | Khách ấn vô xem Info thợ cụ thể |
-| `GET` | `/api/v1/portfolios/me` | ✅ | None | Thợ: Xem thông tin gian hàng của mình |
-| `PUT` | `/api/v1/portfolios/me` | ✅ | `bio`, `specialty`, `hourlyRate` | Cập nhật Bảng giá dịch vụ |
-| `POST`| `/api/v1/portfolios/me/availability`| ✅ | Array Lịch Rảnh (T2, T3) | Thợ setup thời gian nhận Khách tự động |
-| `GET` | `/api/v1/portfolios/me/availability`| ✅ | None | Bóc Lịch dải khung giờ trống |
-| `POST`| `/api/v1/bookings` | ✅ | `portfolioId`, `date`, `note`| (Client Request): Push lệnh Đặt Lịch |
-| `GET` | `/api/v1/bookings/me` | ✅ | `status (Optional)` | Lấy List các Booking (Dành cho cả Thợ và Khách) |
-| `GET` | `/api/v1/bookings/{id}` | ✅ | None | Chi tiết Booking (Invoice) |
-| `PUT` | `/api/v1/bookings/{id}/status` | ✅ | `status=CONFIRM/CANCEL` | (Thợ Thao tác duyệt Booking) |
-| `POST`| `/api/v1/ratings` | ✅ | `bookingId`, `score(1-5)` | Client Rate Đánh giá sa khi hoàn tất Booking chụp hình |
+| Method | Endpoint | Auth |
+|---|---|:---:|
+| POST | `/media/presigned-url` | Yes |
+| POST | `/posts/{postId}/media` | Yes |
+| DELETE | `/posts/media/{mediaId}` | Yes |
+| PUT | `/posts/{postId}/media/reorder` | Yes |
+| POST | `/albums` | Yes |
+| GET | `/albums` | Yes |
+| GET | `/albums/{id}` | Yes |
+| PUT | `/albums/{id}` | Yes |
+| DELETE | `/albums/{id}` | Yes |
+| POST | `/albums/{id}/media` | Yes |
+| DELETE | `/albums/{id}/media/{mediaId}` | Yes |
 
-**B. Thu thập Album Xương sống (Albums)**
-| HTTP Method | Endpoint | Yêu cầu Token? | Payload / Query | Mô tả chức năng |
-| :--- | :--- | :---: | :--- | :--- |
-| `GET` | `/api/v1/albums` | ✅ | None | Trả List thư mục Nhóm Albums |
-| `POST`| `/api/v1/albums` | ✅ | `title`, `isPrivate` | Thêm tên Thư mục Albums mới |
-| `GET` | `/api/v1/albums/{id}`| ✅ | None | Xem dải hình Posts bên trong 1 Album cụ thể |
-| `PUT` | `/api/v1/albums/{id}`| ✅ | `title`, `coverImageUrl`| Modify Name hoặc Ảnh Lưới Gốc |
-| `DELETE`| `/api/v1/albums/{id}`| ✅ | None | Đập vỡ Thư mục (Tuyệt đối không xóa hình gốc Post) |
-| `POST`| `/api/v1/albums/{id}/media` | ✅ | `postId` | Attach 1 bài Post bất kì vào Bộ sưu tập này |
-| `DELETE`| `/api/v1/albums/{id}/media/{mId}` | ✅ | None | Gỡ bài Post mId ra khỏi Thư mục |
+### Explore and search
 
----
+| Method | Endpoint | Auth |
+|---|---|:---:|
+| GET | `/explore` | No |
+| GET | `/explore/trending` | No |
+| GET | `/explore/hashtags/{tag}` | No |
+| GET | `/search` | Optional |
+| GET | `/search/history` | Yes |
+| DELETE | `/search/history` | Yes |
+| GET | `/search/trending` | No |
 
-## 7. 💬 Cụm Thời Gian Thực (Tin Nắn Chat & Notifications)
+### Portfolio, booking and rating
 
-| HTTP Method | Endpoint | Yêu cầu Token? | Payload / Query | Mô tả chức năng |
-| :--- | :--- | :---: | :--- | :--- |
-| `GET` | `/api/v1/chat/conversations` | ✅ | None | Lấy giao diện danh sách Inboxes (Có Preview Tin nhắn cuối) |
-| `GET` | `/api/v1/chat/conversations/{id}/messages`| ✅ | `?page=&limit=` | Chọc vô phòng Chat Id, Lấy hết Cục Bong Bóng Messenger |
-| `WS` | `/api/v1/ws/chat?token={jwt}`| ✅ | **JSON Frame Giao Kết** | Đường dẫn cho Ktor WebSockets bắn Message Realtime 1-1 |
-| `GET` | `/api/v1/notifications` | ✅ | None | Dropdown Push Noti của Android |
-| `PUT` | `/api/v1/notifications/{id}/read` | ✅ | None | Marking Đã đọc |
-| `PUT` | `/api/v1/notifications/read-all`| ✅ | None | Nhấn "Check All" |
-| `POST`| `/api/v1/reports` | ✅ | `targetType`, `reason` | Bắn tố cáo (Porn/Spam) hình hoặc acc gửi cho Admin |
+| Method | Endpoint | Auth |
+|---|---|:---:|
+| GET | `/portfolios` | No |
+| GET | `/portfolios/users/{userId}` | No |
+| GET | `/portfolios/me` | Yes |
+| PUT | `/portfolios/me` | Yes |
+| POST | `/portfolios/me/availability` | Yes |
+| GET | `/portfolios/me/availability` | Yes |
+| POST | `/bookings` | Yes |
+| GET | `/bookings` | Yes |
+| GET | `/bookings/{id}` | Yes |
+| PUT | `/bookings/{id}/status` | Yes |
+| DELETE | `/bookings/{id}` | Yes |
+| GET | `/users/{photographerId}/ratings` | No |
+| POST | `/users/{photographerId}/ratings` | Yes |
+| DELETE | `/ratings/{ratingId}` | Yes |
+| PUT | `/ratings/{ratingId}` | Yes |
 
----
+### Chat and notifications
 
-## 8. 🚨 Cụm Ban Quản Trị Hệ Thống (Admin - Frontend CMS Web)
-`Base Path: /api/v1/admin`
+| Method | Endpoint | Auth |
+|---|---|:---:|
+| POST | `/chat/conversations` | Yes |
+| GET | `/chat/conversations` | Yes |
+| GET | `/chat/conversations/{id}/messages` | Yes |
+| POST | `/chat/conversations/{id}/messages` | Yes |
+| DELETE | `/chat/conversations/{id}` | Yes |
+| WS | `/ws/chat?token=<JWT>` | Token query |
+| GET | `/notifications` | Yes |
+| GET | `/notifications/unread-count` | Yes |
+| PUT | `/notifications/{id}/read` | Yes |
+| PUT | `/notifications/read-all` | Yes |
+| DELETE | `/notifications/{id}` | Yes |
 
-| HTTP Method | Endpoint | Yêu cầu Token? | Payload / Query | Mô tả chức năng |
-| :--- | :--- | :---: | :--- | :--- |
-| `GET` | `/users` | ✅ (ROLE ADMIN) | `?status=` | Bốc toàn bộ Database hiển thị Table người dùng |
-| `PUT` | `/users/{id}/status` | ✅ | `isActive=false` | Nút Ban / Tù túng Account Láo cá |
-| `GET` | `/reports` | ✅ | None | Mở hòm thư Tố cáo Cộng Đồng |
-| `PUT` | `/reports/{id}/resolve` | ✅ | `action=(BAN/DISMISS)` | Phán quyết án report. Phạt hay Mở giải? |
-| `GET` | `/stats` | ✅ | None | Mở Biểu đồ KPI Chart Doanh thu Traffic |
-| `GET` | `/banned-words` | ✅ | None | List Danh sách Văng Tục (Banned RegEx words) |
-| `POST` | `/banned-words` | ✅ | `text`, `isRegex` | Insert từ khó nghe cho Server Filter |
-| `DELETE` | `/banned-words/{id}` | ✅ | None | Ân xá gỡ bỏ 1 mã chặn lố |
+### Reports and admin
 
-> **Phiên bản LLD Document: MVP Android Project v1.0. Tỉ lệ hoàn thành Routing Frame: 100%.**
+| Method | Endpoint | Auth |
+|---|---|:---:|
+| POST | `/reports` | Yes |
+| GET | `/admin/reports` | Admin |
+| PUT | `/admin/reports/{reportId}` | Admin |
+| GET | `/admin/stats` | Admin |
+| GET | `/admin/stats/growth` | Admin |
+| PUT | `/admin/users/{userId}/ban` | Admin |
+| DELETE | `/admin/posts/{postId}` | Admin |
+| DELETE | `/admin/comments/{commentId}` | Admin |
+| GET | `/admin/users` | Admin |
+| GET | `/admin/users/{userId}` | Admin |
+| GET | `/admin/banned-keywords` | Admin |
+| POST | `/admin/banned-keywords` | Admin |
+| DELETE | `/admin/banned-keywords/{id}` | Admin |
+
+## System routes
+
+Nhung route nay khong nam trong base `/api/v1` va khong nen goi tu app production:
+
+| Method | Endpoint |
+|---|---|
+| GET | `/health` |
+| GET | `/init-db` |
+| GET | `/reset-db` |
+| GET | `/fix-user-id` |
+| GET | `/migrate-db` |

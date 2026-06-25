@@ -32,15 +32,40 @@ object DatabaseFactory {
         val dataSource = HikariDataSource(config)
         Database.connect(dataSource)
 
-//        transaction {
-//            SchemaUtils.create(
-//                UsersTable, UserSessionsTable, PortfoliosTable,
-//                PostsTable, FiltersTable, PostMediaTable, MediaTagsTable, PostMediaTagsTable,
-//                FollowersTable, LikesTable, CommentsTable, CommentLikesTable, SavedPostsTable,
-//                BookingsTable, RatingsTable, ConversationsTable, ConversationMembersTable, MessagesTable,
-//                NotificationsTable, ActivityLogsTable, ReportsTable, SearchHistoriesTable
-//            )
-//        }
+        transaction {
+            SchemaUtils.create(
+                UsersTable,
+                UserSessionsTable,
+                PortfoliosTable,
+                PostsTable,
+                FiltersTable,
+                PostMediaTable,
+                MediaTagsTable,
+                PostMediaTagsTable,
+                FollowersTable,
+                FollowRequestsTable,
+                LikesTable,
+                CommentsTable,
+                CommentLikesTable,
+                SavedPostsTable,
+                BookingsTable,
+                RatingsTable,
+                ConversationsTable,
+                ConversationMembersTable,
+                MessagesTable,
+                NotificationsTable,
+                ActivityLogsTable,
+                ReportsTable,
+                SearchHistoriesTable,
+                AlbumsTable,
+                AlbumMediaTable,
+                BlockedUsersTable,
+                MutedUsersTable,
+                BannedWordsTable,
+                AvailabilitySchedulesTable,
+                PasswordResetTokensTable
+            )
+        }
     }
 
     suspend fun <T> dbQuery(block: suspend () -> T): T =

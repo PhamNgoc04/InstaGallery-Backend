@@ -16,7 +16,7 @@
 ## 📖 1. Tổng quan Dự án (Project Overview)
 **InstaGallery** không chỉ là một ứng dụng chia sẻ hình ảnh thông thường, mà là một **Hệ sinh thái Nhiếp ảnh Thu nhỏ**, nơi người dùng phổ thông và các Nhiếp ảnh gia chuyên nghiệp có thể giao lưu, kết nối và hợp tác. 
 
-Hệ thống Backend được thiết kế theo tiêu chuẩn sản phẩm thương mại (Production-grade), áp dụng tư tưởng **Clean Architecture** kết hợp với mô hình **Event-driven** (thông qua WebSockets & Caching) nhằm đảm bảo khả năng xử lý truy xuất khối lượng lớn (high-throughput), mở rộng dễ dàng (scalability) và tính toàn vẹn của dữ liệu với **hơn 30 bảng CSDL liên kết chặt chẽ**.
+Hệ thống Backend được thiết kế theo tiêu chuẩn sản phẩm thương mại (Production-grade), áp dụng tư tưởng **Clean Architecture** kết hợp với mô hình **Event-driven** (thông qua WebSockets & Caching) nhằm đảm bảo khả năng xử lý truy xuất khối lượng lớn (high-throughput), mở rộng dễ dàng (scalability) và tính toàn vẹn của dữ liệu với **30 bảng CSDL liên kết chặt chẽ**.
 
 ---
 
@@ -35,7 +35,7 @@ Toàn bộ mã nguồn được tuân thủ nghiêm ngặt theo các tiêu chu�
 | :--- | :--- | :--- |
 | **Language & Engine** | `Kotlin 2.0.0` / `Coroutines` | Xử lý đa luồng bất đồng bộ (Non-blocking I/O) tối ưu hiệu năng. |
 | **Web Framework** | `Ktor 3.0.2` (Netty Engine) | Xử lý HTTP Requests/Responses & WebSockets, cung cấp routing DSL. |
-| **Relational Database** | `MySQL 8.0` & `Exposed` | RDBMS với mô hình dữ liệu quan hệ phức tạp (30+ Entities). |
+| **Relational Database** | `MySQL 8.0` & `Exposed` | RDBMS với mô hình dữ liệu quan hệ phức tạp (30 entities). |
 | **Caching Layer** | `Redis 7` | Caching Session, tối ưu hóa các Queries bảng xếp hạng (Trending). |
 | **Authentication** | `JWT` & `Bcrypt` | Phân cấp Access/Refresh Token, mã hóa mật khẩu an toàn. |
 | **DevOps & Infra** | `Docker Compose` | Quản lý Containerizing các services (DB, Redis) linh hoạt. |
@@ -81,7 +81,7 @@ Hệ thống tích hợp quy trình **7 Tầng Bảo Mật (7-Layer Security Mod
 ├── src/main/kotlin/com/instagallery/
 │   ├── Application.kt             # Entry point, config Netty Engine
 │   ├── plugins/                   # Ktor Plugins (Routing, Security, DI, CORS)
-│   ├── database/                  # Quản lý Connection Pooling & 30+ Schema Tables
+│   ├── database/                  # Quản lý Connection Pooling & 30 Schema Tables
 │   ├── models/                    # Data Transfer Objects (DTO), Requests, Responses
 │   ├── repositories/              # DAO Layer (Exposed SQL Transactions)
 │   ├── services/                  # Business Logic Layer (Coroutines-based)
@@ -101,11 +101,8 @@ Cần cài đặt **JDK 17/21** và **Docker** trên thiết bị của bạn. V
 
 **Quick Start via Docker:**
 ```bash
-# Bật hạ tầng CSDL ngầm định
-docker-compose up -d
-
-# Compiling & Running Ktor
-./gradlew run
+# Build va chay Backend + MySQL + Redis
+docker compose up --build -d
 ```
 
 Sau khi ứng dụng khởi chạy (`http://localhost:8080`), hãy dùng trình duyệt, Postman, hoặc Curl để kiểm tra:
@@ -116,7 +113,7 @@ curl http://localhost:8080/health
 ---
 
 ## 🗂 8. Tài liệu API Thực Tế (API Documentation)
-Toàn bộ dự án với **hơn 85 APIs** đã được ghi chép đặc tả chi tiết.
+Toàn bộ dự án hiện có **107 REST APIs dưới `/api/v1`**, **5 HTTP routes hệ thống**, và **1 WebSocket endpoint** đã được ghi chép đặc tả chi tiết.
 - Xem danh sách và luồng chạy: [📖 Backend API Overview](docs/Backend_APIs.md)
 - Mô hình dữ liệu quan hệ: [🗄️ Database Schema Cấu trúc Liên Kết](docs/database_schema.md)
 - Postman Collection tự động đi kèm trong source code: `InstaGallery_Local.postman_collection.json`.

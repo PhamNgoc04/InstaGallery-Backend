@@ -47,7 +47,7 @@ Các Hooks không cho phép AI làm càn trên Database:
 # 🧪 PHẦN 2: CỘT MỐC MỚI (ASH 2.0) CHO KTOR
 
 ## 2.1. CONTEXT ENGINEERING (Thiết kế bối cảnh)
-Đồ án của bạn có tới 21 bảng CSDL. AI không thể tự nghĩ ra.
+Đồ án của bạn có 30 bảng CSDL. AI không thể tự nghĩ ra.
 **Chiến lược Context:** Trước khi tôi code bất cứ cụm API nào, CẤM tôi nhảy vào code luôn mà bắt buộc phải:
 1. Đọc file `instagallery_complete_system.md` từ ổ C:\ OneDrive của bạn.
 2. Nắm rõ liên kết Khóa chính - Khóa ngoại (1-N hay N-N).

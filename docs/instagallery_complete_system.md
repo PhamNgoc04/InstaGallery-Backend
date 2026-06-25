@@ -11,9 +11,9 @@
 |---|---|
 | **A** | [Kiến Trúc Tổng Quan](#a-kiến-trúc-tổng-quan) |
 | **B** | [ERD & Quan Hệ Giữa Các Bảng](#b-erd--quan-hệ-giữa-các-bảng) |
-| **C** | [SQL Schema Hoàn Chỉnh (21 bảng)](#c-sql-schema-hoàn-chỉnh) |
+| **C** | [SQL Schema Hoàn Chỉnh (30 bảng)](#c-sql-schema-hoàn-chỉnh) |
 | **D** | [Phân Tích Chuẩn Hóa & Denormalization](#d-phân-tích-chuẩn-hóa) |
-| **E** | [API Endpoints Toàn Bộ (94 endpoints)](#e-api-endpoints-toàn-bộ) |
+| **E** | [API Endpoints Toàn Bộ (107 REST + 5 system + 1 WebSocket)](#e-api-endpoints-toàn-bộ) |
 | **F** | [Chi Tiết Logic Từng Module API](#f-chi-tiết-logic-từng-module) |
 | **G** | [Luồng Dữ Liệu (Sequence Diagrams)](#g-luồng-dữ-liệu) |
 | **H** | [Bảo Mật & Middleware](#h-bảo-mật--middleware) |
@@ -28,9 +28,9 @@
 
 | Chỉ số | Giá trị |
 |---|---|
-| Tổng số bảng | **21** (16 gốc + 3 mới + 2 junction) |
-| Tổng API endpoints | **94** (40 gốc + 28 mới + 26 bổ sung) |
-| API Modules | **10** (Auth, Posts, Interactions, Follow, Search, Booking, Messaging, Notifications, Admin, Portfolio + System) |
+| Tổng số bảng | **30** |
+| Tổng API endpoints | **107 REST `/api/v1` + 5 system HTTP + 1 WebSocket** |
+| API Modules | **15 route modules** (Auth, Users, Posts, Interactions, Media, Albums, Explore, Search, Chat, Notifications, Portfolios, Bookings, Ratings, Reports, Admin) |
 | Hệ quản trị | MySQL 8.x, utf8mb4, InnoDB |
 | Lưu trữ media | URL → Firebase Storage / AWS S3 |
 
@@ -52,7 +52,7 @@ graph TB
         Search["Search Module"]
     end
     subgraph "💾 Data Layer"
-        DB[(MySQL 8.x<br/>21 bảng)]
+        DB[(MySQL 8.x<br/>30 bảng)]
         Redis[(Redis 7.x<br/>Cache + Session)]
         S3[Firebase Storage<br/>Ảnh + Video]
     end
@@ -69,20 +69,28 @@ graph TB
 ```mermaid
 graph TB
     subgraph "🔵 Core Identity (3)"
-        users; user_sessions; portfolios["portfolios ★NEW"]
+        users; user_sessions; password_reset_tokens
     end
     subgraph "🟢 Content & Media (5)"
         posts; post_media; filters; media_tags; post_media_tags
     end
-    subgraph "🟡 Social (4)"
-        followers; likes; comments; saved_posts
+    subgraph "🟡 Social Interactions (4)"
+        likes; comment_likes; comments; saved_posts
     end
-    subgraph "🟠 Business (5)"
-        bookings; ratings; conversations["conversations ★NEW"]
-        conversation_members["conv_members ★NEW"]; messages
+    subgraph "🟣 User Relations (4)"
+        followers; follow_requests; blocked_users; muted_users
     end
-    subgraph "🔴 System (4)"
-        notifications; activity_logs; reports; search_histories
+    subgraph "🟠 Messaging (3)"
+        conversations; conversation_members; messages
+    end
+    subgraph "📁 Albums (2)"
+        albums; album_media
+    end
+    subgraph "📷 Photographer Business (4)"
+        portfolios; availability_schedules; bookings; ratings
+    end
+    subgraph "🔴 System, Search & Moderation (5)"
+        notifications; activity_logs; reports; search_histories; banned_words
     end
 ```
 
@@ -599,151 +607,56 @@ DELIMITER ;
 
 ---
 
-## E. API Endpoints Toàn Bộ (94 Endpoints)
+## E. API Endpoints Toan Bo (Current Source Snapshot)
 
-### Module I: Auth & User (20 endpoints)
+> Section nay da duoc dong bo lai theo source hien tai. Danh sach endpoint day du va de copy nhat nam o [Backend_APIs.md](Backend_APIs.md).
 
-| # | Method | Endpoint | Auth | Bảng DB | Ghi chú |
-|---|---|---|---|---|---|
-| 1 | POST | `/auth/register` | ❌ | `users`, `user_sessions` | |
-| 2 | POST | `/auth/login` | ❌ | `users`, `user_sessions` | Rate limit: 5/15min |
-| 3 | POST | `/auth/logout` | ✅ | `user_sessions` | |
-| 4 | POST | `/auth/refresh` | ❌ | `user_sessions` | **★ MỚI** — Critical! |
-| 5 | POST | `/auth/forgot-password` | ❌ | `users` | **★ MỚI** |
-| 6 | POST | `/auth/reset-password` | ❌ | `users` | **★ MỚI** |
-| 7 | PUT | `/auth/change-password` | ✅ | `users`, `user_sessions` | **★ MỚI** — Xóa all sessions |
-| 8 | POST | `/auth/verify-email` | ❌ | `users` | **★ MỚI** |
-| 9 | POST | `/auth/resend-verification` | ❌ | `users` | **★ MỚI** |
-| 10 | GET | `/users/me` | ✅ | `users` | |
-| 11 | PUT | `/users/me` | ✅ | `users` | |
-| 12 | PUT | `/users/me/avatar` | ✅ | `users` | **★ MỚI** — Multipart |
-| 13 | GET | `/users/me/sessions` | ✅ | `user_sessions` | **★ MỚI** |
-| 14 | DELETE | `/users/me/sessions/{id}` | ✅ | `user_sessions` | **★ MỚI** — Remote logout |
-| 15 | POST | `/users/me/deactivate` | ✅ | `users` | **★ MỚI** |
-| 16 | GET | `/users/{username}` | Opt | `users`, `posts`, `followers` | |
-| 17 | POST | `/users/{userId}/follow` | ✅ | `followers`, `notifications` | |
-| 18 | DELETE | `/users/{userId}/follow` | ✅ | `followers` | |
-| 19 | GET | `/users/{userId}/followers` | Opt | `followers`, `users` | + Pagination |
-| 20 | GET | `/users/{userId}/following` | Opt | `followers`, `users` | + Pagination |
+### Current counts
 
-### Module II: Posts (11 endpoints)
+| Scope | Count |
+|---|---:|
+| REST endpoints under `/api/v1` | 107 |
+| System/debug HTTP endpoints outside `/api/v1` | 5 |
+| Total HTTP endpoints | 112 |
+| WebSocket endpoints | 1 |
+| Total including WebSocket | 113 |
 
-| # | Method | Endpoint | Auth | Bảng DB | Ghi chú |
-|---|---|---|---|---|---|
-| 21 | POST | `/posts` | ✅ | `posts`, `post_media` | Max 10 media |
-| 22 | GET | `/posts/{postId}` | Opt | `posts`, `post_media`, `users` | + is_liked, is_saved |
-| 23 | PUT | `/posts/{postId}` | ✅ | `posts` | Owner only |
-| 24 | DELETE | `/posts/{postId}` | ✅ | `posts` | Owner/Admin, soft delete |
-| 25 | GET | `/feed` | ✅ | `posts`, `followers` | Cursor pagination |
-| 26 | GET | `/explore` | Opt | `posts` | + filter by tag |
-| 27 | POST | `/posts/{postId}/media` | ✅ | `post_media` | **★ MỚI** |
-| 28 | DELETE | `/posts/{postId}/media/{mediaId}` | ✅ | `post_media` | **★ MỚI** |
-| 29 | PUT | `/posts/{postId}/media/reorder` | ✅ | `post_media` | **★ MỚI** |
-| 30 | GET | `/users/{username}/posts` | Opt | `posts`, `users` | **★ MỚI** — Profile page |
-| 31 | GET | `/posts/{postId}/likers` | Opt | `likes`, `users` | **★ MỚI** |
+### REST module breakdown
 
-### Module III: Interactions (13 endpoints)
+| Module | REST endpoints |
+|---|---:|
+| Auth | 11 |
+| Users | 21 |
+| Posts | 9 |
+| Interactions | 10 |
+| Media | 4 |
+| Albums | 7 |
+| Explore | 3 |
+| Search | 4 |
+| Chat REST | 5 |
+| Notifications | 5 |
+| Portfolios | 6 |
+| Bookings | 5 |
+| Ratings | 4 |
+| Reports | 3 |
+| Admin | 10 |
+| **Total `/api/v1` REST** | **107** |
 
-| # | Method | Endpoint | Auth | Bảng DB | Ghi chú |
-|---|---|---|---|---|---|
-| 32 | POST | `/posts/{postId}/like` | ✅ | `likes`, `posts`, `notifications` | |
-| 33 | DELETE | `/posts/{postId}/like` | ✅ | `likes`, `posts` | |
-| 34 | POST | `/posts/{postId}/comments` | ✅ | `comments`, `posts`, `notifications` | + @mention |
-| 35 | GET | `/posts/{postId}/comments` | Opt | `comments`, `users` | 2-level loading |
-| 36 | PUT | `/comments/{commentId}` | ✅ | `comments` | **★ MỚI** — Owner only |
-| 37 | DELETE | `/comments/{commentId}` | ✅ | `comments`, `posts` | **★ MỚI** — 3-cấp auth |
-| 38 | POST | `/comments/{commentId}/like` | ✅ | `comments` | **★ MỚI** |
-| 39 | DELETE | `/comments/{commentId}/like` | ✅ | `comments` | **★ MỚI** |
-| 40 | GET | `/comments/{commentId}/replies` | Opt | `comments`, `users` | **★ MỚI** |
-| 41 | POST | `/posts/{postId}/save` | ✅ | `saved_posts` | |
-| 42 | DELETE | `/posts/{postId}/save` | ✅ | `saved_posts` | |
-| 43 | GET | `/users/me/saved-posts` | ✅ | `saved_posts`, `posts` | + Pagination |
-| 44 | GET | `/posts/{postId}/like/status` | ✅ | `likes` | **★ MỚI** |
+### System/debug routes
 
-### Module IV: Booking & Rating (9 endpoints)
+| Method | Endpoint | Note |
+|---|---|---|
+| GET | `/health` | Health check |
+| GET | `/init-db` | Local/dev only |
+| GET | `/reset-db` | Local/dev only, destructive |
+| GET | `/fix-user-id` | Local/dev only |
+| GET | `/migrate-db` | Local/dev only |
 
-| # | Method | Endpoint | Auth | Bảng DB | Ghi chú |
-|---|---|---|---|---|---|
-| 45 | POST | `/bookings` | ✅ | `bookings`, `notifications` | + trùng lịch check |
-| 46 | GET | `/bookings` | ✅ | `bookings`, `users` | + filter status/date |
-| 47 | GET | `/bookings/{bookingId}` | ✅ | `bookings`, `users` | **★ MỚI** |
-| 48 | PUT | `/bookings/{bookingId}` | ✅ | `bookings`, `notifications` | State machine auth |
-| 49 | POST | `/bookings/{bookingId}/cancel` | ✅ | `bookings` | **★ MỚI** — + reason |
-| 50 | POST | `/ratings` | ✅ | `ratings`, `portfolios` | Only COMPLETED bookings |
-| 51 | GET | `/users/{userId}/ratings` | Opt | `ratings`, `users` | + avg score |
-| 52 | GET | `/photographers` | Opt | `users`, `portfolios` | **★ MỚI** |
-| 53 | GET | `/photographers/{userId}/availability` | Opt | `bookings` | **★ MỚI** |
+### WebSocket
 
-### Module V: Messaging (9 endpoints) — ★ Redesigned
-
-| # | Method | Endpoint | Auth | Bảng DB | Ghi chú |
-|---|---|---|---|---|---|
-| 54 | GET | `/conversations` | ✅ | `conversations`, `conv_members`, `messages` | + unread_count |
-| 55 | POST | `/conversations` | ✅ | `conversations`, `conv_members` | DIRECT or GROUP |
-| 56 | GET | `/conversations/{convId}` | ✅ | `conversations`, `conv_members` | |
-| 57 | GET | `/conversations/{convId}/messages` | ✅ | `messages`, `users` | Cursor pagination |
-| 58 | POST | `/conversations/{convId}/messages` | ✅ | `messages`, `conversations` | WebSocket + DB |
-| 59 | PUT | `/conversations/{convId}/read` | ✅ | `conv_members` | `last_read_at` |
-| 60 | POST | `/conversations/{convId}/members` | ✅ | `conv_members` | Group only |
-| 61 | DELETE | `/conversations/{convId}/members/{userId}` | ✅ | `conv_members` | Group only |
-| 62 | PUT | `/conversations/{convId}/mute` | ✅ | `conv_members` | |
-
-### Module VI: Notifications (4 endpoints)
-
-| # | Method | Endpoint | Auth | Bảng DB |
-|---|---|---|---|---|
-| 63 | GET | `/notifications` | ✅ | `notifications`, `users` |
-| 64 | PUT | `/notifications/{id}/read` | ✅ | `notifications` |
-| 65 | PUT | `/notifications/read-all` | ✅ | `notifications` | **★ MỚI** |
-| 66 | GET | `/notifications/unread-count` | ✅ | `notifications` | **★ MỚI** — Badge |
-
-### Module VII: Search & Utilities (8 endpoints)
-
-| # | Method | Endpoint | Auth | Bảng DB |
-|---|---|---|---|---|
-| 67 | GET | `/search` | ✅ | `users`, `posts`, `media_tags`, `search_histories` |
-| 68 | GET | `/search/autocomplete` | ✅ | `users`, `media_tags` | **★ MỚI** |
-| 69 | GET | `/search/trending` | Opt | `media_tags` | **★ MỚI** |
-| 70 | GET | `/search/history` | ✅ | `search_histories` | **★ MỚI** |
-| 71 | DELETE | `/search/history` | ✅ | `search_histories` | **★ MỚI** |
-| 72 | GET | `/tags/{tagName}/posts` | Opt | `post_media_tags`, `posts` | **★ MỚI** |
-| 73 | POST | `/reports` | ✅ | `reports` | |
-| 74 | POST | `/upload/presigned-url` | ✅ | — | **★ MỚI** — S3/Firebase |
-
-### Module VIII: Admin (15 endpoints)
-
-| # | Method | Endpoint | Auth | Bảng DB |
-|---|---|---|---|---|
-| 75 | GET | `/admin/dashboard/stats` | ADMIN | all tables | **★ MỚI** |
-| 76 | GET | `/admin/dashboard/growth` | ADMIN | `users`, `posts` | **★ MỚI** |
-| 77 | GET | `/admin/users` | ADMIN | `users` | + filter/pagination |
-| 78 | PUT | `/admin/users/{userId}` | ADMIN | `users` | |
-| 79 | DELETE | `/admin/users/{userId}` | ADMIN | `users` | Soft delete |
-| 80 | POST | `/admin/users/{userId}/ban` | ADMIN | `users` | **★ MỚI** |
-| 81 | POST | `/admin/users/{userId}/unban` | ADMIN | `users` | **★ MỚI** |
-| 82 | POST | `/admin/users/{userId}/verify` | ADMIN | `users` | **★ MỚI** |
-| 83 | DELETE | `/admin/posts/{postId}` | ADMIN | `posts` | |
-| 84 | DELETE | `/admin/comments/{commentId}` | ADMIN | `comments` | |
-| 85 | GET | `/admin/reports` | ADMIN | `reports`, `users` | + filter status |
-| 86 | PUT | `/admin/reports/{reportId}` | ADMIN | `reports` | |
-| 87 | POST | `/admin/reports/{id}/resolve` | ADMIN | `reports` | **★ MỚI** |
-| 88 | GET | `/admin/activity-logs` | ADMIN | `activity_logs` | + filter |
-| 89 | GET | `/admin/bookings` | ADMIN | `bookings` | **★ MỚI** |
-
-### Module IX: Portfolio (3 endpoints)
-
-| # | Method | Endpoint | Auth | Bảng DB |
-|---|---|---|---|---|
-| 90 | GET | `/portfolios/me` | PHOTOGRAPHER | `portfolios` | **★ MỚI** |
-| 91 | PUT | `/portfolios/me` | PHOTOGRAPHER | `portfolios` | **★ MỚI** |
-| 92 | GET | `/users/{userId}/portfolio` | Opt | `portfolios` | **★ MỚI** |
-
-### System (2 endpoints)
-
-| # | Method | Endpoint | Auth | Mô tả |
-|---|---|---|---|---|
-| 93 | GET | `/health` | ❌ | Health check | **★ MỚI** |
-| 94 | GET | `/users/suggestions` | ✅ | Gợi ý follow | **★ MỚI** |
+| Method | Endpoint | Note |
+|---|---|---|
+| WS | `/api/v1/ws/chat?token=<JWT>` | Chat realtime |
 
 ---
 
@@ -973,7 +886,7 @@ graph LR
 - [x] Bảng conversations cho messaging
 
 ### ✅ API
-- [x] 94 endpoints phủ đầy đủ 10 modules
+- [x] 107 REST endpoints duoi `/api/v1`, 5 system HTTP routes, 1 WebSocket
 - [x] Refresh token flow
 - [x] Change/forgot password
 - [x] Cursor-based pagination
