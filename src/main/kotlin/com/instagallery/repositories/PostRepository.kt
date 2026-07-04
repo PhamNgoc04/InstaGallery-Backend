@@ -5,8 +5,10 @@ import com.instagallery.database.tables.*
 import com.instagallery.models.common.*
 import com.instagallery.models.request.CreatePostRequest
 import org.jetbrains.exposed.sql.*
-import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.inList
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.isNull
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.notInList
 import org.jetbrains.exposed.dao.id.EntityID
 import java.time.Instant
 
@@ -49,7 +51,9 @@ class PostRepository {
                     id = insertedMediaId,
                     url = mediaItem.mediaFileUrl,
                     type = mediaItem.mediaType.name,
-                    orderIndex = order
+                    orderIndex = order,
+                    width = mediaItem.width,
+                    height = mediaItem.height
                 )
             )
             order++
@@ -133,9 +137,12 @@ class PostRepository {
                 id = mRow[PostMediaTable.id].value,
                 url = mRow[PostMediaTable.mediaFileUrl],
                 type = mRow[PostMediaTable.mediaType].name,
-                orderIndex = mRow[PostMediaTable.position]
+                orderIndex = mRow[PostMediaTable.position],
+                width = mRow[PostMediaTable.width],
+                height = mRow[PostMediaTable.height]
             )
         }
+        val visibleCommentCount = CommentTreeVisibility.visibleCommentCount(postId)
 
         FeedPostDto(
             postId = postId,
@@ -145,7 +152,7 @@ class PostRepository {
             caption = row[PostsTable.caption],
             location = row[PostsTable.location],
             likeCount = row[PostsTable.likeCount],
-            commentCount = row[PostsTable.commentCount],
+            commentCount = visibleCommentCount,
             createdAt = row[PostsTable.createdAt].toString(),
             media = mediaList
         )
@@ -192,7 +199,9 @@ class PostRepository {
                     id = mRow[PostMediaTable.id].value,
                     url = mRow[PostMediaTable.mediaFileUrl],
                     type = mRow[PostMediaTable.mediaType].name,
-                    orderIndex = mRow[PostMediaTable.position]
+                    orderIndex = mRow[PostMediaTable.position],
+                    width = mRow[PostMediaTable.width],
+                    height = mRow[PostMediaTable.height]
                 )
             }
 
@@ -205,6 +214,7 @@ class PostRepository {
         val isSaved = SavedPostsTable.selectAll()
             .where { (SavedPostsTable.userId eq currentUserId) and (SavedPostsTable.postId eq postId) }
             .count() > 0
+        val visibleCommentCount = CommentTreeVisibility.visibleCommentCount(postId)
 
         // 7. Map to DTO
         PostDetailResult.Success(
@@ -217,7 +227,7 @@ class PostRepository {
                 location = postRow[PostsTable.location],
                 visibility = visibility,
                 likeCount = postRow[PostsTable.likeCount],
-                commentCount = postRow[PostsTable.commentCount],
+                commentCount = visibleCommentCount,
                 createdAt = postRow[PostsTable.createdAt].toString(),
                 media = mediaList,
                 isLiked = isLiked,
@@ -229,51 +239,114 @@ class PostRepository {
     // Helper function for raw pagination
     suspend fun getFeedPosts(userId: Long, page: Int, limit: Int): PaginatedFeedResponse = dbQuery {
         val offsetVal = ((page - 1) * limit).toLong()
-        
+
         // 1. Get Followings IDs
         val followingIds = FollowersTable
             .selectAll().where { FollowersTable.followerId eq userId }
             .map { it[FollowersTable.followingId].value }
 
-        val targetUserIds = followingIds + userId // Includes own posts in feed
-        
-        // 2. Query valid posts
+        // 2. Query following-first feed.
+        // Own posts are always visible to the owner; followed users contribute public/followers-only posts.
+        val ownPostCondition = PostsTable.userId eq userId
+        val followedVisibleCondition = (PostsTable.userId inList followingIds) and
+            (PostsTable.visibility inList listOf(PostVisibility.PUBLIC, PostVisibility.FRIENDS_ONLY))
         val query = (PostsTable innerJoin UsersTable)
-            .selectAll().where { (PostsTable.userId inList targetUserIds) and (PostsTable.deletedAt.isNull()) and (PostsTable.visibility eq PostVisibility.PUBLIC) }
+            .selectAll().where {
+                PostsTable.deletedAt.isNull() and (ownPostCondition or followedVisibleCondition)
+            }
             .orderBy(PostsTable.createdAt to SortOrder.DESC)
 
         val totalRecords = query.count()
         val totalPages = Math.ceil(totalRecords.toDouble() / limit).toInt()
 
         val postRows = query.limit(limit, offsetVal).toList()
+        val suggestedLimit = if (page == 1) {
+            (limit - postRows.size).coerceAtLeast(0)
+        } else {
+            0
+        }
+        val excludedUserIds = (followingIds + userId).distinct()
+        val suggestedRows = if (suggestedLimit > 0) {
+            (PostsTable innerJoin UsersTable)
+                .selectAll().where {
+                    (PostsTable.userId notInList excludedUserIds) and
+                        PostsTable.deletedAt.isNull() and
+                        (PostsTable.visibility eq PostVisibility.PUBLIC)
+                }
+                .orderBy(
+                    PostsTable.likeCount to SortOrder.DESC,
+                    PostsTable.commentCount to SortOrder.DESC,
+                    PostsTable.createdAt to SortOrder.DESC
+                )
+                .limit(suggestedLimit)
+                .toList()
+        } else {
+            emptyList()
+        }
 
-        // 3. Map to DTOs
-        val posts = postRows.map { row ->
-            val pId = row[PostsTable.id].value
-            
-            // Get Media for this post
-            val mediaRows = PostMediaTable.selectAll().where { PostMediaTable.postId eq pId }.orderBy(PostMediaTable.position to SortOrder.ASC).toList()
-            val mediaList = mediaRows.map { mRow ->
-                FeedMediaDto(
-                    id = mRow[PostMediaTable.id].value,
-                    url = mRow[PostMediaTable.mediaFileUrl],
-                    type = mRow[PostMediaTable.mediaType].name,
-                    orderIndex = mRow[PostMediaTable.position]
+        val allPostIds = (postRows + suggestedRows).map { it[PostsTable.id].value }
+        val likedPostIds = if (allPostIds.isEmpty()) {
+            emptySet()
+        } else {
+            LikesTable.selectAll()
+                .where { (LikesTable.userId eq userId) and (LikesTable.postId inList allPostIds) }
+                .map { it[LikesTable.postId].value }
+                .toSet()
+        }
+        val savedPostIds = if (allPostIds.isEmpty()) {
+            emptySet()
+        } else {
+            SavedPostsTable.selectAll()
+                .where { (SavedPostsTable.userId eq userId) and (SavedPostsTable.postId inList allPostIds) }
+                .map { it[SavedPostsTable.postId].value }
+                .toSet()
+        }
+
+        val commentCountsByPost = CommentTreeVisibility.visibleCommentCountsByPost(allPostIds)
+
+        fun List<ResultRow>.toFeedPostDtos(): List<FeedPostDto> {
+            return map { row ->
+                val pId = row[PostsTable.id].value
+
+                val mediaRows = PostMediaTable.selectAll()
+                    .where { PostMediaTable.postId eq pId }
+                    .orderBy(PostMediaTable.position to SortOrder.ASC)
+                    .toList()
+                val mediaList = mediaRows.map { mRow ->
+                    FeedMediaDto(
+                        id = mRow[PostMediaTable.id].value,
+                        url = mRow[PostMediaTable.mediaFileUrl],
+                        type = mRow[PostMediaTable.mediaType].name,
+                        orderIndex = mRow[PostMediaTable.position],
+                        width = mRow[PostMediaTable.width],
+                        height = mRow[PostMediaTable.height]
+                    )
+                }
+
+                FeedPostDto(
+                    postId = pId,
+                    userId = row[UsersTable.id].value,
+                    username = row[UsersTable.username],
+                    userAvatar = row[UsersTable.profilePictureUrl],
+                    caption = row[PostsTable.caption],
+                    location = row[PostsTable.location],
+                    likeCount = row[PostsTable.likeCount],
+                    isLiked = likedPostIds.contains(pId),
+                    isSaved = savedPostIds.contains(pId),
+                    commentCount = commentCountsByPost[pId] ?: 0,
+                    createdAt = row[PostsTable.createdAt].toString(),
+                    media = mediaList
                 )
             }
+        }
 
-            FeedPostDto(
-                postId = pId,
-                userId = row[UsersTable.id].value,
-                username = row[UsersTable.username],
-                userAvatar = row[UsersTable.profilePictureUrl],
-                caption = row[PostsTable.caption],
-                location = row[PostsTable.location],
-                likeCount = row[PostsTable.likeCount],
-                commentCount = row[PostsTable.commentCount],
-                createdAt = row[PostsTable.createdAt].toString(),
-                media = mediaList
-            )
+        val posts = postRows.toFeedPostDtos()
+        val suggestedPosts = suggestedRows.toFeedPostDtos()
+        val reason = when {
+            totalRecords == 0L && followingIds.isEmpty() -> "NO_FOLLOWING"
+            totalRecords == 0L -> "FOLLOWING_NO_POSTS"
+            suggestedPosts.isNotEmpty() -> "BACKFILL_WITH_SUGGESTED"
+            else -> "NORMAL"
         }
 
         PaginatedFeedResponse(
@@ -282,7 +355,15 @@ class PostRepository {
                 currentPage = page,
                 totalPages = totalPages,
                 hasNext = page < totalPages
-            )
+            ),
+            feedContext = FeedContextDto(
+                mode = if (suggestedPosts.isNotEmpty()) "FOR_YOU" else "FOLLOWING",
+                followCount = followingIds.size,
+                reason = reason,
+                primaryPostCount = totalRecords.toInt(),
+                suggestedPostCount = suggestedPosts.size
+            ),
+            suggestedPosts = suggestedPosts
         )
     }
 
@@ -310,6 +391,10 @@ class PostRepository {
 
         val postRows = query.limit(limit, offsetVal).toList()
 
+        val commentCountsByPost = CommentTreeVisibility.visibleCommentCountsByPost(
+            postRows.map { it[PostsTable.id].value },
+        )
+
         val posts = postRows.map { row ->
             val pId = row[PostsTable.id].value
             
@@ -319,7 +404,9 @@ class PostRepository {
                     id = mRow[PostMediaTable.id].value,
                     url = mRow[PostMediaTable.mediaFileUrl],
                     type = mRow[PostMediaTable.mediaType].name,
-                    orderIndex = mRow[PostMediaTable.position]
+                    orderIndex = mRow[PostMediaTable.position],
+                    width = mRow[PostMediaTable.width],
+                    height = mRow[PostMediaTable.height]
                 )
             }
 
@@ -331,7 +418,7 @@ class PostRepository {
                 caption = row[PostsTable.caption],
                 location = row[PostsTable.location],
                 likeCount = row[PostsTable.likeCount],
-                commentCount = row[PostsTable.commentCount],
+                commentCount = commentCountsByPost[pId] ?: 0,
                 createdAt = row[PostsTable.createdAt].toString(),
                 media = mediaList
             )
@@ -367,17 +454,50 @@ class PostRepository {
     }
 
     // --- FR-10: GET POSTS BY USER ---
-    suspend fun getPostsByUser(userId: Long, page: Int, limit: Int): PaginatedFeedResponse = dbQuery {
+    suspend fun getPostsByUser(
+        viewerId: Long,
+        userId: Long,
+        page: Int,
+        limit: Int,
+    ): PaginatedFeedResponse = dbQuery {
         val offsetVal = ((page - 1) * limit).toLong()
+        val visibleCondition = if (viewerId == userId) {
+            (PostsTable.userId eq userId) and PostsTable.deletedAt.isNull()
+        } else {
+            (PostsTable.userId eq userId) and
+                PostsTable.deletedAt.isNull() and
+                (PostsTable.visibility eq PostVisibility.PUBLIC)
+        }
         val baseQuery = (PostsTable innerJoin UsersTable)
             .selectAll()
-            .where { (PostsTable.userId eq userId) and PostsTable.deletedAt.isNull() }
+            .where { visibleCondition }
         val totalRecords = baseQuery.count()
         val totalPages = Math.ceil(totalRecords.toDouble() / limit).toInt()
 
         val postRows = baseQuery.orderBy(PostsTable.createdAt to SortOrder.DESC)
             .limit(limit, offsetVal)
             .toList()
+        val postIds = postRows.map { row -> row[PostsTable.id].value }
+        val likedPostIds = if (postIds.isEmpty()) {
+            emptySet()
+        } else {
+            LikesTable.selectAll()
+                .where { (LikesTable.userId eq viewerId) and (LikesTable.postId inList postIds) }
+                .map { row -> row[LikesTable.postId].value }
+                .toSet()
+        }
+        val savedPostIds = if (postIds.isEmpty()) {
+            emptySet()
+        } else {
+            SavedPostsTable.selectAll()
+                .where { (SavedPostsTable.userId eq viewerId) and (SavedPostsTable.postId inList postIds) }
+                .map { row -> row[SavedPostsTable.postId].value }
+                .toSet()
+        }
+
+        val commentCountsByPost = CommentTreeVisibility.visibleCommentCountsByPost(
+            postIds,
+        )
 
         val posts = postRows.map { row ->
             val pId = row[PostsTable.id].value
@@ -388,7 +508,9 @@ class PostRepository {
                     id = mRow[PostMediaTable.id].value,
                     url = mRow[PostMediaTable.mediaFileUrl],
                     type = mRow[PostMediaTable.mediaType].name,
-                    orderIndex = mRow[PostMediaTable.position]
+                    orderIndex = mRow[PostMediaTable.position],
+                    width = mRow[PostMediaTable.width],
+                    height = mRow[PostMediaTable.height]
                 )
             }
             FeedPostDto(
@@ -399,7 +521,9 @@ class PostRepository {
                 caption = row[PostsTable.caption],
                 location = row[PostsTable.location],
                 likeCount = row[PostsTable.likeCount],
-                commentCount = row[PostsTable.commentCount],
+                isLiked = likedPostIds.contains(pId),
+                isSaved = savedPostIds.contains(pId),
+                commentCount = commentCountsByPost[pId] ?: 0,
                 createdAt = row[PostsTable.createdAt].toString(),
                 media = mediaList
             )

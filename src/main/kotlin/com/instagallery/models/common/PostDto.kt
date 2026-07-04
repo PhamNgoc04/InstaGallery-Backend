@@ -7,7 +7,9 @@ data class FeedMediaDto(
     val id: Long,
     val url: String,
     val type: String,
-    val orderIndex: Int
+    val orderIndex: Int,
+    val width: Int? = null,
+    val height: Int? = null
 )
 
 @Serializable
@@ -34,7 +36,9 @@ data class FeedPostDto(
     val likeCount: Int,
     val commentCount: Int,
     val createdAt: String,
-    val media: List<FeedMediaDto>
+    val media: List<FeedMediaDto>,
+    val isLiked: Boolean = false,
+    val isSaved: Boolean = false
 )
 
 // --- POST DETAIL ---
@@ -58,7 +62,9 @@ data class PostDetailDto(
 @Serializable
 data class PaginatedFeedResponse(
     val posts: List<FeedPostDto>,
-    val meta: PaginationMeta
+    val meta: PaginationMeta,
+    val feedContext: FeedContextDto? = null,
+    val suggestedPosts: List<FeedPostDto> = emptyList()
 )
 
 @Serializable
@@ -66,4 +72,13 @@ data class PaginationMeta(
     val currentPage: Int,
     val totalPages: Int,
     val hasNext: Boolean
+)
+
+@Serializable
+data class FeedContextDto(
+    val mode: String,
+    val followCount: Int,
+    val reason: String,
+    val primaryPostCount: Int,
+    val suggestedPostCount: Int
 )

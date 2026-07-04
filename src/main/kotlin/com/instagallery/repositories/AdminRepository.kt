@@ -7,7 +7,9 @@ import com.instagallery.models.common.AdminStatsDto
 import com.instagallery.models.common.ReportStatus
 import com.instagallery.models.common.UserType
 import org.jetbrains.exposed.sql.*
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.inList
 import org.jetbrains.exposed.sql.javatime.date
+import java.time.Instant
 import java.time.LocalDate
 
 class AdminRepository {
@@ -98,10 +100,42 @@ class AdminRepository {
     }
 
     suspend fun deleteCommentAsAdmin(commentId: Long): Boolean = dbQuery {
-        val count = CommentsTable.update({ CommentsTable.id eq commentId }) {
-            it[deletedAt] = java.time.Instant.now()
+        val commentRow = CommentsTable
+            .selectAll()
+            .where { (CommentsTable.id eq commentId) and CommentsTable.deletedAt.isNull() }
+            .singleOrNull() ?: return@dbQuery false
+
+        val postId = commentRow[CommentsTable.postId].value
+        val parentId = commentRow[CommentsTable.parentCommentId]?.value
+        val subtreeIds = CommentTreeVisibility.visibleSubtreeIds(postId, commentId)
+        val now = Instant.now()
+
+        CommentsTable.update({ CommentsTable.id inList subtreeIds.toList() }) {
+            it[CommentsTable.deletedAt] = now
+            it[CommentsTable.updatedAt] = now
         }
-        count > 0
+
+        if (parentId != null) {
+            val visibleReplyCount = CommentsTable
+                .selectAll()
+                .where {
+                    (CommentsTable.parentCommentId eq parentId) and
+                        CommentsTable.deletedAt.isNull()
+                }
+                .count()
+                .toInt()
+
+            CommentsTable.update({ CommentsTable.id eq parentId }) {
+                it[CommentsTable.replyCount] = visibleReplyCount
+                it[CommentsTable.updatedAt] = now
+            }
+        }
+
+        val visibleCommentCount = CommentTreeVisibility.visibleCommentCount(postId)
+        PostsTable.update({ PostsTable.id eq postId }) {
+            it[PostsTable.commentCount] = visibleCommentCount
+        }
+        true
     }
 
     // --- FR-43: DANH SÁCH NGƯỜI DÙNG ---

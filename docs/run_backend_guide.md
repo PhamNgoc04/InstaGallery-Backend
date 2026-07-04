@@ -13,14 +13,23 @@ File nay la checklist ngan de chay lai backend InstaGallery tren may hien tai.
 Mo terminal trong VS Code va chay:
 
 ```powershell
+cd InstaGallery-Backend
+
 docker compose up --build -d
 ```
 
 Lenh nay se chay ca 3 service:
 
 - Backend Ktor: `http://localhost:8080`
-- MySQL: `localhost:3407`
+- MySQL: `localhost:3306`
 - Redis: `localhost:6379`
+
+Media upload local:
+
+- File anh upload tu Android duoc luu o `D:\InstaGallery\instagallery-backend\uploads`.
+- `docker-compose.yml` mount `./uploads` vao `/app/uploads` trong backend container.
+- DB chi luu URL media; neu xoa thu muc `uploads` thi cac post cu van con trong DB nhung anh se bi `MEDIA_NOT_FOUND`.
+- `docker compose down`, `docker compose up --build -d`, restart laptop, hoac recreate backend container se khong xoa anh trong `uploads`.
 
 Sau khi da chay lenh nay it nhat mot lan, cac container co `restart: unless-stopped`.
 Lan sau chi can bat Docker Desktop, stack se tu start lai.
@@ -30,7 +39,7 @@ Neu chi sua code backend va muon build lai image, van dung chinh lenh tren.
 ## 3. Cac port dang dung
 
 - Backend: `http://localhost:8080`
-- MySQL Docker cua project: `localhost:3407`
+- MySQL Docker cua project: `localhost:3306`
 - Redis Docker cua project: `localhost:6379`
 
 ## 4. Login tren Postman
@@ -128,3 +137,5 @@ Neu muon xoa ca du lieu MySQL volume local:
 ```powershell
 docker-compose down -v
 ```
+
+Lenh tren khong xoa thu muc `uploads` vi day la bind mount tren host. Chi xoa `uploads` khi ban muon xoa han cac file media local da upload.

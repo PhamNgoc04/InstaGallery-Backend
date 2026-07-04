@@ -2,8 +2,15 @@ package com.instagallery.repositories
 
 import com.instagallery.database.DatabaseFactory.dbQuery
 import com.instagallery.database.tables.*
+import com.instagallery.models.common.FeedMediaDto
+import com.instagallery.models.common.FeedPostDto
+import com.instagallery.models.common.PaginatedFeedResponse
+import com.instagallery.models.common.PaginationMeta
+import com.instagallery.models.common.PostLikeUserDto
+import com.instagallery.models.common.PostLikesResponse
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.inList
 import org.jetbrains.exposed.dao.id.EntityID
 import java.time.Instant
 
@@ -15,6 +22,17 @@ class InteractionRepository {
 
     suspend fun checkCommentExists(commentId: Long): Boolean = dbQuery {
         CommentsTable.selectAll().where { (CommentsTable.id eq commentId) and (CommentsTable.deletedAt.isNull()) }.count() > 0
+    }
+
+    suspend fun checkCommentBelongsToPost(commentId: Long, postId: Long): Boolean = dbQuery {
+        CommentsTable
+            .selectAll()
+            .where {
+                (CommentsTable.id eq commentId) and
+                    (CommentsTable.postId eq postId) and
+                    CommentsTable.deletedAt.isNull()
+            }
+            .count() > 0
     }
 
     // ----- LIKES -----
@@ -68,19 +86,34 @@ class InteractionRepository {
 
     // ----- COMMENTS -----
     suspend fun createComment(userId: Long, postId: Long, content: String, parentId: Long?): com.instagallery.models.common.CommentDto = dbQuery {
+        val parentRow = parentId?.let { p ->
+            CommentsTable
+                .selectAll()
+                .where {
+                    (CommentsTable.id eq p) and
+                        (CommentsTable.postId eq postId) and
+                        CommentsTable.deletedAt.isNull()
+                }
+                .single()
+        }
+        val depth = parentRow?.let {
+            (it[CommentsTable.depth].toInt() + 1)
+                .coerceAtMost(Byte.MAX_VALUE.toInt())
+                .toByte()
+        } ?: 0
+
         val insertStmt = CommentsTable.insertAndGetId {
             it[CommentsTable.postId] = EntityID(postId, PostsTable)
             it[CommentsTable.userId] = EntityID(userId, UsersTable)
             it[CommentsTable.content] = content
             it[CommentsTable.parentCommentId] = parentId?.let { p -> EntityID(p, CommentsTable) }
+            it[CommentsTable.depth] = depth
         }
 
-        // Increment count
-        PostsTable.update({ PostsTable.id eq postId }) {
-            with(SqlExpressionBuilder) {
-                it.update(commentCount, commentCount + 1)
-            }
+        if (parentId != null) {
+            syncReplyCount(parentId)
         }
+        syncPostCommentCount(postId)
 
         // Return Data
         val id = insertStmt.value
@@ -112,13 +145,13 @@ class InteractionRepository {
 
         val commentRows = query.limit(limit, offsetVal).toList()
         
-        // Fetch replies efficiently in a single query
+        // Fetch all replies for this post, then attach only descendants of the paged root comments.
         val rootCommentIds = commentRows.map { it[CommentsTable.id].value }
         
         val allRepliesRows = if (rootCommentIds.isNotEmpty()) {
             (CommentsTable innerJoin UsersTable)
                 .selectAll()
-                .where { (CommentsTable.parentCommentId inList rootCommentIds) and (CommentsTable.deletedAt.isNull()) }
+                .where { (CommentsTable.postId eq postId) and (CommentsTable.parentCommentId.isNotNull()) and (CommentsTable.deletedAt.isNull()) }
                 .orderBy(CommentsTable.createdAt to SortOrder.ASC)
                 .toList()
         } else {
@@ -127,24 +160,28 @@ class InteractionRepository {
         
         val repliesByParentId = allRepliesRows.groupBy { it[CommentsTable.parentCommentId]!!.value }
 
-        val commentsList = commentRows.map { row ->
-            val cId = row[CommentsTable.id].value
-            val replyRows = repliesByParentId[cId] ?: emptyList()
-            
-            val repliesList = replyRows.map { rRow ->
+        fun buildReplies(parentId: Long): List<com.instagallery.models.common.CommentDto> {
+            return repliesByParentId[parentId].orEmpty().map { rRow ->
+                val replyId = rRow[CommentsTable.id].value
+                val childReplies = buildReplies(replyId)
                 com.instagallery.models.common.CommentDto(
-                    commentId = rRow[CommentsTable.id].value,
+                    commentId = replyId,
                     postId = rRow[CommentsTable.postId].value,
                     userId = rRow[UsersTable.id].value,
                     username = rRow[UsersTable.username],
                     avatar = rRow[UsersTable.profilePictureUrl],
                     content = rRow[CommentsTable.content],
                     parentId = rRow[CommentsTable.parentCommentId]?.value,
-                    replyCount = 0,
+                    replyCount = childReplies.size,
                     createdAt = rRow[CommentsTable.createdAt].toString(),
-                    replies = null
+                    replies = childReplies
                 )
             }
+        }
+
+        val commentsList = commentRows.map { row ->
+            val cId = row[CommentsTable.id].value
+            val repliesList = buildReplies(cId)
 
             com.instagallery.models.common.CommentDto(
                 commentId = cId,
@@ -171,13 +208,20 @@ class InteractionRepository {
     }
 
     suspend fun updateComment(userId: Long, commentId: Long, content: String): com.instagallery.models.common.CommentDto? = dbQuery {
-        val count = CommentsTable.update({ (CommentsTable.id eq commentId) and (CommentsTable.userId eq userId) }) {
+        val count = CommentsTable.update({
+            (CommentsTable.id eq commentId) and
+                (CommentsTable.userId eq userId) and
+                CommentsTable.deletedAt.isNull()
+        }) {
             it[CommentsTable.content] = content
-            it[updatedAt] = java.time.Instant.now()
+            it[CommentsTable.updatedAt] = java.time.Instant.now()
         }
 
         if (count > 0) {
-            val row = (CommentsTable innerJoin UsersTable).selectAll().where { CommentsTable.id eq commentId }.single()
+            val row = (CommentsTable innerJoin UsersTable)
+                .selectAll()
+                .where { (CommentsTable.id eq commentId) and CommentsTable.deletedAt.isNull() }
+                .single()
             com.instagallery.models.common.CommentDto(
                 commentId = row[CommentsTable.id].value,
                 postId = row[CommentsTable.postId].value,
@@ -195,19 +239,28 @@ class InteractionRepository {
     }
 
     suspend fun deleteComment(userId: Long, commentId: Long): Boolean = dbQuery {
-        val commentRow = CommentsTable.selectAll().where { (CommentsTable.id eq commentId) and (CommentsTable.userId eq userId) }.singleOrNull()
+        val commentRow = CommentsTable.selectAll().where {
+            (CommentsTable.id eq commentId) and
+                (CommentsTable.userId eq userId) and
+                CommentsTable.deletedAt.isNull()
+        }.singleOrNull()
         
         if (commentRow != null) {
-            CommentsTable.update({ CommentsTable.id eq commentId }) {
-                it[deletedAt] = java.time.Instant.now()
+            val postId = commentRow[CommentsTable.postId].value
+            val parentId = commentRow[CommentsTable.parentCommentId]?.value
+            val subtreeIds = CommentTreeVisibility.visibleSubtreeIds(postId, commentId)
+            val now = Instant.now()
+
+            CommentsTable.update({ CommentsTable.id inList subtreeIds.toList() }) {
+                it[CommentsTable.deletedAt] = now
+                it[CommentsTable.updatedAt] = now
             }
-            
-            // Decrement post's commentCount
-            PostsTable.update({ PostsTable.id eq commentRow[CommentsTable.postId] }) {
-                with(SqlExpressionBuilder) {
-                    it.update(commentCount, commentCount - 1)
-                }
+
+            if (parentId != null) {
+                syncReplyCount(parentId)
             }
+            syncPostCommentCount(postId)
+
             true
         } else {
             false
@@ -316,15 +369,75 @@ class InteractionRepository {
     }
 
     // --- FR-22: SAVED POSTS ---
-    suspend fun getSavedPosts(userId: Long, page: Int, limit: Int): Any = dbQuery {
-        // TODO: Query SavedPostsTable JOIN PostsTable
-        mapOf("posts" to emptyList<Any>(), "meta" to mapOf("currentPage" to page, "totalPages" to 0))
+    suspend fun getSavedPosts(userId: Long, page: Int, limit: Int): PaginatedFeedResponse = dbQuery {
+        val offset = ((page - 1) * limit).toLong()
+        val query = SavedPostsTable
+            .join(PostsTable, JoinType.INNER, SavedPostsTable.postId, PostsTable.id)
+            .join(UsersTable, JoinType.INNER, PostsTable.userId, UsersTable.id)
+            .selectAll()
+            .where {
+                (SavedPostsTable.userId eq userId) and
+                    PostsTable.deletedAt.isNull()
+            }
+
+        val totalRecords = query.count()
+        val totalPages = Math.ceil(totalRecords.toDouble() / limit).toInt()
+        val rows = query
+            .orderBy(SavedPostsTable.savedAt to SortOrder.DESC)
+            .limit(limit, offset)
+            .toList()
+        val postIds = rows.map { row -> row[PostsTable.id].value }
+        val likedPostIds = likedPostIdsFor(userId, postIds)
+
+        PaginatedFeedResponse(
+            posts = rows.map { row ->
+                row.toFeedPostDto(
+                    isLiked = row[PostsTable.id].value in likedPostIds,
+                    isSaved = true,
+                )
+            },
+            meta = PaginationMeta(
+                currentPage = page,
+                totalPages = totalPages,
+                hasNext = page < totalPages,
+            ),
+        )
     }
 
     // --- FR-20: LIKED POSTS ---
-    suspend fun getLikedPosts(userId: Long, page: Int, limit: Int): Any = dbQuery {
-        // TODO: Query PostLikesTable WHERE userId JOIN PostsTable
-        mapOf("posts" to emptyList<Any>(), "meta" to mapOf("currentPage" to page, "totalPages" to 0))
+    suspend fun getLikedPosts(userId: Long, page: Int, limit: Int): PaginatedFeedResponse = dbQuery {
+        val offset = ((page - 1) * limit).toLong()
+        val query = LikesTable
+            .join(PostsTable, JoinType.INNER, LikesTable.postId, PostsTable.id)
+            .join(UsersTable, JoinType.INNER, PostsTable.userId, UsersTable.id)
+            .selectAll()
+            .where {
+                (LikesTable.userId eq userId) and
+                    PostsTable.deletedAt.isNull()
+            }
+
+        val totalRecords = query.count()
+        val totalPages = Math.ceil(totalRecords.toDouble() / limit).toInt()
+        val rows = query
+            .orderBy(LikesTable.createdAt to SortOrder.DESC)
+            .limit(limit, offset)
+            .toList()
+        val postIds = rows.map { row -> row[PostsTable.id].value }
+        val savedPostIds = savedPostIdsFor(userId, postIds)
+
+        PaginatedFeedResponse(
+            posts = rows.map { row ->
+                row.toFeedPostDto(
+                    isLiked = true,
+                    isSaved = row[PostsTable.id].value in savedPostIds,
+                )
+            },
+            meta = PaginationMeta(
+                currentPage = page,
+                totalPages = totalPages,
+                hasNext = page < totalPages,
+            ),
+        )
     }
 
     // --- FR-19: TAGGED POSTS ---
@@ -346,23 +459,36 @@ class InteractionRepository {
     }
 
     // --- FR-20: WHO LIKED A POST ---
-    suspend fun getPostLikes(postId: Long, page: Int, limit: Int): Any = dbQuery {
+    suspend fun getPostLikes(postId: Long, page: Int, limit: Int): PostLikesResponse = dbQuery {
         val offset = ((page - 1) * limit).toLong()
-        val rows = LikesTable
+        val query = LikesTable
             .join(UsersTable, JoinType.INNER, LikesTable.userId, UsersTable.id)
             .selectAll()
             .where { LikesTable.postId eq postId }
+
+        val totalRecords = query.count()
+        val totalPages = Math.ceil(totalRecords.toDouble() / limit).toInt()
+
+        val users = query
             .orderBy(LikesTable.createdAt to SortOrder.DESC)
             .limit(limit, offset)
             .map { row ->
-                mapOf(
-                    "userId" to row[UsersTable.id].value,
-                    "username" to row[UsersTable.username],
-                    "fullName" to row[UsersTable.fullName],
-                    "avatar" to row[UsersTable.profilePictureUrl]
+                PostLikeUserDto(
+                    userId = row[UsersTable.id].value,
+                    username = row[UsersTable.username],
+                    fullName = row[UsersTable.fullName],
+                    avatar = row[UsersTable.profilePictureUrl]
                 )
             }
-        mapOf("users" to rows, "page" to page)
+
+        PostLikesResponse(
+            users = users,
+            meta = PaginationMeta(
+                currentPage = page,
+                totalPages = totalPages,
+                hasNext = page < totalPages
+            )
+        )
     }
 
     // --- FR-27: INCREMENT SHARE COUNT ---
@@ -380,5 +506,84 @@ class InteractionRepository {
     suspend fun getShareCount(postId: Long): Long = dbQuery {
         PostsTable.selectAll().where { PostsTable.id eq postId }
             .firstOrNull()?.get(PostsTable.shareCount)?.toLong() ?: 0L
+    }
+
+    private fun syncReplyCount(commentId: Long) {
+        val visibleReplyCount = CommentsTable
+            .selectAll()
+            .where {
+                (CommentsTable.parentCommentId eq commentId) and
+                    CommentsTable.deletedAt.isNull()
+            }
+            .count()
+            .toInt()
+
+        CommentsTable.update({ CommentsTable.id eq commentId }) {
+            it[CommentsTable.replyCount] = visibleReplyCount
+            it[CommentsTable.updatedAt] = Instant.now()
+        }
+    }
+
+    private fun syncPostCommentCount(postId: Long) {
+        val visibleCommentCount = CommentTreeVisibility.visibleCommentCount(postId)
+        PostsTable.update({ PostsTable.id eq postId }) {
+            it[PostsTable.commentCount] = visibleCommentCount
+        }
+    }
+
+    private fun ResultRow.toFeedPostDto(
+        isLiked: Boolean,
+        isSaved: Boolean,
+    ): FeedPostDto {
+        val postId = this[PostsTable.id].value
+        return FeedPostDto(
+            postId = postId,
+            userId = this[UsersTable.id].value,
+            username = this[UsersTable.username],
+            userAvatar = this[UsersTable.profilePictureUrl],
+            caption = this[PostsTable.caption],
+            location = this[PostsTable.location],
+            likeCount = this[PostsTable.likeCount],
+            commentCount = CommentTreeVisibility.visibleCommentCount(postId),
+            createdAt = this[PostsTable.createdAt].toString(),
+            media = mediaForPost(postId),
+            isLiked = isLiked,
+            isSaved = isSaved,
+        )
+    }
+
+    private fun mediaForPost(postId: Long): List<FeedMediaDto> {
+        return PostMediaTable
+            .selectAll()
+            .where { PostMediaTable.postId eq postId }
+            .orderBy(PostMediaTable.position to SortOrder.ASC)
+            .map { row ->
+                FeedMediaDto(
+                    id = row[PostMediaTable.id].value,
+                    url = row[PostMediaTable.mediaFileUrl],
+                    type = row[PostMediaTable.mediaType].name,
+                    orderIndex = row[PostMediaTable.position],
+                    width = row[PostMediaTable.width],
+                    height = row[PostMediaTable.height],
+                )
+            }
+    }
+
+    private fun likedPostIdsFor(userId: Long, postIds: List<Long>): Set<Long> {
+        if (postIds.isEmpty()) return emptySet()
+        return LikesTable
+            .selectAll()
+            .where { (LikesTable.userId eq userId) and (LikesTable.postId inList postIds) }
+            .map { row -> row[LikesTable.postId].value }
+            .toSet()
+    }
+
+    private fun savedPostIdsFor(userId: Long, postIds: List<Long>): Set<Long> {
+        if (postIds.isEmpty()) return emptySet()
+        return SavedPostsTable
+            .selectAll()
+            .where { (SavedPostsTable.userId eq userId) and (SavedPostsTable.postId inList postIds) }
+            .map { row -> row[SavedPostsTable.postId].value }
+            .toSet()
     }
 }

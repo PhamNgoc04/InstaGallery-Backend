@@ -1,17 +1,23 @@
 package com.instagallery.repositories
 
 import com.instagallery.database.DatabaseFactory.dbQuery
+import com.instagallery.database.tables.FollowersTable
+import com.instagallery.database.tables.PostsTable
 import com.instagallery.database.tables.UsersTable
 import com.instagallery.models.common.Role
 import com.instagallery.models.common.UserDto
+import com.instagallery.models.common.UserProfileDto
 import com.instagallery.models.common.UserType
 import com.instagallery.models.request.RegisterRequest
+import org.jetbrains.exposed.sql.Op
 import org.jetbrains.exposed.sql.ResultRow
 import org.jetbrains.exposed.sql.insertAndGetId
 import org.jetbrains.exposed.sql.select
 import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.update
 import org.jetbrains.exposed.sql.and
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.isNull
 
 class UserRepository {
 
@@ -33,6 +39,52 @@ class UserRepository {
 
     suspend fun getUserById(id: Long): UserDto? = dbQuery {
         UsersTable.selectAll().where { UsersTable.id eq id }.singleOrNull()?.toUserDto()
+    }
+
+    suspend fun getUserProfile(
+        userId: Long,
+        viewerId: Long?,
+        includePrivateEmail: Boolean,
+    ): UserProfileDto? = dbQuery {
+        val row = UsersTable
+            .selectAll()
+            .where { (UsersTable.id eq userId) and UsersTable.deletedAt.isNull() }
+            .singleOrNull() ?: return@dbQuery null
+
+        val followerCount = FollowersTable
+            .selectAll()
+            .where { FollowersTable.followingId eq userId }
+            .count()
+            .toInt()
+        val followingCount = FollowersTable
+            .selectAll()
+            .where { FollowersTable.followerId eq userId }
+            .count()
+            .toInt()
+        val postCount = PostsTable
+            .selectAll()
+            .where { visibleProfilePostCondition(userId, viewerId) }
+            .count()
+            .toInt()
+        val isFollowing = viewerId
+            ?.takeIf { it != userId }
+            ?.let { currentViewerId ->
+                FollowersTable
+                    .selectAll()
+                    .where {
+                        (FollowersTable.followerId eq currentViewerId) and
+                            (FollowersTable.followingId eq userId)
+                    }
+                    .count() > 0
+            }
+
+        row.toUserProfileDto(
+            includePrivateEmail = includePrivateEmail,
+            followerCount = followerCount,
+            followingCount = followingCount,
+            postCount = postCount,
+            isFollowing = isFollowing,
+        )
     }
 
     suspend fun getUserByUsername(username: String): UserDto? = dbQuery {
@@ -75,6 +127,49 @@ class UserRepository {
         isActive = this[UsersTable.isActive],
         isVerified = this[UsersTable.isVerified]
     )
+
+    private fun ResultRow.toUserProfileDto(
+        includePrivateEmail: Boolean,
+        followerCount: Int,
+        followingCount: Int,
+        postCount: Int,
+        isFollowing: Boolean?,
+    ) = UserProfileDto(
+        id = this[UsersTable.id].value,
+        username = this[UsersTable.username],
+        email = if (includePrivateEmail) this[UsersTable.email] else null,
+        fullName = this[UsersTable.fullName],
+        profilePictureUrl = this[UsersTable.profilePictureUrl],
+        bio = this[UsersTable.bio],
+        website = this[UsersTable.website],
+        gender = this[UsersTable.gender],
+        phoneNumber = this[UsersTable.phoneNumber],
+        dateOfBirth = this[UsersTable.dateOfBirth]?.toString(),
+        location = this[UsersTable.location],
+        role = this[UsersTable.role],
+        userType = this[UsersTable.userType],
+        isVerified = this[UsersTable.isVerified],
+        isPrivate = this[UsersTable.isPrivate],
+        followerCount = followerCount,
+        followingCount = followingCount,
+        postCount = postCount,
+        isFollowing = isFollowing,
+        createdAt = this[UsersTable.createdAt].toString(),
+    )
+
+    private fun visibleProfilePostCondition(
+        userId: Long,
+        viewerId: Long?,
+    ): Op<Boolean> {
+        val ownProfile = viewerId == userId
+        return if (ownProfile) {
+            (PostsTable.userId eq userId) and PostsTable.deletedAt.isNull()
+        } else {
+            (PostsTable.userId eq userId) and
+                PostsTable.deletedAt.isNull() and
+                (PostsTable.visibility eq com.instagallery.models.common.PostVisibility.PUBLIC)
+        }
+    }
 
     suspend fun getSuggestedUsers(userId: Long, limit: Int): List<UserDto> = dbQuery {
         // Recommend users that the current user hasn't followed yet and are active

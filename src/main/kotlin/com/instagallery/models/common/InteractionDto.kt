@@ -14,6 +14,20 @@ data class ToggleSaveResponse(
 )
 
 @Serializable
+data class PostLikeUserDto(
+    val userId: Long,
+    val username: String,
+    val fullName: String,
+    val avatar: String?
+)
+
+@Serializable
+data class PostLikesResponse(
+    val users: List<PostLikeUserDto>,
+    val meta: PaginationMeta
+)
+
+@Serializable
 data class CommentDto(
     val commentId: Long,
     val postId: Long,

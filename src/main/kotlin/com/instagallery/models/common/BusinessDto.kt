@@ -11,6 +11,8 @@ data class PortfolioDto(
     val specialties: String?,
     val equipment: String?,
     val location: String?,
+    val rating: Double = 0.0,
+    val ratingCount: Int = 0,
     val createdAt: String,
     val updatedAt: String
 )

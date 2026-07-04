@@ -85,10 +85,15 @@ class PostService : KoinComponent {
     }
 
     // --- FR-10: GET USER'S POSTS ---
-    suspend fun getUserPosts(userId: Long, page: Int, limit: Int): PaginatedFeedResponse {
+    suspend fun getUserPosts(
+        viewerId: Long,
+        userId: Long,
+        page: Int,
+        limit: Int,
+    ): PaginatedFeedResponse {
         val verifiedPage = if (page < 1) 1 else page
         val verifiedLimit = if (limit < 1) 20 else if (limit > 50) 50 else limit
-        return postRepository.getPostsByUser(userId, verifiedPage, verifiedLimit)
+        return postRepository.getPostsByUser(viewerId, userId, verifiedPage, verifiedLimit)
     }
 
     // --- FR-19: TAG USER IN POST ---

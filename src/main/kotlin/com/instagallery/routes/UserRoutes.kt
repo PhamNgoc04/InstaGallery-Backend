@@ -26,7 +26,7 @@ fun Route.userRoutes() {
                 val userId = principal?.payload?.getClaim("userId")?.asLong()
                     ?: return@get call.respond(HttpStatusCode.Unauthorized, ApiResponse.error("UNAUTHORIZED", "Token không hợp lệ."))
 
-                val userDto = userService.getCurrentUser(userId)
+                val userDto = userService.getCurrentUserProfile(userId)
                 call.respond(HttpStatusCode.OK, ApiResponse.success(data = userDto))
             }
 
@@ -210,8 +210,7 @@ fun Route.userRoutes() {
                 ?: return@get call.respond(HttpStatusCode.BadRequest, ApiResponse.error("INVALID_ID", "ID người dùng không hợp lệ."))
 
             try {
-                // We reuse getCurrentUser logic which simply fetches the UserDto by ID
-                val userDto = userService.getCurrentUser(userIdToFind)
+                val userDto = userService.getPublicUserProfile(userIdToFind)
                 call.respond(HttpStatusCode.OK, ApiResponse.success(data = userDto))
             } catch (e: Exception) {
                 // If the user doesn't exist, AuthException is thrown by getCurrentUser

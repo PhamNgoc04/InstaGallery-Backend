@@ -1,5 +1,6 @@
 package com.instagallery.database
 
+import com.instagallery.repositories.CommentTreeVisibility
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
 import io.ktor.server.application.*
@@ -65,6 +66,7 @@ object DatabaseFactory {
                 AvailabilitySchedulesTable,
                 PasswordResetTokensTable
             )
+            CommentTreeVisibility.syncAllPostCommentCounts()
         }
     }
 

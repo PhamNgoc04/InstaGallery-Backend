@@ -1,6 +1,7 @@
 package com.instagallery.services
 
 import com.instagallery.models.common.UserDto
+import com.instagallery.models.common.UserProfileDto
 import com.instagallery.models.request.UpdateUserProfileRequest
 import com.instagallery.plugins.AuthException
 import com.instagallery.plugins.ValidationException
@@ -20,7 +21,23 @@ class UserService : KoinComponent {
             ?: throw AuthException("USER_NOT_FOUND", "Tài khoản không tồn tại hoặc đã bị xóa.")
     }
 
-    suspend fun updateProfile(userId: Long, request: UpdateUserProfileRequest): UserDto {
+    suspend fun getCurrentUserProfile(userId: Long): UserProfileDto {
+        return userRepository.getUserProfile(
+            userId = userId,
+            viewerId = userId,
+            includePrivateEmail = true,
+        ) ?: throw AuthException("USER_NOT_FOUND", "Tai khoan khong ton tai hoac da bi xoa.")
+    }
+
+    suspend fun getPublicUserProfile(userId: Long): UserProfileDto {
+        return userRepository.getUserProfile(
+            userId = userId,
+            viewerId = null,
+            includePrivateEmail = false,
+        ) ?: throw AuthException("USER_NOT_FOUND", "Nguoi dung khong ton tai.")
+    }
+
+    suspend fun updateProfile(userId: Long, request: UpdateUserProfileRequest): UserProfileDto {
         // Validation: Verify if the user exists
         val currentUser = userRepository.getUserById(userId)
             ?: throw AuthException("USER_NOT_FOUND", "Tài khoản không tồn tại hoặc đã bị xóa.")
@@ -45,8 +62,11 @@ class UserService : KoinComponent {
             throw Exception("Failed to update user profile.")
         }
 
-        // Return the fresh data
-        return userRepository.getUserById(userId)!!
+        return userRepository.getUserProfile(
+            userId = userId,
+            viewerId = userId,
+            includePrivateEmail = true,
+        ) ?: throw AuthException("USER_NOT_FOUND", "Account does not exist.")
     }
 
     suspend fun deactivateAccount(userId: Long) {

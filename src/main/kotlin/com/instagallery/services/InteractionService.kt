@@ -2,6 +2,8 @@ package com.instagallery.services
 
 import com.instagallery.models.common.CommentDto
 import com.instagallery.models.common.PaginatedCommentsResponse
+import com.instagallery.models.common.PaginatedFeedResponse
+import com.instagallery.models.common.PostLikesResponse
 import com.instagallery.models.common.ToggleLikeResponse
 import com.instagallery.models.common.ToggleSaveResponse
 import com.instagallery.models.request.CreateCommentRequest
@@ -40,7 +42,7 @@ class InteractionService : KoinComponent {
         if (!postExists) throw AuthException("POST_NOT_FOUND", "Bài viết không tồn tại hoặc đã bị xóa.")
 
         if (request.parentId != null) {
-            val parentExists = interactionRepo.checkCommentExists(request.parentId)
+            val parentExists = interactionRepo.checkCommentBelongsToPost(request.parentId, postId)
             if (!parentExists) throw AuthException("PARENT_COMMENT_NOT_FOUND", "Bình luận cha không tồn tại hoặc đã bị xóa.")
         }
 
@@ -124,14 +126,14 @@ class InteractionService : KoinComponent {
     }
 
     // --- FR-22: SAVED POSTS ---
-    suspend fun getSavedPosts(userId: Long, page: Int, limit: Int): Any {
+    suspend fun getSavedPosts(userId: Long, page: Int, limit: Int): PaginatedFeedResponse {
         val verifiedPage = if (page < 1) 1 else page
         val verifiedLimit = if (limit < 1) 20 else if (limit > 50) 50 else limit
         return interactionRepo.getSavedPosts(userId, verifiedPage, verifiedLimit)
     }
 
     // --- FR-20: LIKED POSTS ---
-    suspend fun getLikedPosts(userId: Long, page: Int, limit: Int): Any {
+    suspend fun getLikedPosts(userId: Long, page: Int, limit: Int): PaginatedFeedResponse {
         val verifiedPage = if (page < 1) 1 else page
         val verifiedLimit = if (limit < 1) 20 else if (limit > 50) 50 else limit
         return interactionRepo.getLikedPosts(userId, verifiedPage, verifiedLimit)
@@ -157,7 +159,7 @@ class InteractionService : KoinComponent {
     }
 
     // --- FR-20: WHO LIKED A POST ---
-    suspend fun getPostLikes(postId: Long, page: Int, limit: Int): Any {
+    suspend fun getPostLikes(postId: Long, page: Int, limit: Int): PostLikesResponse {
         val postExists = interactionRepo.checkPostExists(postId)
         if (!postExists) throw AuthException("POST_NOT_FOUND", "Bài viết không tồn tại hoặc đã bị xóa.")
 

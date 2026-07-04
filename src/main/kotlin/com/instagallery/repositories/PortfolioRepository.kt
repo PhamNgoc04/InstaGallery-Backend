@@ -99,6 +99,8 @@ class PortfolioRepository {
         specialties = this[PortfoliosTable.specialties],
         equipment = null, // Equipment column doesn't exist natively, sticking to what we have or dropping it later
         location = this[PortfoliosTable.serviceArea],
+        rating = this[PortfoliosTable.ratingAvg].toDouble(),
+        ratingCount = this[PortfoliosTable.reviewCount],
         createdAt = this[PortfoliosTable.createdAt].toString(),
         updatedAt = this[PortfoliosTable.updatedAt].toString()
     )

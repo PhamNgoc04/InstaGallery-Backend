@@ -10,23 +10,31 @@ import com.instagallery.plugins.ValidationException
 import com.instagallery.repositories.MediaRepository
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
+import java.util.Locale
 import java.util.UUID
 
 class MediaService : KoinComponent {
     private val mediaRepository: MediaRepository by inject()
+    private val localMediaBaseUrl: String = System.getenv(ENV_LOCAL_MEDIA_BASE_URL)
+        ?.trim()
+        ?.trimEnd('/')
+        ?.takeIf { it.isNotBlank() }
+        ?: DEFAULT_LOCAL_MEDIA_BASE_URL
 
-    // Mock S3 Generator for Phase 3
+    // Local-dev presigned-style URLs. Production can swap this for S3/MinIO later.
     suspend fun generatePresignedUrl(userId: Long, request: PresignedUrlRequest): PresignedUrlResponse {
-        val extension = request.fileName.substringAfterLast('.', "")
+        val extension = request.fileName.substringAfterLast('.', "").lowercase(Locale.US)
         if (extension !in listOf("jpg", "jpeg", "png", "mp4", "mov")) {
             throw ValidationException("INVALID_EXTENSION", "Chỉ hỗ trợ file ảnh và video phổ biến.")
         }
 
-        val folder = request.folder ?: "posts"
+        val folder = (request.folder ?: DEFAULT_MEDIA_FOLDER)
+            .takeIf { it.isSafeStorageSegment() }
+            ?: throw ValidationException("INVALID_FOLDER", "Folder upload khÃ´ng há»£p lá»‡.")
         val mockHash = UUID.randomUUID().toString()
         val cdnFileName = "$mockHash.$extension"
-        val mockUploadUrl = "https://s3.aws-mock.com/instagallery-bucket/$folder/$cdnFileName?X-Amz-Signature=mock-sig-123"
-        val cdnFileUrl = "https://cdn.instagallery.com/$folder/$cdnFileName"
+        val mockUploadUrl = "$localMediaBaseUrl/api/v1/media/local-upload/$folder/$cdnFileName"
+        val cdnFileUrl = "$localMediaBaseUrl/api/v1/media/local-files/$folder/$cdnFileName"
 
         return PresignedUrlResponse(
             uploadUrl = mockUploadUrl,
@@ -80,4 +88,19 @@ class MediaService : KoinComponent {
 
         return mediaRepository.reorderMedia(postId, request.mediaIds)
     }
+
+    private companion object {
+        const val ENV_LOCAL_MEDIA_BASE_URL = "LOCAL_MEDIA_BASE_URL"
+        const val DEFAULT_LOCAL_MEDIA_BASE_URL = "http://localhost:8080"
+        const val DEFAULT_MEDIA_FOLDER = "posts"
+    }
 }
+
+private fun String.isSafeStorageSegment(): Boolean {
+    return isNotBlank() &&
+        matches(SAFE_STORAGE_SEGMENT_REGEX) &&
+        this != "." &&
+        this != ".."
+}
+
+private val SAFE_STORAGE_SEGMENT_REGEX = Regex("[A-Za-z0-9._-]+")
