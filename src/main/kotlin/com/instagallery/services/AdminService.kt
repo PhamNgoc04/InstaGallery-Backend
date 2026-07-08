@@ -2,6 +2,18 @@
 
 import com.instagallery.models.common.AdminGrowthDto
 import com.instagallery.models.common.AdminStatsDto
+import com.instagallery.models.common.AdminBannedKeywordDto
+import com.instagallery.models.common.AdminBookingDto
+import com.instagallery.models.common.AdminBookingsResponse
+import com.instagallery.models.common.AdminCreateNotificationResponse
+import com.instagallery.models.common.AdminMediaLibraryResponse
+import com.instagallery.models.common.AdminNotificationsResponse
+import com.instagallery.models.common.AdminPostDto
+import com.instagallery.models.common.AdminPostsResponse
+import com.instagallery.models.common.AdminRatingsResponse
+import com.instagallery.models.common.AdminUserDetailDto
+import com.instagallery.models.common.AdminUsersResponse
+import com.instagallery.models.common.BookingStatus
 import com.instagallery.plugins.AuthException
 import com.instagallery.plugins.ValidationException
 import com.instagallery.repositories.AdminRepository
@@ -54,20 +66,103 @@ class AdminService : KoinComponent {
     }
 
     // --- FR-43: DANH SÁCH NGƯỜI DÙNG ---
-    suspend fun listUsers(page: Int, limit: Int, search: String?, status: String?): Any {
+    suspend fun listUsers(page: Int, limit: Int, search: String?, status: String?): AdminUsersResponse {
         val verifiedPage = if (page < 1) 1 else page
         val verifiedLimit = if (limit < 1) 20 else if (limit > 100) 100 else limit
         return adminRepository.listUsers(verifiedPage, verifiedLimit, search, status)
     }
 
     // --- FR-43: CHI TIẾT NGƯỜI DÙNG ---
-    suspend fun getUserDetail(userId: Long): Any {
+    suspend fun getUserDetail(userId: Long): AdminUserDetailDto {
         return adminRepository.getUserDetail(userId)
             ?: throw AuthException("USER_NOT_FOUND", "Người dùng không tồn tại.")
     }
 
+    suspend fun verifyUser(targetUserId: Long, isVerified: Boolean): Boolean {
+        val success = adminRepository.verifyUser(targetUserId, isVerified)
+        if (!success) {
+            throw AuthException("USER_NOT_FOUND", "Người dùng không tồn tại.")
+        }
+        return true
+    }
+
+    suspend fun listPosts(page: Int, limit: Int, search: String?, status: String?): AdminPostsResponse {
+        return adminRepository.listPosts(verifiedPage(page), verifiedLimit(limit), search, status)
+    }
+
+    suspend fun getPostDetail(postId: Long): AdminPostDto {
+        return adminRepository.getPostDetail(postId)
+            ?: throw AuthException("POST_NOT_FOUND", "Bài viết không tồn tại.")
+    }
+
+    suspend fun updatePostStatus(postId: Long, status: String): Boolean {
+        val normalized = status.uppercase()
+        if (normalized !in listOf("ACTIVE", "VISIBLE", "APPROVED", "HIDDEN", "DELETED")) {
+            throw ValidationException("INVALID_STATUS", "Trạng thái bài viết không hợp lệ.")
+        }
+        val success = adminRepository.updatePostStatus(postId, normalized)
+        if (!success) {
+            throw AuthException("POST_NOT_FOUND", "Bài viết không tồn tại.")
+        }
+        return true
+    }
+
+    suspend fun listBookings(page: Int, limit: Int, search: String?, status: String?): AdminBookingsResponse {
+        return adminRepository.listBookings(verifiedPage(page), verifiedLimit(limit), search, status)
+    }
+
+    suspend fun getBookingDetail(bookingId: Long): AdminBookingDto {
+        return adminRepository.getBookingDetail(bookingId)
+            ?: throw AuthException("BOOKING_NOT_FOUND", "Booking không tồn tại.")
+    }
+
+    suspend fun updateBookingStatus(bookingId: Long, status: String): Boolean {
+        val normalized = runCatching { BookingStatus.valueOf(status.uppercase()) }.getOrNull()
+            ?: throw ValidationException("INVALID_STATUS", "Trạng thái booking không hợp lệ.")
+        val success = adminRepository.updateBookingStatus(bookingId, normalized)
+        if (!success) {
+            throw AuthException("BOOKING_NOT_FOUND", "Booking không tồn tại.")
+        }
+        return true
+    }
+
+    suspend fun listRatings(page: Int, limit: Int, search: String?): AdminRatingsResponse {
+        return adminRepository.listRatings(verifiedPage(page), verifiedLimit(limit), search)
+    }
+
+    suspend fun deleteRating(ratingId: Long): Boolean {
+        val success = adminRepository.deleteRating(ratingId)
+        if (!success) {
+            throw AuthException("RATING_NOT_FOUND", "Đánh giá không tồn tại.")
+        }
+        return true
+    }
+
+    suspend fun listMedia(page: Int, limit: Int, search: String?): AdminMediaLibraryResponse {
+        return adminRepository.listMedia(verifiedPage(page), verifiedLimit(limit), search)
+    }
+
+    suspend fun deleteMedia(mediaId: Long): Boolean {
+        val success = adminRepository.deleteMedia(mediaId)
+        if (!success) {
+            throw AuthException("MEDIA_NOT_FOUND", "Media không tồn tại.")
+        }
+        return true
+    }
+
+    suspend fun listNotifications(page: Int, limit: Int, search: String?): AdminNotificationsResponse {
+        return adminRepository.listNotifications(verifiedPage(page), verifiedLimit(limit), search)
+    }
+
+    suspend fun createNotification(title: String, body: String, target: String): AdminCreateNotificationResponse {
+        if (title.isBlank() || body.isBlank()) {
+            throw ValidationException("INVALID_NOTIFICATION", "Tiêu đề và nội dung thông báo không được để trống.")
+        }
+        return adminRepository.createNotification(title.trim(), body.trim(), target.trim().ifBlank { "ALL" })
+    }
+
     // --- FR-46: TỪ KHÓA CẤM ---
-    suspend fun getBannedKeywords(): Any {
+    suspend fun getBannedKeywords(): List<AdminBannedKeywordDto> {
         return adminRepository.getBannedKeywords()
     }
 
@@ -82,4 +177,8 @@ class AdminService : KoinComponent {
     suspend fun removeBannedKeyword(keywordId: Long): Boolean {
         return adminRepository.removeBannedKeyword(keywordId)
     }
+
+    private fun verifiedPage(page: Int): Int = if (page < 1) 1 else page
+
+    private fun verifiedLimit(limit: Int): Int = if (limit < 1) 20 else if (limit > 100) 100 else limit
 }

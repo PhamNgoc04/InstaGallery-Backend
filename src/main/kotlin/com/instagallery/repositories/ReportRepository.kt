@@ -26,7 +26,9 @@ class ReportRepository {
     suspend fun getReports(statusFilter: ReportStatus?, page: Int, limit: Int): PaginatedReportsResponse = dbQuery {
         val offsetVal = ((page - 1) * limit).toLong()
 
-        var query = (ReportsTable innerJoin UsersTable).selectAll()
+        var query = ReportsTable
+            .join(UsersTable, JoinType.INNER, ReportsTable.reporterId, UsersTable.id)
+            .selectAll()
         
         if (statusFilter != null) {
             query = query.adjustWhere { ReportsTable.status eq statusFilter }
