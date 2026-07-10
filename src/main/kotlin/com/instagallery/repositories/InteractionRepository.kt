@@ -35,6 +35,24 @@ class InteractionRepository {
             .count() > 0
     }
 
+    suspend fun getPostOwnerId(postId: Long): Long? = dbQuery {
+        PostsTable
+            .select(PostsTable.userId)
+            .where { (PostsTable.id eq postId) and PostsTable.deletedAt.isNull() }
+            .singleOrNull()
+            ?.get(PostsTable.userId)
+            ?.value
+    }
+
+    suspend fun getCommentOwnerId(commentId: Long): Long? = dbQuery {
+        CommentsTable
+            .select(CommentsTable.userId)
+            .where { (CommentsTable.id eq commentId) and CommentsTable.deletedAt.isNull() }
+            .singleOrNull()
+            ?.get(CommentsTable.userId)
+            ?.value
+    }
+
     // ----- LIKES -----
     suspend fun toggleLike(userId: Long, postId: Long): Pair<Boolean, Int> = dbQuery {
         val existingLike = LikesTable.selectAll().where { (LikesTable.userId eq userId) and (LikesTable.postId eq postId) }.singleOrNull()

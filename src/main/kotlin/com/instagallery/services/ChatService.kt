@@ -17,6 +17,7 @@ import org.koin.core.component.inject
 
 class ChatService : KoinComponent {
     private val chatRepo: ChatRepository by inject()
+    private val notificationService: NotificationService by inject()
 
     suspend fun getConversations(userId: Long): ConversationResponse {
         return chatRepo.getConversationsForUser(userId)
@@ -34,6 +35,15 @@ class ChatService : KoinComponent {
         return chatRepo.getMessages(userId, conversationId, verifiedPage, verifiedLimit)
     }
 
+    suspend fun markConversationRead(userId: Long, conversationId: Long): Int {
+        val inConv = chatRepo.isUserInConversation(userId, conversationId)
+        if (!inConv) {
+            throw AuthException("UNAUTHORIZED_ACCESS", "Báº¡n khÃ´ng cÃ³ quyá»n xem tin nháº¯n nhÃ³m nÃ y.")
+        }
+
+        return chatRepo.markConversationRead(userId, conversationId)
+    }
+
     suspend fun sendMessageHTTP(senderId: Long, conversationId: Long, content: String, type: String, replyToId: Long?): MessageDto {
         val contentClean = content.trim()
         val inConv = chatRepo.isUserInConversation(senderId, conversationId)
@@ -46,6 +56,16 @@ class ChatService : KoinComponent {
 
         // Broadcast to all members currently connected via WebSocket
         val membersList = chatRepo.getMembersInConversation(conversationId)
+        membersList
+            .filter { memberId -> memberId != senderId }
+            .forEach { memberId ->
+                notificationService.notifyMessageReceived(
+                    recipientUserId = memberId,
+                    actorUserId = senderId,
+                    conversationId = conversationId,
+                    preview = contentClean,
+                )
+            }
         val eventObj = WsEventResponse("NEW_MESSAGE", savedMessage)
 
         membersList.forEach { memberId ->
@@ -74,6 +94,16 @@ class ChatService : KoinComponent {
 
         // Broadcast to all members currently connected via WebSocket
         val membersList = chatRepo.getMembersInConversation(conversationId)
+        membersList
+            .filter { memberId -> memberId != senderId }
+            .forEach { memberId ->
+                notificationService.notifyMessageReceived(
+                    recipientUserId = memberId,
+                    actorUserId = senderId,
+                    conversationId = conversationId,
+                    preview = contentClean,
+                )
+            }
         
         val eventObj = WsEventResponse("NEW_MESSAGE", savedMessage)
         val jsonPayload = Json.encodeToString(eventObj)

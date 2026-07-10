@@ -3,6 +3,7 @@ package com.instagallery.services
 import com.instagallery.database.tables.BookingsTable
 import com.instagallery.models.common.BookingDto
 import com.instagallery.models.common.BookingStatus
+import com.instagallery.models.common.NotificationType
 import com.instagallery.models.common.PaginatedBookingsResponse
 import com.instagallery.models.request.CreateBookingRequest
 import com.instagallery.models.request.UpdateBookingStatusRequest
@@ -16,6 +17,7 @@ import java.time.format.DateTimeParseException
 
 class BookingService : KoinComponent {
     private val bookingRepo: BookingRepository by inject()
+    private val notificationService: NotificationService by inject()
 
     suspend fun createBooking(clientId: Long, request: CreateBookingRequest): BookingDto {
         if (clientId == request.photographerId) {
@@ -40,6 +42,7 @@ class BookingService : KoinComponent {
         }
 
         val newId = bookingRepo.createBooking(clientId, request, parsedDate)
+        notificationService.notifyBookingCreated(request.photographerId, clientId, newId)
         
         // Fetch to return a complete DTO
         // Normally you can manually build it avoiding a second DB hit, but fetching is safer.
@@ -77,7 +80,7 @@ class BookingService : KoinComponent {
         }
 
         // 2. State Machine validations
-        if (currentStatus == BookingStatus.CANCELLED) {
+        if (currentStatus == BookingStatus.CANCELLED || currentStatus == BookingStatus.REJECTED) {
             throw ValidationException("INVALID_STATE_TRANSITION", "Không thể thay đổi đơn đã bị hủy.")
         }
 
@@ -90,12 +93,20 @@ class BookingService : KoinComponent {
         }
 
         // Example Logic Ext: Only photographer can CONFIRM or mark COMPLETED. Both can CANCEL.
-        if ((request.status == BookingStatus.CONFIRMED || request.status == BookingStatus.COMPLETED) && userId != photoId) {
+        if ((request.status == BookingStatus.CONFIRMED || request.status == BookingStatus.COMPLETED || request.status == BookingStatus.REJECTED) && userId != photoId) {
             throw AuthException("UNAUTHORIZED_ACTION", "Chỉ Nhiếp ảnh gia mới có quyền Xác nhận/Hoàn thành chuyến chụp.")
         }
 
         // 3. Update execution
         bookingRepo.updateBookingStatus(bookingId, request.status, request.cancellationReason)
+        val recipientId = if (userId == clientId) photoId else clientId
+        notificationService.notifyBookingStatusChanged(
+            recipientUserId = recipientId,
+            actorUserId = userId,
+            bookingId = bookingId,
+            statusLabel = request.status.viLabel(),
+            type = request.status.toNotificationType(),
+        )
     }
 
     // --- FR-38: GET BOOKING DETAIL ---
@@ -126,10 +137,39 @@ class BookingService : KoinComponent {
             throw AuthException("UNAUTHORIZED_ACTION", "Chỉ khách hàng mới có thể hủy đơn.")
         }
 
-        if (currentStatus == BookingStatus.CANCELLED || currentStatus == BookingStatus.COMPLETED) {
+        if (currentStatus == BookingStatus.CANCELLED || currentStatus == BookingStatus.COMPLETED || currentStatus == BookingStatus.REJECTED) {
             throw ValidationException("INVALID_STATE", "Không thể hủy đơn đã hoàn thành hoặc đã bị hủy.")
         }
 
         bookingRepo.updateBookingStatus(bookingId, BookingStatus.CANCELLED, "Khách hàng tự hủy")
+        notificationService.notifyBookingStatusChanged(
+            recipientUserId = bookingRow[BookingsTable.photographerId].value,
+            actorUserId = userId,
+            bookingId = bookingId,
+            statusLabel = BookingStatus.CANCELLED.viLabel(),
+            type = NotificationType.BOOKING_CANCELLED,
+        )
+    }
+
+    private fun BookingStatus.viLabel(): String {
+        return when (this) {
+            BookingStatus.PENDING -> "chờ xác nhận"
+            BookingStatus.CONFIRMED -> "đã xác nhận"
+            BookingStatus.IN_PROGRESS -> "đang chụp"
+            BookingStatus.COMPLETED -> "hoàn thành"
+            BookingStatus.CANCELLED -> "đã hủy"
+            BookingStatus.REJECTED -> "bị từ chối"
+        }
+    }
+
+    private fun BookingStatus.toNotificationType(): NotificationType {
+        return when (this) {
+            BookingStatus.PENDING -> NotificationType.BOOKING_REQUEST
+            BookingStatus.CONFIRMED -> NotificationType.BOOKING_CONFIRMED
+            BookingStatus.IN_PROGRESS -> NotificationType.BOOKING_IN_PROGRESS
+            BookingStatus.COMPLETED -> NotificationType.BOOKING_COMPLETED
+            BookingStatus.CANCELLED -> NotificationType.BOOKING_CANCELLED
+            BookingStatus.REJECTED -> NotificationType.BOOKING_REJECTED
+        }
     }
 }

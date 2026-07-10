@@ -2,6 +2,8 @@ package com.instagallery.services
 
 import com.instagallery.models.common.PaginatedRatingsResponse
 import com.instagallery.models.common.RatingDto
+import com.instagallery.models.common.NotificationTargetType
+import com.instagallery.models.common.NotificationType
 import com.instagallery.models.request.CreateRatingRequest
 import com.instagallery.plugins.AuthException
 import com.instagallery.plugins.ValidationException
@@ -13,6 +15,7 @@ import org.koin.core.component.inject
 class RatingService : KoinComponent {
     private val ratingRepository: RatingRepository by inject()
     private val userRepository: UserRepository by inject()
+    private val notificationService: NotificationService by inject()
 
     suspend fun createRating(bookingId: Long, raterId: Long, rateeId: Long, request: CreateRatingRequest): RatingDto {
         if (raterId == rateeId) {
@@ -38,8 +41,20 @@ class RatingService : KoinComponent {
             throw ValidationException("DUPLICATE_RATING", "Bạn đã đánh giá booking này rồi.")
         }
 
-        return ratingRepository.createRating(bookingId, raterId, rateeId, request)
+        val rating = ratingRepository.createRating(bookingId, raterId, rateeId, request)
             ?: throw Exception("Lỗi không thể lưu đánh giá.")
+
+        notificationService.createNotification(
+            recipientUserId = rateeId,
+            actorUserId = raterId,
+            type = NotificationType.REVIEW_RECEIVED,
+            targetType = NotificationTargetType.BOOKING,
+            targetId = bookingId,
+            title = "Đánh giá mới",
+            body = "Khách hàng đã gửi đánh giá cho booking đã hoàn thành.",
+            dedupe = true,
+        )
+        return rating
     }
 
     suspend fun getRatings(rateeId: Long, page: Int, limit: Int): PaginatedRatingsResponse {

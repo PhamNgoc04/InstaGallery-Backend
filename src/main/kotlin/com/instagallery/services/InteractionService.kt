@@ -15,12 +15,18 @@ import org.koin.core.component.inject
 
 class InteractionService : KoinComponent {
     private val interactionRepo: InteractionRepository by inject()
+    private val notificationService: NotificationService by inject()
 
     suspend fun toggleLike(userId: Long, postId: Long): ToggleLikeResponse {
         val postExists = interactionRepo.checkPostExists(postId)
         if (!postExists) throw AuthException("POST_NOT_FOUND", "Bài viết không tồn tại hoặc đã bị xóa.")
 
         val (isLiked, total) = interactionRepo.toggleLike(userId, postId)
+        if (isLiked) {
+            interactionRepo.getPostOwnerId(postId)?.let { ownerId ->
+                notificationService.notifyPostLiked(ownerId, userId, postId)
+            }
+        }
         return ToggleLikeResponse(isLiked, total)
     }
 
@@ -29,6 +35,11 @@ class InteractionService : KoinComponent {
         if (!postExists) throw AuthException("POST_NOT_FOUND", "Bài viết không tồn tại hoặc đã bị xóa.")
 
         val isSaved = interactionRepo.toggleSave(userId, postId)
+        if (isSaved) {
+            interactionRepo.getPostOwnerId(postId)?.let { ownerId ->
+                notificationService.notifyPostSaved(ownerId, userId, postId)
+            }
+        }
         return ToggleSaveResponse(isSaved)
     }
 
@@ -46,7 +57,16 @@ class InteractionService : KoinComponent {
             if (!parentExists) throw AuthException("PARENT_COMMENT_NOT_FOUND", "Bình luận cha không tồn tại hoặc đã bị xóa.")
         }
 
-        return interactionRepo.createComment(userId, postId, contentClean, request.parentId)
+        val comment = interactionRepo.createComment(userId, postId, contentClean, request.parentId)
+        val recipientIds = linkedSetOf<Long>()
+        interactionRepo.getPostOwnerId(postId)?.let(recipientIds::add)
+        request.parentId?.let { parentCommentId ->
+            interactionRepo.getCommentOwnerId(parentCommentId)?.let(recipientIds::add)
+        }
+        recipientIds.forEach { recipientId ->
+            notificationService.notifyPostCommented(recipientId, userId, postId)
+        }
+        return comment
     }
 
     suspend fun getComments(postId: Long, page: Int, limit: Int): PaginatedCommentsResponse {
@@ -81,7 +101,13 @@ class InteractionService : KoinComponent {
         val commentExists = interactionRepo.checkCommentExists(commentId)
         if (!commentExists) throw AuthException("COMMENT_NOT_FOUND", "Bình luận không tồn tại hoặc đã bị xóa.")
 
-        return interactionRepo.toggleCommentLike(userId, commentId)
+        val isLiked = interactionRepo.toggleCommentLike(userId, commentId)
+        if (isLiked) {
+            interactionRepo.getCommentOwnerId(commentId)?.let { ownerId ->
+                notificationService.notifyCommentLiked(ownerId, userId, commentId)
+            }
+        }
+        return isLiked
     }
 
     suspend fun toggleFollow(followerId: Long, followingId: Long): Boolean {
@@ -96,7 +122,11 @@ class InteractionService : KoinComponent {
             throw AuthException("USER_NOT_FOUND", "Người dùng không tồn tại.")
         }
 
-        return interactionRepo.toggleFollow(followerId, followingId)
+        val isFollowing = interactionRepo.toggleFollow(followerId, followingId)
+        if (isFollowing) {
+            notificationService.notifyUserFollowed(followingId, followerId)
+        }
+        return isFollowing
     }
 
     suspend fun getFollowers(userId: Long, page: Int, limit: Int): com.instagallery.models.common.PaginatedFollowsResponse {

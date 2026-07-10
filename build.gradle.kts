@@ -26,6 +26,15 @@ repositories {
     mavenCentral()
 }
 
+configurations.configureEach {
+    resolutionStrategy.eachDependency {
+        if (requested.group == "io.netty") {
+            useVersion("4.1.115.Final")
+            because("Ktor 3.0.2 Netty server is not compatible with Firebase Admin's Netty 4.2 transitive modules.")
+        }
+    }
+}
+
 dependencies {
     // === Ktor Core ===
     implementation("io.ktor:ktor-server-core-jvm:$ktor_version")
@@ -37,6 +46,9 @@ dependencies {
     implementation("io.ktor:ktor-server-auth-jvm:$ktor_version")
     implementation("io.ktor:ktor-server-auth-jwt-jvm:$ktor_version")
     implementation("org.mindrot:jbcrypt:0.4")                    // Password hashing
+    implementation("com.google.api-client:google-api-client:2.9.0")
+    implementation("com.google.http-client:google-http-client-gson:2.1.1")
+    implementation("com.google.firebase:firebase-admin:9.10.0")
 
     // === Database ===
     implementation("org.jetbrains.exposed:exposed-core:$exposed_version")

@@ -1,12 +1,15 @@
 package com.instagallery.plugins
 
 import com.instagallery.repositories.BookingRepository
+import com.instagallery.repositories.DeviceTokenRepository
 import com.instagallery.repositories.InteractionRepository
 import com.instagallery.repositories.PostRepository
 import com.instagallery.repositories.SessionRepository
 import com.instagallery.repositories.UserRepository
 import com.instagallery.services.AuthService
 import com.instagallery.services.BookingService
+import com.instagallery.services.DeviceTokenService
+import com.instagallery.services.FirebasePushService
 import com.instagallery.services.InteractionService
 import com.instagallery.services.PostService
 import com.instagallery.services.UserService
@@ -31,6 +34,9 @@ val appModule = module {
     single { com.instagallery.repositories.ChatRepository() }
     single { com.instagallery.services.ChatService() }
     single { com.instagallery.repositories.NotificationRepository() }
+    single { DeviceTokenRepository() }
+    single { DeviceTokenService() }
+    single { FirebasePushService() }
     single { com.instagallery.services.NotificationService() }
     single { com.instagallery.repositories.SearchRepository() }
     single { com.instagallery.services.SearchService() }

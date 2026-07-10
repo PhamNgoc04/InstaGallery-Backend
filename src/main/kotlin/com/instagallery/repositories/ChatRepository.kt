@@ -5,6 +5,8 @@ import com.instagallery.database.tables.*
 import com.instagallery.models.common.*
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.greater
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.neq
 import java.time.Instant
 
 class ChatRepository {
@@ -58,7 +60,7 @@ class ChatRepository {
                 id = convId,
                 title = row[ConversationsTable.title],
                 type = row[ConversationsTable.type],
-                unreadCount = 0, // Unread tracking usually requires a separate table 'MessageReads' (Omitted for simplicity)
+                unreadCount = countUnreadMessages(userId, convId),
                 partnerId = partnerId,
                 partnerName = partnerName,
                 partnerAvatar = partnerAvatar,
@@ -145,10 +147,17 @@ class ChatRepository {
             )
         }
 
+        markConversationReadInTransaction(userId, conversationId)
+
         PaginatedMessagesResponse(
             messages = messagesList,
             meta = PaginationMeta(currentPage = page, totalPages = totalPages, hasNext = page < totalPages)
         )
+    }
+
+    suspend fun markConversationRead(userId: Long, conversationId: Long): Int = dbQuery {
+        markConversationReadInTransaction(userId, conversationId)
+        totalUnreadCountForUser(userId)
     }
 
     // --- FR-41: GET OR CREATE CONVERSATION ---
@@ -195,6 +204,55 @@ class ChatRepository {
         ConversationMembersTable.deleteWhere {
             (ConversationMembersTable.conversationId eq conversationId) and
             (ConversationMembersTable.userId eq userId)
+        }
+    }
+
+    private fun totalUnreadCountForUser(userId: Long): Int {
+        return ConversationMembersTable
+            .select(ConversationMembersTable.conversationId)
+            .where { ConversationMembersTable.userId eq userId }
+            .sumOf { row ->
+                countUnreadMessages(
+                    userId = userId,
+                    conversationId = row[ConversationMembersTable.conversationId].value,
+                )
+            }
+    }
+
+    private fun countUnreadMessages(
+        userId: Long,
+        conversationId: Long,
+    ): Int {
+        val memberRow = ConversationMembersTable
+            .selectAll()
+            .where {
+                (ConversationMembersTable.conversationId eq conversationId) and
+                    (ConversationMembersTable.userId eq userId)
+            }
+            .singleOrNull()
+        val lastReadAt = memberRow?.get(ConversationMembersTable.lastReadAt)
+        val baseCondition = (MessagesTable.conversationId eq conversationId) and
+            (MessagesTable.senderId neq userId) and
+            (MessagesTable.isDeleted eq false)
+        val unreadCondition = if (lastReadAt == null) {
+            baseCondition
+        } else {
+            baseCondition and (MessagesTable.createdAt greater lastReadAt)
+        }
+
+        return MessagesTable
+            .selectAll()
+            .where { unreadCondition }
+            .count()
+            .toInt()
+    }
+
+    private fun markConversationReadInTransaction(userId: Long, conversationId: Long) {
+        ConversationMembersTable.update({
+            (ConversationMembersTable.conversationId eq conversationId) and
+                (ConversationMembersTable.userId eq userId)
+        }) {
+            it[lastReadAt] = Instant.now()
         }
     }
 }

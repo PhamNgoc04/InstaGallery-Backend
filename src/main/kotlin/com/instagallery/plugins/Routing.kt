@@ -3,6 +3,7 @@ package com.instagallery.plugins
 import com.instagallery.routes.authRoutes
 import com.instagallery.routes.bookingRoutes
 import com.instagallery.routes.chatRoutes
+import com.instagallery.routes.deviceRoutes
 import com.instagallery.routes.interactionRoutes
 import com.instagallery.routes.notificationRoutes
 import com.instagallery.routes.postRoutes
@@ -99,6 +100,7 @@ fun Application.configureRouting() {
         interactionRoutes()
         bookingRoutes()
         chatRoutes()
+        deviceRoutes()
         notificationRoutes()
         searchRoutes()
         portfolioRoutes()

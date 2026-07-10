@@ -65,6 +65,18 @@ fun Route.chatRoutes() {
                 call.respond(HttpStatusCode.OK, ApiResponse.success(data = result))
             }
 
+            put("/conversations/{id}/read") {
+                val principal = call.principal<JWTPrincipal>()
+                val userId = principal?.payload?.getClaim("userId")?.asLong()
+                    ?: return@put call.respond(HttpStatusCode.Unauthorized, ApiResponse.error("UNAUTHORIZED", "Token khÃ´ng há»£p lá»‡."))
+
+                val conversationId = call.parameters["id"]?.toLongOrNull()
+                    ?: return@put call.respond(HttpStatusCode.BadRequest, ApiResponse.error("INVALID_ID", "ID há»™i thoáº¡i khÃ´ng há»£p lá»‡."))
+
+                val unreadCount = chatService.markConversationRead(userId, conversationId)
+                call.respond(HttpStatusCode.OK, ApiResponse.success(data = mapOf("unreadCount" to unreadCount)))
+            }
+
             post("/conversations/{id}/messages") {
                 val principal = call.principal<JWTPrincipal>()
                 val userId = principal?.payload?.getClaim("userId")?.asLong()

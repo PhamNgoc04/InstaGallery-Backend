@@ -24,6 +24,12 @@ data class PaginatedNotificationsResponse(
 )
 
 @Serializable
+data class NotificationSocketEvent(
+    val event: String,
+    val notification: NotificationDto
+)
+
+@Serializable
 data class NotificationPaginationMeta(
     val currentPage: Int,
     val totalPages: Int,
