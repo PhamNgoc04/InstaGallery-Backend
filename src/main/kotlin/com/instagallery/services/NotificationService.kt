@@ -86,13 +86,13 @@ class NotificationService : KoinComponent {
         )
     }
 
-    suspend fun notifyCommentLiked(recipientUserId: Long, actorUserId: Long, commentId: Long) {
+    suspend fun notifyCommentLiked(recipientUserId: Long, actorUserId: Long, postId: Long) {
         createNotification(
             recipientUserId = recipientUserId,
             actorUserId = actorUserId,
             type = NotificationType.COMMENT_LIKED,
-            targetType = NotificationTargetType.COMMENT,
-            targetId = commentId,
+            targetType = NotificationTargetType.POST,
+            targetId = postId,
             dedupe = true,
         )
     }

@@ -103,8 +103,10 @@ class InteractionService : KoinComponent {
 
         val isLiked = interactionRepo.toggleCommentLike(userId, commentId)
         if (isLiked) {
-            interactionRepo.getCommentOwnerId(commentId)?.let { ownerId ->
-                notificationService.notifyCommentLiked(ownerId, userId, commentId)
+            val postId = interactionRepo.getCommentPostId(commentId)
+            val ownerId = interactionRepo.getCommentOwnerId(commentId)
+            if (postId != null && ownerId != null) {
+                notificationService.notifyCommentLiked(ownerId, userId, postId)
             }
         }
         return isLiked
