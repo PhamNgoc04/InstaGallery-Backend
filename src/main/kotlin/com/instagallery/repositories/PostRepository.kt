@@ -14,6 +14,13 @@ import java.time.Instant
 
 class PostRepository {
 
+    suspend fun getFollowerIds(userId: Long): List<Long> = dbQuery {
+        FollowersTable
+            .select(FollowersTable.followerId)
+            .where { FollowersTable.followingId eq userId }
+            .map { it[FollowersTable.followerId].value }
+    }
+
     suspend fun createPost(userId: Long, request: CreatePostRequest): PostDto? = dbQuery {
         // 1. Insert the Post record
         val insertStatement = PostsTable.insertAndGetId {

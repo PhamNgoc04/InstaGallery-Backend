@@ -16,10 +16,14 @@ services:
       JWT_SECRET: my-super-secret-key-for-instagallery-app-which-is-at-least-32-bytes
       LOCAL_MEDIA_BASE_URL: http://localhost:8080
       LOCAL_MEDIA_UPLOAD_DIR: /app/uploads
+      GOOGLE_WEB_CLIENT_ID: ${GOOGLE_WEB_CLIENT_ID:-647969867224-uejjvk9at6lglv6rcfvdocukkk0bqpq9.apps.googleusercontent.com}
+      EXPOSE_DEBUG_RESET_TOKEN: "true"
+      FIREBASE_SERVICE_ACCOUNT_PATH: /app/.firebase/service-account.json
     ports:
       - "8080:8080"
     volumes:
       - ./uploads:/app/uploads
+      - ./.firebase:/app/.firebase:ro
 
   mysql:
     image: mysql:8.0

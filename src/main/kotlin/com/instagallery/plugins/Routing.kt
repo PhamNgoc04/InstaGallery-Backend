@@ -10,6 +10,7 @@ import com.instagallery.routes.postRoutes
 import com.instagallery.routes.searchRoutes
 import com.instagallery.routes.userRoutes
 import com.instagallery.routes.portfolioRoutes
+import com.instagallery.routes.photographerServiceRoutes
 import com.instagallery.routes.ratingRoutes
 import com.instagallery.routes.mediaRoutes
 import com.instagallery.routes.exploreRoutes
@@ -30,11 +31,11 @@ fun Application.configureRouting() {
         get("/init-db") {
             org.jetbrains.exposed.sql.transactions.transaction {
                 org.jetbrains.exposed.sql.SchemaUtils.create(
-                    com.instagallery.database.tables.UsersTable, com.instagallery.database.tables.UserSessionsTable, com.instagallery.database.tables.PortfoliosTable,
+                    com.instagallery.database.tables.UsersTable, com.instagallery.database.tables.UserSessionsTable, com.instagallery.database.tables.PortfoliosTable, com.instagallery.database.tables.PhotographerServicesTable,
                     com.instagallery.database.tables.PostsTable, com.instagallery.database.tables.FiltersTable, com.instagallery.database.tables.PostMediaTable, com.instagallery.database.tables.MediaTagsTable, com.instagallery.database.tables.PostMediaTagsTable,
                     com.instagallery.database.tables.FollowersTable, com.instagallery.database.tables.LikesTable, com.instagallery.database.tables.CommentsTable, com.instagallery.database.tables.CommentLikesTable, com.instagallery.database.tables.SavedPostsTable,
                     com.instagallery.database.tables.BookingsTable, com.instagallery.database.tables.RatingsTable, com.instagallery.database.tables.ConversationsTable, com.instagallery.database.tables.ConversationMembersTable, com.instagallery.database.tables.MessagesTable,
-                    com.instagallery.database.tables.NotificationsTable, com.instagallery.database.tables.ActivityLogsTable, com.instagallery.database.tables.ReportsTable, com.instagallery.database.tables.SearchHistoriesTable, com.instagallery.database.tables.PasswordResetTokensTable,
+                    com.instagallery.database.tables.NotificationsTable, com.instagallery.database.tables.DeviceTokensTable, com.instagallery.database.tables.ActivityLogsTable, com.instagallery.database.tables.ReportsTable, com.instagallery.database.tables.SearchHistoriesTable, com.instagallery.database.tables.PasswordResetTokensTable,
                     com.instagallery.database.tables.FollowRequestsTable, com.instagallery.database.tables.AlbumsTable, com.instagallery.database.tables.AlbumMediaTable, com.instagallery.database.tables.BlockedUsersTable, com.instagallery.database.tables.MutedUsersTable, com.instagallery.database.tables.AvailabilitySchedulesTable, com.instagallery.database.tables.BannedWordsTable
                 )
             }
@@ -45,20 +46,20 @@ fun Application.configureRouting() {
             org.jetbrains.exposed.sql.transactions.transaction {
                 // Xoá trọn bộ các bảng dữ liệu cũ
                 org.jetbrains.exposed.sql.SchemaUtils.drop(
-                    com.instagallery.database.tables.UsersTable, com.instagallery.database.tables.UserSessionsTable, com.instagallery.database.tables.PortfoliosTable,
+                    com.instagallery.database.tables.UsersTable, com.instagallery.database.tables.UserSessionsTable, com.instagallery.database.tables.PortfoliosTable, com.instagallery.database.tables.PhotographerServicesTable,
                     com.instagallery.database.tables.PostsTable, com.instagallery.database.tables.FiltersTable, com.instagallery.database.tables.PostMediaTable, com.instagallery.database.tables.MediaTagsTable, com.instagallery.database.tables.PostMediaTagsTable,
                     com.instagallery.database.tables.FollowersTable, com.instagallery.database.tables.LikesTable, com.instagallery.database.tables.CommentsTable, com.instagallery.database.tables.CommentLikesTable, com.instagallery.database.tables.SavedPostsTable,
                     com.instagallery.database.tables.BookingsTable, com.instagallery.database.tables.RatingsTable, com.instagallery.database.tables.ConversationsTable, com.instagallery.database.tables.ConversationMembersTable, com.instagallery.database.tables.MessagesTable,
-                    com.instagallery.database.tables.NotificationsTable, com.instagallery.database.tables.ActivityLogsTable, com.instagallery.database.tables.ReportsTable, com.instagallery.database.tables.SearchHistoriesTable, com.instagallery.database.tables.PasswordResetTokensTable,
+                    com.instagallery.database.tables.NotificationsTable, com.instagallery.database.tables.DeviceTokensTable, com.instagallery.database.tables.ActivityLogsTable, com.instagallery.database.tables.ReportsTable, com.instagallery.database.tables.SearchHistoriesTable, com.instagallery.database.tables.PasswordResetTokensTable,
                     com.instagallery.database.tables.FollowRequestsTable, com.instagallery.database.tables.AlbumsTable, com.instagallery.database.tables.AlbumMediaTable, com.instagallery.database.tables.BlockedUsersTable, com.instagallery.database.tables.MutedUsersTable, com.instagallery.database.tables.AvailabilitySchedulesTable, com.instagallery.database.tables.BannedWordsTable
                 )
                 // Tạo lại bảng mới tinh tươm
                 org.jetbrains.exposed.sql.SchemaUtils.create(
-                    com.instagallery.database.tables.UsersTable, com.instagallery.database.tables.UserSessionsTable, com.instagallery.database.tables.PortfoliosTable,
+                    com.instagallery.database.tables.UsersTable, com.instagallery.database.tables.UserSessionsTable, com.instagallery.database.tables.PortfoliosTable, com.instagallery.database.tables.PhotographerServicesTable,
                     com.instagallery.database.tables.PostsTable, com.instagallery.database.tables.FiltersTable, com.instagallery.database.tables.PostMediaTable, com.instagallery.database.tables.MediaTagsTable, com.instagallery.database.tables.PostMediaTagsTable,
                     com.instagallery.database.tables.FollowersTable, com.instagallery.database.tables.LikesTable, com.instagallery.database.tables.CommentsTable, com.instagallery.database.tables.CommentLikesTable, com.instagallery.database.tables.SavedPostsTable,
                     com.instagallery.database.tables.BookingsTable, com.instagallery.database.tables.RatingsTable, com.instagallery.database.tables.ConversationsTable, com.instagallery.database.tables.ConversationMembersTable, com.instagallery.database.tables.MessagesTable,
-                    com.instagallery.database.tables.NotificationsTable, com.instagallery.database.tables.ActivityLogsTable, com.instagallery.database.tables.ReportsTable, com.instagallery.database.tables.SearchHistoriesTable, com.instagallery.database.tables.PasswordResetTokensTable,
+                    com.instagallery.database.tables.NotificationsTable, com.instagallery.database.tables.DeviceTokensTable, com.instagallery.database.tables.ActivityLogsTable, com.instagallery.database.tables.ReportsTable, com.instagallery.database.tables.SearchHistoriesTable, com.instagallery.database.tables.PasswordResetTokensTable,
                     com.instagallery.database.tables.FollowRequestsTable, com.instagallery.database.tables.AlbumsTable, com.instagallery.database.tables.AlbumMediaTable, com.instagallery.database.tables.BlockedUsersTable, com.instagallery.database.tables.MutedUsersTable, com.instagallery.database.tables.AvailabilitySchedulesTable, com.instagallery.database.tables.BannedWordsTable
                 )
             }
@@ -82,11 +83,11 @@ fun Application.configureRouting() {
         get("/migrate-db") {
             org.jetbrains.exposed.sql.transactions.transaction {
                 org.jetbrains.exposed.sql.SchemaUtils.createMissingTablesAndColumns(
-                    com.instagallery.database.tables.UsersTable, com.instagallery.database.tables.UserSessionsTable, com.instagallery.database.tables.PortfoliosTable,
+                    com.instagallery.database.tables.UsersTable, com.instagallery.database.tables.UserSessionsTable, com.instagallery.database.tables.PortfoliosTable, com.instagallery.database.tables.PhotographerServicesTable,
                     com.instagallery.database.tables.PostsTable, com.instagallery.database.tables.FiltersTable, com.instagallery.database.tables.PostMediaTable, com.instagallery.database.tables.MediaTagsTable, com.instagallery.database.tables.PostMediaTagsTable,
                     com.instagallery.database.tables.FollowersTable, com.instagallery.database.tables.LikesTable, com.instagallery.database.tables.CommentsTable, com.instagallery.database.tables.CommentLikesTable, com.instagallery.database.tables.SavedPostsTable,
                     com.instagallery.database.tables.BookingsTable, com.instagallery.database.tables.RatingsTable, com.instagallery.database.tables.ConversationsTable, com.instagallery.database.tables.ConversationMembersTable, com.instagallery.database.tables.MessagesTable,
-                    com.instagallery.database.tables.NotificationsTable, com.instagallery.database.tables.ActivityLogsTable, com.instagallery.database.tables.ReportsTable, com.instagallery.database.tables.SearchHistoriesTable, com.instagallery.database.tables.PasswordResetTokensTable,
+                    com.instagallery.database.tables.NotificationsTable, com.instagallery.database.tables.DeviceTokensTable, com.instagallery.database.tables.ActivityLogsTable, com.instagallery.database.tables.ReportsTable, com.instagallery.database.tables.SearchHistoriesTable, com.instagallery.database.tables.PasswordResetTokensTable,
                     com.instagallery.database.tables.FollowRequestsTable, com.instagallery.database.tables.AlbumsTable, com.instagallery.database.tables.AlbumMediaTable, com.instagallery.database.tables.BlockedUsersTable, com.instagallery.database.tables.MutedUsersTable, com.instagallery.database.tables.AvailabilitySchedulesTable, com.instagallery.database.tables.BannedWordsTable
                 )
             }
@@ -104,6 +105,7 @@ fun Application.configureRouting() {
         notificationRoutes()
         searchRoutes()
         portfolioRoutes()
+        photographerServiceRoutes()
         ratingRoutes()
         mediaRoutes()
         exploreRoutes()

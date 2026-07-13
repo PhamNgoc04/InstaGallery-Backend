@@ -57,6 +57,7 @@ class PostServiceTest : KoinTest {
         val req = CreatePostRequest("Hello world", "Thành phố Hồ Chí Minh", PostVisibility.PUBLIC, listOf(mediaItem))
         val returnedMockPost = PostDto(100L, 1L, "Hello world", "Thành phố Hồ Chí Minh", PostVisibility.PUBLIC, 0, 0, "2024-01-01T00:00:00Z", emptyList())
         coEvery { postRepository.createPost(1L, req) } returns returnedMockPost
+        coEvery { postRepository.getFollowerIds(1L) } returns emptyList()
 
         val postResponse = postService.createPost(1L, req)
         assertEquals(100L, postResponse.postId)

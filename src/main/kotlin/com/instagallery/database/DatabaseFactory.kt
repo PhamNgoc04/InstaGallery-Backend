@@ -34,7 +34,7 @@ object DatabaseFactory {
         Database.connect(dataSource)
 
         transaction {
-            SchemaUtils.create(
+            SchemaUtils.createMissingTablesAndColumns(
                 UsersTable,
                 UserSessionsTable,
                 PortfoliosTable,

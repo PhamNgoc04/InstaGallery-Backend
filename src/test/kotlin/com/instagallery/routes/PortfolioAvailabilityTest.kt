@@ -2,7 +2,10 @@ package com.instagallery.routes
 
 import com.instagallery.database.tables.*
 import com.instagallery.models.common.ApiResponse
-import com.instagallery.models.common.PostVisibility
+import com.instagallery.models.common.AvailabilityScheduleDto
+import com.instagallery.models.common.AvailabilityType
+import com.instagallery.models.common.DayOfWeekIso
+import com.instagallery.models.common.UserType
 import com.instagallery.models.request.LoginRequest
 import com.instagallery.models.request.RegisterRequest
 import com.instagallery.models.response.LoginResponse
@@ -16,14 +19,11 @@ import io.ktor.server.testing.*
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.jsonObject
-import kotlinx.serialization.json.booleanOrNull
-import kotlinx.serialization.json.jsonPrimitive
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.SchemaUtils
-import org.jetbrains.exposed.sql.insertAndGetId
 import org.jetbrains.exposed.sql.transactions.transaction
+import org.jetbrains.exposed.sql.insert
+import org.jetbrains.exposed.sql.selectAll
 import org.junit.jupiter.api.AfterEach
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -32,7 +32,7 @@ import kotlin.test.assertTrue
 import org.koin.core.context.stopKoin
 import java.util.UUID
 
-class InteractionIntegrationTest {
+class PortfolioAvailabilityTest {
 
     val jsonSerializer = Json { ignoreUnknownKeys = true }
 
@@ -42,8 +42,7 @@ class InteractionIntegrationTest {
     }
 
     @Test
-    fun `Integration Test - Authenticated Like Post flow`() = testApplication {
-        // Setup Isolated App and Database for this specific test
+    fun `Test Portfolio Availability flow`() = testApplication {
         val uniqueDbName = UUID.randomUUID().toString()
         Database.connect(
             url = "jdbc:h2:mem:$uniqueDbName;DB_CLOSE_DELAY=-1;IGNORECASE=TRUE",
@@ -57,7 +56,7 @@ class InteractionIntegrationTest {
                 FollowersTable, LikesTable, CommentsTable, CommentLikesTable, SavedPostsTable,
                 PhotographerServicesTable, BookingsTable, RatingsTable, ConversationsTable, ConversationMembersTable,
                 MessagesTable, NotificationsTable, PasswordResetTokensTable, PostsTable,
-                PostMediaTable, MediaTagsTable, PostMediaTagsTable
+                PostMediaTable, MediaTagsTable, PostMediaTagsTable, AvailabilitySchedulesTable
             )
         }
 
@@ -79,12 +78,13 @@ class InteractionIntegrationTest {
             configureRouting()
         }
 
-        // 1. REGISTER a new user
+        // 1. REGISTER a photographer
         val registerRequest = RegisterRequest(
-            username = "likeruser",
-            passwordHash = "likepassword123",
-            email = "likeruser@example.com",
-            fullName = "Liker User"
+            username = "photographer_user",
+            passwordHash = "password123",
+            email = "photographer@example.com",
+            fullName = "Photographer User",
+            userType = UserType.PHOTOGRAPHER
         )
 
         client.post("/api/v1/auth/register") {
@@ -94,8 +94,8 @@ class InteractionIntegrationTest {
 
         // 2. LOGIN to get token
         val loginRequest = LoginRequest(
-            email = "likeruser@example.com",
-            passwordHash = "likepassword123"
+            email = "photographer@example.com",
+            passwordHash = "password123"
         )
 
         val loginResponse = client.post("/api/v1/auth/login") {
@@ -106,42 +106,53 @@ class InteractionIntegrationTest {
         val loginBodyStr = loginResponse.bodyAsText()
         val apiResponse = jsonSerializer.decodeFromString<ApiResponse<LoginResponse>>(loginBodyStr)
         val accessToken = apiResponse.data?.token
-        assertNotNull(accessToken, "Access token must not be null")
+        assertNotNull(accessToken)
 
-        // 3. Create a DUMMY POST in the Database transaction
-        var testPostId = 0L
+        // Create portfolio for this photographer
         transaction {
-            // Find the user we just registered
-            val userRow = UsersTable.select(UsersTable.columns).where { UsersTable.email eq "likeruser@example.com" }.firstOrNull()
-            assertNotNull(userRow, "User should exist after registration")
-            val userIdVal = userRow[UsersTable.id].value
-
-            testPostId = PostsTable.insertAndGetId {
-                it[userId] = userIdVal
-                it[caption] = "Test Post for Interaction"
-                it[visibility] = PostVisibility.PUBLIC
-            }.value
+            val userId = UsersTable.selectAll().where { UsersTable.email eq "photographer@example.com" }.single()[UsersTable.id].value
+            PortfoliosTable.insert {
+                it[this.userId] = userId
+                it[this.description] = "Test portfolio"
+                it[this.isAvailable] = true
+            }
         }
 
-        assertTrue(testPostId > 0, "Test post must have a valid ID")
-
-        // 4. Send LIKE request with token
-        val likeResponse = client.post("/api/v1/posts/$testPostId/like") {
+        // 3. GET availability (empty initially)
+        val getResponse = client.get("/api/v1/portfolios/me/availability") {
             header(HttpHeaders.Authorization, "Bearer $accessToken")
         }
+        assertEquals(HttpStatusCode.OK, getResponse.status)
+        val getBody = getResponse.bodyAsText()
+        println("GET Empty Availability: $getBody")
+        assertTrue(getBody.contains("SUCCESS"))
 
-        assertEquals(HttpStatusCode.OK, likeResponse.status)
-        val likeBodyStr = likeResponse.bodyAsText()
-        println("Like Response: $likeBodyStr")
-        
-        // Assert response contents
-        assertTrue(likeBodyStr.contains("SUCCESS"))
-        
-        val likeObj = jsonSerializer.parseToJsonElement(likeBodyStr).jsonObject
-        val dataObj = likeObj["data"]?.jsonObject
-        val isLiked = dataObj?.get("isLiked")?.jsonPrimitive?.booleanOrNull
-        
-        assertNotNull(isLiked, "isLiked field shouldn't be null")
-        assertTrue(isLiked, "isLiked must be true after liking")
+        // 4. POST availability
+        val schedules = listOf(
+            AvailabilityScheduleDto(
+                type = AvailabilityType.RECURRING,
+                dayOfWeek = DayOfWeekIso.MONDAY,
+                startTime = "09:00",
+                endTime = "17:00"
+            )
+        )
+
+        val postResponse = client.post("/api/v1/portfolios/me/availability") {
+            header(HttpHeaders.Authorization, "Bearer $accessToken")
+            contentType(ContentType.Application.Json)
+            setBody(jsonSerializer.encodeToString(schedules))
+        }
+        assertEquals(HttpStatusCode.OK, postResponse.status)
+        println("POST Availability: ${postResponse.bodyAsText()}")
+
+        // 5. GET availability again
+        val getResponse2 = client.get("/api/v1/portfolios/me/availability") {
+            header(HttpHeaders.Authorization, "Bearer $accessToken")
+        }
+        assertEquals(HttpStatusCode.OK, getResponse2.status)
+        val getBody2 = getResponse2.bodyAsText()
+        println("GET Filled Availability: $getBody2")
+        assertTrue(getBody2.contains("MONDAY"))
+        assertTrue(getBody2.contains("09:00"))
     }
 }

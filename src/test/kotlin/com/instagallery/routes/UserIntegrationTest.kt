@@ -49,7 +49,7 @@ class UserIntegrationTest {
                 UsersTable, UserSessionsTable, PortfoliosTable, ActivityLogsTable,
                 ReportsTable, SearchHistoriesTable, FiltersTable,
                 FollowersTable, LikesTable, CommentsTable, CommentLikesTable, SavedPostsTable,
-                BookingsTable, RatingsTable, ConversationsTable, ConversationMembersTable,
+                PhotographerServicesTable, BookingsTable, RatingsTable, ConversationsTable, ConversationMembersTable,
                 MessagesTable, NotificationsTable, PasswordResetTokensTable, PostsTable,
                 PostMediaTable, MediaTagsTable, PostMediaTagsTable // Add all tables required by all repositories since Koin injects everything
             )

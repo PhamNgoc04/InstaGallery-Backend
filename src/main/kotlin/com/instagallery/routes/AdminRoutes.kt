@@ -107,6 +107,18 @@ fun Route.adminRoutes() {
                 call.respond(HttpStatusCode.OK, ApiResponse.success(data = true, message = "Đã cập nhật trạng thái xác minh."))
             }
 
+            put("/users/{userId}/featured") {
+                val targetUserId = call.parameters["userId"]?.toLongOrNull()
+                    ?: return@put call.respond(HttpStatusCode.BadRequest, ApiResponse.error("INVALID_ID", "ID người dùng không hợp lệ."))
+
+                val body = call.receive<Map<String, Boolean>>()
+                val isFeatured = body["isFeatured"]
+                    ?: return@put call.respond(HttpStatusCode.BadRequest, ApiResponse.error("MISSING_FIELD", "Thiếu trường isFeatured."))
+
+                adminService.featurePhotographer(targetUserId, isFeatured)
+                call.respond(HttpStatusCode.OK, ApiResponse.success(data = true, message = "Đã cập nhật trạng thái nổi bật."))
+            }
+
             get("/posts") {
                 val page = call.request.queryParameters["page"]?.toIntOrNull() ?: 1
                 val limit = call.request.queryParameters["limit"]?.toIntOrNull() ?: 20

@@ -86,6 +86,14 @@ class AdminService : KoinComponent {
         return true
     }
 
+    suspend fun featurePhotographer(targetUserId: Long, isFeatured: Boolean): Boolean {
+        val success = adminRepository.featurePhotographer(targetUserId, isFeatured)
+        if (!success) {
+            throw AuthException("USER_NOT_FOUND", "Người dùng không tồn tại hoặc lỗi hồ sơ.")
+        }
+        return true
+    }
+
     suspend fun listPosts(page: Int, limit: Int, search: String?, status: String?): AdminPostsResponse {
         return adminRepository.listPosts(verifiedPage(page), verifiedLimit(limit), search, status)
     }
@@ -176,6 +184,22 @@ class AdminService : KoinComponent {
 
     suspend fun removeBannedKeyword(keywordId: Long): Boolean {
         return adminRepository.removeBannedKeyword(keywordId)
+    }
+
+    suspend fun getActivityLogs(query: String?, page: Int, limit: Int): com.instagallery.models.common.AdminActivityLogsResponse {
+        return adminRepository.getActivityLogs(query, verifiedPage(page), verifiedLimit(limit))
+    }
+
+    suspend fun logActivity(
+        userId: Long?,
+        action: String,
+        targetType: com.instagallery.models.common.ActivityTargetType,
+        targetId: Long?,
+        ipAddress: String?,
+        userAgent: String?,
+        metadata: String? = null
+    ) {
+        adminRepository.logActivity(userId, action, targetType, targetId, ipAddress, userAgent, metadata)
     }
 
     private fun verifiedPage(page: Int): Int = if (page < 1) 1 else page

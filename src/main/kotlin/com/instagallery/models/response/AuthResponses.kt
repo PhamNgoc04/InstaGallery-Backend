@@ -36,6 +36,11 @@ data class TokenRefreshResponse(
 )
 
 @Serializable
+data class ForgotPasswordStartResponse(
+    val debugResetToken: String? = null
+)
+
+@Serializable
 data class SessionDto(
     val id: Long,
     val deviceInfo: String?,

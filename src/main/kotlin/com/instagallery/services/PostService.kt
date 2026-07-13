@@ -3,6 +3,7 @@ package com.instagallery.services
 import com.instagallery.models.common.PaginatedFeedResponse
 import com.instagallery.models.common.PostDto
 import com.instagallery.models.common.PostDetailDto
+import com.instagallery.models.common.PostVisibility
 import com.instagallery.models.request.CreatePostRequest
 import com.instagallery.plugins.AuthException
 import com.instagallery.plugins.ValidationException
@@ -14,6 +15,7 @@ import org.koin.core.component.inject
 class PostService : KoinComponent {
     private val postRepository: PostRepository by inject()
     private val userRepository: UserRepository by inject()
+    private val notificationService: NotificationService by inject()
 
     // --- CREATE POST ---
     suspend fun createPost(userId: Long, request: CreatePostRequest): PostDto {
@@ -26,8 +28,16 @@ class PostService : KoinComponent {
         }
 
         // Action
-        return postRepository.createPost(userId, request) 
+        val post = postRepository.createPost(userId, request)
             ?: throw Exception("Failed to create post")
+
+        if (request.visibility != PostVisibility.PRIVATE) {
+            postRepository.getFollowerIds(userId).forEach { followerId ->
+                notificationService.notifyFollowedUserPosted(followerId, userId, post.postId)
+            }
+        }
+
+        return post
     }
 
     suspend fun getPostDetails(postId: Long): com.instagallery.models.common.FeedPostDto {

@@ -20,7 +20,7 @@ class RatingRepository {
             (BookingsTable.id eq bookingId) and
             (BookingsTable.clientId eq raterId) and
             (BookingsTable.photographerId eq rateeId) and
-            (BookingsTable.status inList listOf(BookingStatus.COMPLETED, BookingStatus.CANCELLED))
+            (BookingsTable.status eq BookingStatus.COMPLETED)
         }.count() > 0
     }
 

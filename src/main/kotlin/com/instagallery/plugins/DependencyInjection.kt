@@ -4,6 +4,7 @@ import com.instagallery.repositories.BookingRepository
 import com.instagallery.repositories.DeviceTokenRepository
 import com.instagallery.repositories.InteractionRepository
 import com.instagallery.repositories.PostRepository
+import com.instagallery.repositories.PhotographerServiceRepository
 import com.instagallery.repositories.SessionRepository
 import com.instagallery.repositories.UserRepository
 import com.instagallery.services.AuthService
@@ -12,6 +13,7 @@ import com.instagallery.services.DeviceTokenService
 import com.instagallery.services.FirebasePushService
 import com.instagallery.services.InteractionService
 import com.instagallery.services.PostService
+import com.instagallery.services.PhotographerServiceService
 import com.instagallery.services.UserService
 import com.instagallery.utils.JwtManager
 import io.ktor.server.application.*
@@ -31,6 +33,8 @@ val appModule = module {
     single { InteractionService() }
     single { BookingRepository() }
     single { BookingService() }
+    single { PhotographerServiceRepository() }
+    single { PhotographerServiceService() }
     single { com.instagallery.repositories.ChatRepository() }
     single { com.instagallery.services.ChatService() }
     single { com.instagallery.repositories.NotificationRepository() }

@@ -16,6 +16,7 @@ object PortfoliosTable : LongIdTable("portfolios") {
     val isAvailable = bool("is_available").default(true).index()
     val ratingAvg = decimal("rating_avg", 3, 2).default(0.00.toBigDecimal()).index()
     val reviewCount = integer("review_count").default(0)
+    val isFeatured = bool("is_featured").default(false).index()
     val createdAt = timestamp("created_at").defaultExpression(CurrentTimestamp)
     val updatedAt = timestamp("updated_at").defaultExpression(CurrentTimestamp)
 }

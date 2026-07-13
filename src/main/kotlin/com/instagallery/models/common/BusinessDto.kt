@@ -52,3 +52,14 @@ data class PaginatedRatingsResponse(
     val ratings: List<RatingDto>,
     val meta: PaginationMeta
 )
+
+@Serializable
+data class AvailabilityScheduleDto(
+    val id: Long? = null,
+    val type: AvailabilityType,
+    val dayOfWeek: DayOfWeekIso? = null,
+    val specificDate: String? = null, // yyyy-MM-dd
+    val startTime: String,
+    val endTime: String,
+    val isBooked: Boolean = false
+)

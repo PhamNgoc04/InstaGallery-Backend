@@ -4,6 +4,7 @@ import com.instagallery.database.DatabaseFactory.dbQuery
 import com.instagallery.database.tables.FollowersTable
 import com.instagallery.database.tables.PostsTable
 import com.instagallery.database.tables.UsersTable
+import com.instagallery.models.common.AuthProvider
 import com.instagallery.models.common.Role
 import com.instagallery.models.common.UserDto
 import com.instagallery.models.common.UserProfileDto
@@ -35,6 +36,13 @@ class UserRepository {
 
     suspend fun getUserByEmail(email: String): UserDto? = dbQuery {
         UsersTable.selectAll().where { UsersTable.email eq email }.singleOrNull()?.toUserDto()
+    }
+
+    suspend fun getUserByProvider(provider: AuthProvider, providerId: String): UserDto? = dbQuery {
+        UsersTable.selectAll()
+            .where { (UsersTable.provider eq provider) and (UsersTable.providerId eq providerId) }
+            .singleOrNull()
+            ?.toUserDto()
     }
 
     suspend fun getUserById(id: Long): UserDto? = dbQuery {
@@ -110,6 +118,48 @@ class UserRepository {
     suspend fun updatePassword(userId: Long, newHashedPw: String): Boolean = dbQuery {
         val updatedRows = UsersTable.update({ UsersTable.id eq userId }) {
             it[passwordHash] = newHashedPw
+            it[updatedAt] = java.time.Instant.now()
+        }
+        updatedRows > 0
+    }
+
+    suspend fun createGoogleUser(
+        email: String,
+        username: String,
+        fullName: String,
+        profilePictureUrl: String?,
+        providerId: String,
+        hashedPw: String,
+        userType: UserType,
+    ): UserDto? = dbQuery {
+        val insertStatement = UsersTable.insertAndGetId {
+            it[UsersTable.email] = email
+            it[UsersTable.username] = username
+            it[UsersTable.passwordHash] = hashedPw
+            it[UsersTable.fullName] = fullName
+            it[UsersTable.profilePictureUrl] = profilePictureUrl?.take(255)
+            it[UsersTable.userType] = userType
+            it[UsersTable.provider] = AuthProvider.GOOGLE
+            it[UsersTable.providerId] = providerId
+            it[UsersTable.isVerified] = true
+        }
+        UsersTable.selectAll().where { UsersTable.id eq insertStatement.value }.singleOrNull()?.toUserDto()
+    }
+
+    suspend fun linkGoogleIdentity(
+        userId: Long,
+        providerId: String,
+        fullName: String?,
+        profilePictureUrl: String?,
+        userType: UserType,
+    ): Boolean = dbQuery {
+        val updatedRows = UsersTable.update({ UsersTable.id eq userId }) {
+            it[UsersTable.provider] = AuthProvider.GOOGLE
+            it[UsersTable.providerId] = providerId
+            it[UsersTable.isVerified] = true
+            it[UsersTable.userType] = userType
+            fullName?.takeIf { name -> name.isNotBlank() }?.let { name -> it[UsersTable.fullName] = name }
+            profilePictureUrl?.let { url -> it[UsersTable.profilePictureUrl] = url.take(255) }
             it[updatedAt] = java.time.Instant.now()
         }
         updatedRows > 0

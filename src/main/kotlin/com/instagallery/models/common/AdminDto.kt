@@ -33,7 +33,12 @@ data class AdminUserSummaryDto(
     val followerCount: Int,
     val followingCount: Int,
     val postCount: Int,
-    val createdAt: String
+    val createdAt: String,
+    val specialties: String? = null,
+    val ratingAvg: Double? = null,
+    val bookingsCount: Long? = null,
+    val revenue: Double? = null,
+    val isFeatured: Boolean? = null
 )
 
 @Serializable
@@ -62,7 +67,15 @@ data class AdminUserDetailDto(
     val followerCount: Int,
     val followingCount: Int,
     val postCount: Int,
-    val createdAt: String
+    val createdAt: String,
+    val specialties: String? = null,
+    val ratingAvg: Double? = null,
+    val bookingsCount: Long? = null,
+    val revenue: Double? = null,
+    val isFeatured: Boolean? = null,
+    val portfolioPhotos: List<String>? = null,
+    val servicePackagesCount: Long? = null,
+    val reviewsCount: Long? = null
 )
 
 @Serializable
@@ -251,4 +264,26 @@ data class AdminPostStatusRequest(
 @Serializable
 data class AdminVerifyUserRequest(
     val isVerified: Boolean
+)
+
+@Serializable
+data class AdminActivityLogDto(
+    val id: Long,
+    val userId: Long?,
+    val actorName: String,
+    val action: String,
+    val targetType: String,
+    val targetId: Long?,
+    val ipAddress: String?,
+    val userAgent: String?,
+    val metadata: String?,
+    val createdAt: String
+)
+
+@Serializable
+data class AdminActivityLogsResponse(
+    val logs: List<AdminActivityLogDto>,
+    val total: Long,
+    val page: Int,
+    val limit: Int
 )

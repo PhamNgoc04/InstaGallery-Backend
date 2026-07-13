@@ -178,8 +178,12 @@ class AdminRepository {
         val users = query.orderBy(UsersTable.role to SortOrder.ASC, UsersTable.createdAt to SortOrder.DESC)
             .limit(limit, offset)
             .map { row ->
+                val idVal = row[UsersTable.id].value
+                val isPhotographer = row[UsersTable.userType] == UserType.PHOTOGRAPHER
+                val stats = if (isPhotographer) getPhotographerStats(idVal) else null
+
                 AdminUserSummaryDto(
-                    userId = row[UsersTable.id].value,
+                    userId = idVal,
                     username = row[UsersTable.username],
                     email = row[UsersTable.email],
                     fullName = row[UsersTable.fullName],
@@ -193,7 +197,12 @@ class AdminRepository {
                     followerCount = row[UsersTable.followerCount],
                     followingCount = row[UsersTable.followingCount],
                     postCount = row[UsersTable.postCount],
-                    createdAt = row[UsersTable.createdAt].toString()
+                    createdAt = row[UsersTable.createdAt].toString(),
+                    specialties = stats?.specialties,
+                    ratingAvg = stats?.ratingAvg,
+                    bookingsCount = stats?.bookingsCount,
+                    revenue = stats?.revenue,
+                    isFeatured = stats?.isFeatured
                 )
             }
 
@@ -203,6 +212,25 @@ class AdminRepository {
     // --- FR-43: CHI TIẾT NGƯỜI DÙNG ---
     suspend fun getUserDetail(userId: Long): AdminUserDetailDto? = dbQuery {
         UsersTable.selectAll().where { UsersTable.id eq userId }.singleOrNull()?.let { row ->
+            val isPhotographer = row[UsersTable.userType] == UserType.PHOTOGRAPHER
+            val stats = if (isPhotographer) getPhotographerStats(userId) else null
+
+            val portfolioPhotos = if (isPhotographer) {
+                (PostMediaTable innerJoin PostsTable)
+                    .select(PostMediaTable.mediaFileUrl)
+                    .where { (PostsTable.userId eq userId) and PostsTable.deletedAt.isNull() }
+                    .orderBy(PostMediaTable.createdAt to SortOrder.DESC)
+                    .map { it[PostMediaTable.mediaFileUrl] }
+            } else null
+
+            val servicePackagesCount = if (isPhotographer) {
+                PhotographerServicesTable.selectAll().where { PhotographerServicesTable.photographerId eq userId }.count()
+            } else null
+
+            val reviewsCount = if (isPhotographer) {
+                RatingsTable.selectAll().where { RatingsTable.rateeId eq userId }.count()
+            } else null
+
             AdminUserDetailDto(
                 userId = row[UsersTable.id].value,
                 username = row[UsersTable.username],
@@ -220,7 +248,15 @@ class AdminRepository {
                 followerCount = row[UsersTable.followerCount],
                 followingCount = row[UsersTable.followingCount],
                 postCount = row[UsersTable.postCount],
-                createdAt = row[UsersTable.createdAt].toString()
+                createdAt = row[UsersTable.createdAt].toString(),
+                specialties = stats?.specialties,
+                ratingAvg = stats?.ratingAvg,
+                bookingsCount = stats?.bookingsCount,
+                revenue = stats?.revenue,
+                isFeatured = stats?.isFeatured,
+                portfolioPhotos = portfolioPhotos,
+                servicePackagesCount = servicePackagesCount,
+                reviewsCount = reviewsCount
             )
         }
     }
@@ -230,6 +266,23 @@ class AdminRepository {
             it[UsersTable.isVerified] = isVerified
             it[updatedAt] = Instant.now()
         } > 0
+    }
+
+    suspend fun featurePhotographer(targetUserId: Long, isFeatured: Boolean): Boolean = dbQuery {
+        val exists = PortfoliosTable.selectAll().where { PortfoliosTable.userId eq targetUserId }.count() > 0
+        if (exists) {
+            PortfoliosTable.update({ PortfoliosTable.userId eq targetUserId }) {
+                it[PortfoliosTable.isFeatured] = isFeatured
+                it[updatedAt] = Instant.now()
+            } > 0
+        } else {
+            PortfoliosTable.insert {
+                it[userId] = targetUserId
+                it[PortfoliosTable.isFeatured] = isFeatured
+                it[isAvailable] = true
+            }
+            true
+        }
     }
 
     suspend fun listPosts(page: Int, limit: Int, search: String?, status: String?): AdminPostsResponse = dbQuery {
@@ -599,4 +652,91 @@ class AdminRepository {
             ?: this?.get(UsersTable.username)
             ?: "Không rõ"
     }
+
+    private fun getPhotographerStats(userId: Long): PhotographerStats {
+        val portfolio = PortfoliosTable.selectAll().where { PortfoliosTable.userId eq userId }.singleOrNull()
+        val specialties = portfolio?.get(PortfoliosTable.specialties)
+        val ratingAvg = portfolio?.get(PortfoliosTable.ratingAvg)?.toDouble() ?: 0.0
+        val isFeatured = portfolio?.get(PortfoliosTable.isFeatured) ?: false
+
+        val bookingsCount = BookingsTable.selectAll().where { BookingsTable.photographerId eq userId }.count()
+        val sumPrice = BookingsTable.price.sum()
+        val revenueRow = BookingsTable
+            .select(sumPrice)
+            .where { (BookingsTable.photographerId eq userId) and (BookingsTable.status eq BookingStatus.COMPLETED) }
+            .singleOrNull()
+        val revenue = revenueRow?.get(sumPrice)?.toDouble() ?: 0.0
+
+        return PhotographerStats(specialties, ratingAvg, bookingsCount, revenue, isFeatured)
+    }
+
+    suspend fun logActivity(
+        userId: Long?,
+        action: String,
+        targetType: com.instagallery.models.common.ActivityTargetType,
+        targetId: Long?,
+        ipAddress: String?,
+        userAgent: String?,
+        metadata: String? = null
+    ): Unit = dbQuery {
+        ActivityLogsTable.insert {
+            it[ActivityLogsTable.userId] = userId
+            it[ActivityLogsTable.action] = action
+            it[ActivityLogsTable.targetType] = targetType
+            it[ActivityLogsTable.targetId] = targetId
+            it[ActivityLogsTable.ipAddress] = ipAddress
+            it[ActivityLogsTable.userAgent] = userAgent
+            it[ActivityLogsTable.metadata] = metadata
+        }
+    }
+
+    suspend fun getActivityLogs(
+        query: String?,
+        page: Int,
+        limit: Int
+    ): com.instagallery.models.common.AdminActivityLogsResponse = dbQuery {
+        val offset = ((page - 1) * limit).toLong()
+        
+        var selectQuery: Query = ActivityLogsTable.selectAll()
+        
+        if (!query.isNullOrBlank()) {
+            selectQuery = selectQuery.where {
+                ActivityLogsTable.action like "%$query%"
+            }
+        }
+        
+        val total = selectQuery.count()
+        
+        val logs = selectQuery
+            .orderBy(ActivityLogsTable.createdAt to SortOrder.DESC)
+            .limit(limit, offset = offset)
+            .map { row ->
+                val actorId = row[ActivityLogsTable.userId]?.value
+                val actor = actorId?.let { id ->
+                    UsersTable.selectAll().where { UsersTable.id eq id }.singleOrNull()
+                }
+                com.instagallery.models.common.AdminActivityLogDto(
+                    id = row[ActivityLogsTable.id].value,
+                    userId = actorId,
+                    actorName = actor.displayName(),
+                    action = row[ActivityLogsTable.action],
+                    targetType = row[ActivityLogsTable.targetType].name,
+                    targetId = row[ActivityLogsTable.targetId],
+                    ipAddress = row[ActivityLogsTable.ipAddress],
+                    userAgent = row[ActivityLogsTable.userAgent],
+                    metadata = row[ActivityLogsTable.metadata],
+                    createdAt = row[ActivityLogsTable.createdAt].toString()
+                )
+            }
+            
+        com.instagallery.models.common.AdminActivityLogsResponse(logs, total, page, limit)
+    }
+
+    private data class PhotographerStats(
+        val specialties: String?,
+        val ratingAvg: Double,
+        val bookingsCount: Long,
+        val revenue: Double,
+        val isFeatured: Boolean
+    )
 }

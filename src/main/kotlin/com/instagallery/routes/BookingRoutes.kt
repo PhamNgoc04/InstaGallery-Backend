@@ -2,14 +2,16 @@ package com.instagallery.routes
 
 import com.instagallery.models.common.ApiResponse
 import com.instagallery.models.request.CreateBookingRequest
+import com.instagallery.models.request.CreateRatingRequest
 import com.instagallery.models.request.UpdateBookingStatusRequest
 import com.instagallery.services.BookingService
-import io.ktor.http.*
+import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.*
-import io.ktor.server.auth.*
-import io.ktor.server.auth.jwt.*
-import io.ktor.server.request.*
-import io.ktor.server.response.*
+import io.ktor.server.auth.authenticate
+import io.ktor.server.auth.jwt.JWTPrincipal
+import io.ktor.server.auth.principal
+import io.ktor.server.request.receive
+import io.ktor.server.response.respond
 import io.ktor.server.routing.*
 import org.koin.ktor.ext.getKoin
 
@@ -17,25 +19,16 @@ fun Route.bookingRoutes() {
     val bookingService = application.getKoin().get<BookingService>()
 
     route("/api/v1/bookings") {
-        
         authenticate("jwt") {
-            
             post {
-                val principal = call.principal<JWTPrincipal>()
-                val userId = principal?.payload?.getClaim("userId")?.asLong()
-                    ?: return@post call.respond(HttpStatusCode.Unauthorized, ApiResponse.error("UNAUTHORIZED", "Token không hợp lệ."))
-
+                val userId = call.currentUserIdOrUnauthorized() ?: return@post
                 val request = call.receive<CreateBookingRequest>()
                 val booking = bookingService.createBooking(userId, request)
-                
-                call.respond(HttpStatusCode.Created, ApiResponse.success(data = booking, message = "Đã gửi yêu cầu đặt lịch thành công"))
+                call.respond(HttpStatusCode.Created, ApiResponse.success(data = booking, message = "Da gui yeu cau dat lich."))
             }
 
             get {
-                val principal = call.principal<JWTPrincipal>()
-                val userId = principal?.payload?.getClaim("userId")?.asLong()
-                    ?: return@get call.respond(HttpStatusCode.Unauthorized, ApiResponse.error("UNAUTHORIZED", "Token không hợp lệ."))
-
+                val userId = call.currentUserIdOrUnauthorized() ?: return@get
                 val page = call.request.queryParameters["page"]?.toIntOrNull() ?: 1
                 val limit = call.request.queryParameters["limit"]?.toIntOrNull() ?: 10
                 val status = call.request.queryParameters["status"]
@@ -44,44 +37,51 @@ fun Route.bookingRoutes() {
                 call.respond(HttpStatusCode.OK, ApiResponse.success(data = result))
             }
 
-            // --- FR-38: XEM CHI TIẾT MỘT BOOKING ---
             get("/{id}") {
-                val principal = call.principal<JWTPrincipal>()
-                val userId = principal?.payload?.getClaim("userId")?.asLong()
-                    ?: return@get call.respond(HttpStatusCode.Unauthorized, ApiResponse.error("UNAUTHORIZED", "Token không hợp lệ."))
-
+                val userId = call.currentUserIdOrUnauthorized() ?: return@get
                 val bookingId = call.parameters["id"]?.toLongOrNull()
-                    ?: return@get call.respond(HttpStatusCode.BadRequest, ApiResponse.error("INVALID_ID", "ID đơn đặt lịch không hợp lệ."))
+                    ?: return@get call.respond(HttpStatusCode.BadRequest, ApiResponse.error("INVALID_ID", "ID booking khong hop le."))
 
                 val booking = bookingService.getBookingDetail(userId, bookingId)
                 call.respond(HttpStatusCode.OK, ApiResponse.success(data = booking))
             }
 
             put("/{id}/status") {
-                val principal = call.principal<JWTPrincipal>()
-                val userId = principal?.payload?.getClaim("userId")?.asLong()
-                    ?: return@put call.respond(HttpStatusCode.Unauthorized, ApiResponse.error("UNAUTHORIZED", "Token không hợp lệ."))
-
+                val userId = call.currentUserIdOrUnauthorized() ?: return@put
                 val bookingId = call.parameters["id"]?.toLongOrNull()
-                    ?: return@put call.respond(HttpStatusCode.BadRequest, ApiResponse.error("INVALID_ID", "ID đơn đặt lịch không hợp lệ."))
+                    ?: return@put call.respond(HttpStatusCode.BadRequest, ApiResponse.error("INVALID_ID", "ID booking khong hop le."))
 
                 val request = call.receive<UpdateBookingStatusRequest>()
                 bookingService.updateBookingStatus(userId, bookingId, request)
-                
-                call.respond(HttpStatusCode.OK, ApiResponse.success(data = null, message = "Trạng thái đơn hàng đã được cập nhật thành ${request.status}"))
+                call.respond(HttpStatusCode.OK, ApiResponse.success(data = null, message = "Da cap nhat trang thai booking."))
             }
 
-            // --- FR-38: HỦY BOOKING ---
-            delete("/{id}") {
-                val userId = call.principal<JWTPrincipal>()?.payload?.getClaim("userId")?.asLong()
-                    ?: return@delete call.respond(HttpStatusCode.Unauthorized, ApiResponse.error("UNAUTHORIZED", "Token không hợp lệ."))
-
+            post("/{id}/review") {
+                val userId = call.currentUserIdOrUnauthorized() ?: return@post
                 val bookingId = call.parameters["id"]?.toLongOrNull()
-                    ?: return@delete call.respond(HttpStatusCode.BadRequest, ApiResponse.error("INVALID_ID", "ID đơn đặt lịch không hợp lệ."))
+                    ?: return@post call.respond(HttpStatusCode.BadRequest, ApiResponse.error("INVALID_ID", "ID booking khong hop le."))
+
+                val request = call.receive<CreateRatingRequest>()
+                val review = bookingService.createReview(userId, bookingId, request)
+                call.respond(HttpStatusCode.Created, ApiResponse.success(data = review, message = "Cam on ban da gui danh gia."))
+            }
+
+            delete("/{id}") {
+                val userId = call.currentUserIdOrUnauthorized() ?: return@delete
+                val bookingId = call.parameters["id"]?.toLongOrNull()
+                    ?: return@delete call.respond(HttpStatusCode.BadRequest, ApiResponse.error("INVALID_ID", "ID booking khong hop le."))
 
                 bookingService.cancelBooking(userId, bookingId)
-                call.respond(HttpStatusCode.OK, ApiResponse.success(data = null, message = "Đã hủy đơn đặt lịch."))
+                call.respond(HttpStatusCode.OK, ApiResponse.success(data = null, message = "Da huy booking."))
             }
         }
     }
+}
+
+private suspend fun io.ktor.server.application.ApplicationCall.currentUserIdOrUnauthorized(): Long? {
+    val userId = principal<JWTPrincipal>()?.payload?.getClaim("userId")?.asLong()
+    if (userId == null) {
+        respond(HttpStatusCode.Unauthorized, ApiResponse.error("UNAUTHORIZED", "Token khong hop le."))
+    }
+    return userId
 }

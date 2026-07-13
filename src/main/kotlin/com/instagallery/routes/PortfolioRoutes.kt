@@ -1,6 +1,7 @@
 package com.instagallery.routes
 
 import com.instagallery.models.common.ApiResponse
+import com.instagallery.models.common.AvailabilityScheduleDto
 import com.instagallery.models.request.UpdatePortfolioRequest
 import com.instagallery.services.PortfolioService
 import io.ktor.http.*
@@ -39,6 +40,15 @@ fun Route.portfolioRoutes() {
             call.respond(HttpStatusCode.OK, ApiResponse.success(data = portfolio))
         }
 
+        // --- PUBLIC: Get Specific Photographer's Availability ---
+        get("/users/{userId}/availability") {
+            val userId = call.parameters["userId"]?.toLongOrNull()
+                ?: return@get call.respond(HttpStatusCode.BadRequest, ApiResponse.error("INVALID_ID", "ID Nhiếp ảnh gia không hợp lệ."))
+
+            val availability = portfolioService.getAvailability(userId)
+            call.respond(HttpStatusCode.OK, ApiResponse.success(data = availability))
+        }
+
         // --- PROTECTED: Manage Own Portfolio ---
         authenticate("jwt") {
             
@@ -67,7 +77,8 @@ fun Route.portfolioRoutes() {
                 val userId = principal?.payload?.getClaim("userId")?.asLong()
                     ?: return@post call.respond(HttpStatusCode.Unauthorized, ApiResponse.error("UNAUTHORIZED", "Token không hợp lệ."))
                 
-                // TODO: Receive Availability array, upsert into AvailabilitySchedulesTable
+                val schedules = call.receive<List<AvailabilityScheduleDto>>()
+                portfolioService.updateAvailability(userId, schedules)
                 call.respond(HttpStatusCode.OK, ApiResponse.success(data = null, message = "Cập nhật thời gian làm việc thành công."))
             }
 
@@ -76,8 +87,8 @@ fun Route.portfolioRoutes() {
                 val userId = principal?.payload?.getClaim("userId")?.asLong()
                     ?: return@get call.respond(HttpStatusCode.Unauthorized, ApiResponse.error("UNAUTHORIZED", "Token không hợp lệ."))
                 
-                // TODO: Setup query to get schedule slots
-                call.respond(HttpStatusCode.OK, ApiResponse.success(data = listOf<Any>()))
+                val availability = portfolioService.getAvailability(userId)
+                call.respond(HttpStatusCode.OK, ApiResponse.success(data = availability))
             }
         }
     }

@@ -1,5 +1,7 @@
 package com.instagallery.models.common
 
+import kotlinx.serialization.Serializable
+
 enum class UserType { PHOTOGRAPHER, CLIENT }
 enum class Role { USER, ADMIN }
 enum class AuthProvider { LOCAL, GOOGLE, FACEBOOK, APPLE }
@@ -20,9 +22,13 @@ enum class NotificationTargetType { POST, COMMENT, USER, BOOKING, CONVERSATION }
 
 enum class ActivityTargetType { POST, USER, COMMENT, BOOKING, MEDIA, SESSION }
 
-enum class ReportTargetType { POST, COMMENT, USER, BOOKING, MESSAGE }
+enum class ReportTargetType { POST, COMMENT, USER, BOOKING, MESSAGE, RATING }
 enum class ReportStatus { PENDING, REVIEWING, RESOLVED, DISMISSED }
 
 enum class FollowRequestStatus { PENDING, ACCEPTED, REJECTED }
+
+@Serializable
 enum class AvailabilityType { RECURRING, SPECIFIC_DATE }
+
+@Serializable
 enum class DayOfWeekIso { MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY, SATURDAY, SUNDAY }

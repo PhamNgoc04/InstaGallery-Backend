@@ -8,8 +8,11 @@ import com.instagallery.models.common.PortfolioDto
 import com.instagallery.models.common.PaginationMeta
 import com.instagallery.models.common.PaginatedPhotographersResponse
 import com.instagallery.models.request.UpdatePortfolioRequest
+import com.instagallery.database.tables.AvailabilitySchedulesTable
+import com.instagallery.models.common.AvailabilityScheduleDto
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
+import org.jetbrains.exposed.sql.deleteWhere
 
 class PortfolioRepository {
 
@@ -89,6 +92,63 @@ class PortfolioRepository {
                 hasNext = page < totalPages
             )
         )
+    }
+
+    suspend fun getAvailability(userId: Long): List<AvailabilityScheduleDto> = dbQuery {
+        val portfolioId = PortfoliosTable
+            .selectAll()
+            .where { PortfoliosTable.userId eq userId }
+            .singleOrNull()
+            ?.get(PortfoliosTable.id)
+            ?.value
+            ?: return@dbQuery emptyList()
+
+        AvailabilitySchedulesTable
+            .selectAll()
+            .where { AvailabilitySchedulesTable.portfolioId eq portfolioId }
+            .map { row ->
+                AvailabilityScheduleDto(
+                    id = row[AvailabilitySchedulesTable.id].value,
+                    type = row[AvailabilitySchedulesTable.type],
+                    dayOfWeek = row[AvailabilitySchedulesTable.dayOfWeek],
+                    specificDate = row[AvailabilitySchedulesTable.specificDate]?.toString(),
+                    startTime = row[AvailabilitySchedulesTable.startTime],
+                    endTime = row[AvailabilitySchedulesTable.endTime],
+                    isBooked = row[AvailabilitySchedulesTable.isBooked]
+                )
+            }
+    }
+
+    suspend fun updateAvailability(userId: Long, schedules: List<AvailabilityScheduleDto>): Unit = dbQuery {
+        val existingPortfolio = PortfoliosTable
+            .selectAll()
+            .where { PortfoliosTable.userId eq userId }
+            .singleOrNull()
+        val portfolioId = existingPortfolio
+            ?.get(PortfoliosTable.id)
+            ?.value
+            ?: PortfoliosTable.insertAndGetId {
+                it[PortfoliosTable.userId] = userId
+            }.value
+
+        PortfoliosTable.update({ PortfoliosTable.id eq portfolioId }) {
+            it[PortfoliosTable.isAvailable] = schedules.isNotEmpty()
+            it[PortfoliosTable.updatedAt] = java.time.Instant.now()
+        }
+
+        AvailabilitySchedulesTable.deleteWhere { AvailabilitySchedulesTable.portfolioId eq portfolioId }
+
+        schedules.forEach { schedule ->
+            AvailabilitySchedulesTable.insert {
+                it[this.portfolioId] = portfolioId
+                it[this.type] = schedule.type
+                it[this.dayOfWeek] = schedule.dayOfWeek
+                it[this.specificDate] = schedule.specificDate?.let { dateStr -> java.time.LocalDate.parse(dateStr) }
+                it[this.startTime] = schedule.startTime
+                it[this.endTime] = schedule.endTime
+                it[this.isBooked] = false
+            }
+        }
     }
 
     private fun ResultRow.toPortfolioDto() = PortfolioDto(

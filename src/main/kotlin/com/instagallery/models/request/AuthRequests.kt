@@ -25,8 +25,19 @@ data class LoginRequest(
 @Serializable
 data class ForgotPasswordRequest(val email: String)
 
+@OptIn(ExperimentalSerializationApi::class)
 @Serializable
-data class ResetPasswordRequest(val resetToken: String, val newPasswordHash: String)
+data class ResetPasswordRequest(
+    val resetToken: String,
+    @JsonNames("newPassword") val newPasswordHash: String
+)
+
+@Serializable
+data class GoogleLoginRequest(
+    val idToken: String,
+    val nonce: String? = null,
+    val userType: UserType = UserType.CLIENT
+)
 
 @Serializable
 data class ChangePasswordRequest(val oldPasswordHash: String, val newPasswordHash: String)
