@@ -124,6 +124,16 @@ fun Route.userRoutes() {
                 call.respond(HttpStatusCode.OK, ApiResponse.success(data = tagged))
             }
 
+            get("/me/comments") {
+                val userId = call.principal<JWTPrincipal>()?.payload?.getClaim("userId")?.asLong()
+                    ?: return@get call.respond(HttpStatusCode.Unauthorized, ApiResponse.error("UNAUTHORIZED", "Token không hợp lệ."))
+
+                val page = call.request.queryParameters["page"]?.toIntOrNull() ?: 1
+                val limit = call.request.queryParameters["limit"]?.toIntOrNull() ?: 20
+                val comments = interactionService.getUserComments(userId, page, limit)
+                call.respond(HttpStatusCode.OK, ApiResponse.success(data = comments))
+            }
+
             // --- FR-28: ACTIVITY LOG ---
             get("/me/activity-log") {
                 val userId = call.principal<JWTPrincipal>()?.payload?.getClaim("userId")?.asLong()

@@ -186,6 +186,16 @@ class InteractionService : KoinComponent {
         return interactionRepo.getTaggedPosts(userId, verifiedPage, verifiedLimit)
     }
 
+    suspend fun getUserComments(
+        userId: Long,
+        page: Int,
+        limit: Int,
+    ): com.instagallery.models.common.PaginatedUserCommentsResponse {
+        val verifiedPage = if (page < 1) 1 else page
+        val verifiedLimit = if (limit < 1) 20 else if (limit > 50) 50 else limit
+        return interactionRepo.getUserComments(userId, verifiedPage, verifiedLimit)
+    }
+
     // --- FR-28: ACTIVITY LOG ---
     suspend fun getActivityLog(userId: Long, page: Int, limit: Int): Any {
         val verifiedPage = if (page < 1) 1 else page

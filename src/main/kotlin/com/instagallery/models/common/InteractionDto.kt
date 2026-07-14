@@ -58,3 +58,21 @@ data class PaginatedCommentsResponse(
     val comments: List<CommentDto>,
     val meta: PaginationMeta
 )
+
+@Serializable
+data class UserCommentActivityDto(
+    val commentId: Long,
+    val postId: Long,
+    val postAuthorUsername: String,
+    val postAuthorAvatar: String?,
+    val postCaption: String?,
+    val postThumbnailUrl: String?,
+    val content: String,
+    val createdAt: String
+)
+
+@Serializable
+data class PaginatedUserCommentsResponse(
+    val comments: List<UserCommentActivityDto>,
+    val meta: PaginationMeta
+)

@@ -6,9 +6,11 @@ import com.instagallery.models.common.FeedMediaDto
 import com.instagallery.models.common.FeedPostDto
 import com.instagallery.models.common.CommentReactionResponse
 import com.instagallery.models.common.PaginatedFeedResponse
+import com.instagallery.models.common.PaginatedUserCommentsResponse
 import com.instagallery.models.common.PaginationMeta
 import com.instagallery.models.common.PostLikeUserDto
 import com.instagallery.models.common.PostLikesResponse
+import com.instagallery.models.common.UserCommentActivityDto
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.inList
@@ -507,6 +509,48 @@ class InteractionRepository {
         mapOf("posts" to emptyList<Any>(), "meta" to mapOf("currentPage" to page, "totalPages" to 0))
     }
 
+    suspend fun getUserComments(userId: Long, page: Int, limit: Int): PaginatedUserCommentsResponse = dbQuery {
+        val offset = ((page - 1) * limit).toLong()
+        val query = CommentsTable
+            .join(PostsTable, JoinType.INNER, CommentsTable.postId, PostsTable.id)
+            .join(UsersTable, JoinType.INNER, PostsTable.userId, UsersTable.id)
+            .selectAll()
+            .where {
+                (CommentsTable.userId eq userId) and
+                    CommentsTable.deletedAt.isNull() and
+                    PostsTable.deletedAt.isNull()
+            }
+
+        val totalRecords = query.count()
+        val totalPages = Math.ceil(totalRecords.toDouble() / limit).toInt()
+        val rows = query
+            .orderBy(CommentsTable.createdAt to SortOrder.DESC)
+            .limit(limit, offset)
+            .toList()
+        val thumbnailByPostId = firstMediaByPostId(rows.map { row -> row[PostsTable.id].value })
+
+        PaginatedUserCommentsResponse(
+            comments = rows.map { row ->
+                val postId = row[PostsTable.id].value
+                UserCommentActivityDto(
+                    commentId = row[CommentsTable.id].value,
+                    postId = postId,
+                    postAuthorUsername = row[UsersTable.username],
+                    postAuthorAvatar = row[UsersTable.profilePictureUrl],
+                    postCaption = row[PostsTable.caption],
+                    postThumbnailUrl = thumbnailByPostId[postId],
+                    content = row[CommentsTable.content],
+                    createdAt = row[CommentsTable.createdAt].toString(),
+                )
+            },
+            meta = PaginationMeta(
+                currentPage = page,
+                totalPages = totalPages,
+                hasNext = page < totalPages,
+            ),
+        )
+    }
+
     // --- FR-28: ACTIVITY LOG ---
     suspend fun getActivityLog(userId: Long, page: Int, limit: Int): Any = dbQuery {
         // TODO: Query ActivityLogsTable WHERE actorId = userId ORDER BY createdAt DESC
@@ -667,6 +711,16 @@ class InteractionRepository {
                     height = row[PostMediaTable.height],
                 )
             }
+    }
+
+    private fun firstMediaByPostId(postIds: List<Long>): Map<Long, String> {
+        if (postIds.isEmpty()) return emptyMap()
+        return PostMediaTable
+            .selectAll()
+            .where { PostMediaTable.postId inList postIds.distinct() }
+            .orderBy(PostMediaTable.position to SortOrder.ASC)
+            .groupBy { row -> row[PostMediaTable.postId].value }
+            .mapValues { (_, rows) -> rows.first()[PostMediaTable.mediaFileUrl] }
     }
 
     private fun likedPostIdsFor(userId: Long, postIds: List<Long>): Set<Long> {
