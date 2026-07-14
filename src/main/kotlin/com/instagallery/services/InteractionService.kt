@@ -1,6 +1,7 @@
 package com.instagallery.services
 
 import com.instagallery.models.common.CommentDto
+import com.instagallery.models.common.CommentReactionResponse
 import com.instagallery.models.common.PaginatedCommentsResponse
 import com.instagallery.models.common.PaginatedFeedResponse
 import com.instagallery.models.common.PostLikesResponse
@@ -69,14 +70,14 @@ class InteractionService : KoinComponent {
         return comment
     }
 
-    suspend fun getComments(postId: Long, page: Int, limit: Int): PaginatedCommentsResponse {
+    suspend fun getComments(userId: Long, postId: Long, page: Int, limit: Int): PaginatedCommentsResponse {
         val postExists = interactionRepo.checkPostExists(postId)
         if (!postExists) throw AuthException("POST_NOT_FOUND", "Bài viết không tồn tại.")
 
         val verifiedPage = if (page < 1) 1 else page
         val verifiedLimit = if (limit < 1) 20 else if (limit > 50) 50 else limit
 
-        return interactionRepo.getComments(postId, verifiedPage, verifiedLimit)
+        return interactionRepo.getComments(userId, postId, verifiedPage, verifiedLimit)
     }
 
     suspend fun updateComment(userId: Long, commentId: Long, request: com.instagallery.models.request.UpdateCommentRequest): CommentDto {
@@ -97,19 +98,26 @@ class InteractionService : KoinComponent {
         return true
     }
 
-    suspend fun toggleCommentLike(userId: Long, commentId: Long): Boolean {
+    suspend fun toggleCommentLike(userId: Long, commentId: Long): CommentReactionResponse {
         val commentExists = interactionRepo.checkCommentExists(commentId)
         if (!commentExists) throw AuthException("COMMENT_NOT_FOUND", "Bình luận không tồn tại hoặc đã bị xóa.")
 
-        val isLiked = interactionRepo.toggleCommentLike(userId, commentId)
-        if (isLiked) {
+        val reaction = interactionRepo.toggleCommentLike(userId, commentId)
+        if (reaction.isLiked) {
             val postId = interactionRepo.getCommentPostId(commentId)
             val ownerId = interactionRepo.getCommentOwnerId(commentId)
             if (postId != null && ownerId != null) {
                 notificationService.notifyCommentLiked(ownerId, userId, postId)
             }
         }
-        return isLiked
+        return reaction
+    }
+
+    suspend fun toggleCommentDislike(userId: Long, commentId: Long): CommentReactionResponse {
+        val commentExists = interactionRepo.checkCommentExists(commentId)
+        if (!commentExists) throw AuthException("COMMENT_NOT_FOUND", "BÃ¬nh luáº­n khÃ´ng tá»“n táº¡i hoáº·c Ä‘Ã£ bá»‹ xÃ³a.")
+
+        return interactionRepo.toggleCommentDislike(userId, commentId)
     }
 
     suspend fun toggleFollow(followerId: Long, followingId: Long): Boolean {

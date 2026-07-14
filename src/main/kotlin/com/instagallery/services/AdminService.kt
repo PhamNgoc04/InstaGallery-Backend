@@ -14,6 +14,7 @@ import com.instagallery.models.common.AdminRatingsResponse
 import com.instagallery.models.common.AdminUserDetailDto
 import com.instagallery.models.common.AdminUsersResponse
 import com.instagallery.models.common.BookingStatus
+import com.instagallery.models.common.NotificationType
 import com.instagallery.plugins.AuthException
 import com.instagallery.plugins.ValidationException
 import com.instagallery.repositories.AdminRepository
@@ -22,6 +23,7 @@ import org.koin.core.component.inject
 
 class AdminService : KoinComponent {
     private val adminRepository: AdminRepository by inject()
+    private val notificationService: NotificationService by inject()
 
     suspend fun getOverviewStats(): AdminStatsDto {
         return adminRepository.getOverviewStats()
@@ -134,12 +136,22 @@ class AdminService : KoinComponent {
         return true
     }
 
-    suspend fun listRatings(page: Int, limit: Int, search: String?): AdminRatingsResponse {
-        return adminRepository.listRatings(verifiedPage(page), verifiedLimit(limit), search)
+    suspend fun listRatings(page: Int, limit: Int, search: String?, status: String?): AdminRatingsResponse {
+        val normalizedStatus = status?.takeIf { it.isNotBlank() }?.let(::normalizeRatingStatus)
+        return adminRepository.listRatings(verifiedPage(page), verifiedLimit(limit), search, normalizedStatus)
     }
 
     suspend fun deleteRating(ratingId: Long): Boolean {
         val success = adminRepository.deleteRating(ratingId)
+        if (!success) {
+            throw AuthException("RATING_NOT_FOUND", "Đánh giá không tồn tại.")
+        }
+        return true
+    }
+
+    suspend fun updateRatingStatus(ratingId: Long, status: String): Boolean {
+        val normalized = normalizeRatingStatus(status)
+        val success = adminRepository.updateRatingStatus(ratingId, normalized)
         if (!success) {
             throw AuthException("RATING_NOT_FOUND", "Đánh giá không tồn tại.")
         }
@@ -166,7 +178,19 @@ class AdminService : KoinComponent {
         if (title.isBlank() || body.isBlank()) {
             throw ValidationException("INVALID_NOTIFICATION", "Tiêu đề và nội dung thông báo không được để trống.")
         }
-        return adminRepository.createNotification(title.trim(), body.trim(), target.trim().ifBlank { "ALL" })
+        val recipientIds = adminRepository.listNotificationRecipientIds(target.trim().ifBlank { "ALL" })
+        recipientIds.forEach { recipientId ->
+            notificationService.createNotification(
+                recipientUserId = recipientId,
+                actorUserId = null,
+                type = NotificationType.SYSTEM,
+                targetType = null,
+                targetId = null,
+                title = title.trim(),
+                body = body.trim(),
+            )
+        }
+        return AdminCreateNotificationResponse(sentCount = recipientIds.size)
     }
 
     // --- FR-46: TỪ KHÓA CẤM ---
@@ -174,12 +198,12 @@ class AdminService : KoinComponent {
         return adminRepository.getBannedKeywords()
     }
 
-    suspend fun addBannedKeyword(keyword: String): Boolean {
-        val clean = keyword.trim().lowercase()
+    suspend fun addBannedKeyword(keyword: String, isRegex: Boolean = false): Boolean {
+        val clean = if (isRegex) keyword.trim() else keyword.trim().lowercase()
         if (clean.isBlank()) {
             throw com.instagallery.plugins.ValidationException("INVALID_KEYWORD", "Từ khóa không được để trống.")
         }
-        return adminRepository.addBannedKeyword(clean)
+        return adminRepository.addBannedKeyword(clean, isRegex)
     }
 
     suspend fun removeBannedKeyword(keywordId: Long): Boolean {
@@ -205,4 +229,13 @@ class AdminService : KoinComponent {
     private fun verifiedPage(page: Int): Int = if (page < 1) 1 else page
 
     private fun verifiedLimit(limit: Int): Int = if (limit < 1) 20 else if (limit > 100) 100 else limit
+
+    private fun normalizeRatingStatus(status: String): String {
+        return when (status.trim().uppercase()) {
+            "APPROVED", "ACTIVE", "VISIBLE" -> "APPROVED"
+            "PENDING", "REVIEWING", "IN_REVIEW", "MODERATING" -> "PENDING"
+            "HIDDEN", "DELETED", "REMOVED" -> "HIDDEN"
+            else -> throw ValidationException("INVALID_STATUS", "Trạng thái đánh giá không hợp lệ.")
+        }
+    }
 }

@@ -11,6 +11,7 @@ object CommentsTable : LongIdTable("comments") {
     val content = text("content")
     val parentCommentId = reference("parent_comment_id", CommentsTable, onDelete = ReferenceOption.CASCADE).nullable().index()
     val likeCount = integer("like_count").default(0)
+    val dislikeCount = integer("dislike_count").default(0)
     val replyCount = integer("reply_count").default(0)
     val depth = byte("depth").default(0)
     val createdAt = timestamp("created_at").defaultExpression(CurrentTimestamp)

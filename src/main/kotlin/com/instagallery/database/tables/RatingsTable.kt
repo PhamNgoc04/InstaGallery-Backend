@@ -11,5 +11,6 @@ object RatingsTable : LongIdTable("ratings") {
     val rateeId = reference("ratee_id", UsersTable, onDelete = ReferenceOption.CASCADE).index()
     val ratingValue = short("rating_value").index()
     val comment = text("comment").nullable()
+    val status = varchar("status", 20).default("APPROVED").index()
     val createdAt = timestamp("created_at").defaultExpression(CurrentTimestamp)
 }

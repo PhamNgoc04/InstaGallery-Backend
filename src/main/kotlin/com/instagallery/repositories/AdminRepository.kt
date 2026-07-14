@@ -5,7 +5,6 @@ import com.instagallery.database.tables.*
 import com.instagallery.models.common.AdminBannedKeywordDto
 import com.instagallery.models.common.AdminBookingDto
 import com.instagallery.models.common.AdminBookingsResponse
-import com.instagallery.models.common.AdminCreateNotificationResponse
 import com.instagallery.models.common.AdminGrowthDto
 import com.instagallery.models.common.AdminMediaDto
 import com.instagallery.models.common.AdminMediaItemDto
@@ -21,7 +20,6 @@ import com.instagallery.models.common.AdminUserDetailDto
 import com.instagallery.models.common.AdminUserSummaryDto
 import com.instagallery.models.common.AdminUsersResponse
 import com.instagallery.models.common.BookingStatus
-import com.instagallery.models.common.NotificationType
 import com.instagallery.models.common.ReportStatus
 import com.instagallery.models.common.ReportTargetType
 import com.instagallery.models.common.UserType
@@ -369,9 +367,14 @@ class AdminRepository {
         } > 0
     }
 
-    suspend fun listRatings(page: Int, limit: Int, search: String?): AdminRatingsResponse = dbQuery {
+    suspend fun listRatings(page: Int, limit: Int, search: String?, status: String?): AdminRatingsResponse = dbQuery {
         val offset = ((page - 1) * limit).toLong()
-        val query = RatingsTable.selectAll()
+        var condition: Op<Boolean> = Op.TRUE
+        if (!status.isNullOrBlank()) {
+            condition = condition and (RatingsTable.status eq status)
+        }
+
+        val query = RatingsTable.selectAll().where { condition }
         val total = query.count()
         val ratings = query
             .orderBy(RatingsTable.createdAt to SortOrder.DESC)
@@ -388,7 +391,27 @@ class AdminRepository {
     }
 
     suspend fun deleteRating(ratingId: Long): Boolean = dbQuery {
-        RatingsTable.deleteWhere { RatingsTable.id eq ratingId } > 0
+        val ratingRow = RatingsTable.selectAll().where { RatingsTable.id eq ratingId }.singleOrNull()
+            ?: return@dbQuery false
+        val updated = RatingsTable.update({ RatingsTable.id eq ratingId }) {
+            it[RatingsTable.status] = "HIDDEN"
+        } > 0
+        if (updated) {
+            recalculatePortfolioScore(ratingRow[RatingsTable.rateeId].value)
+        }
+        updated
+    }
+
+    suspend fun updateRatingStatus(ratingId: Long, status: String): Boolean = dbQuery {
+        val ratingRow = RatingsTable.selectAll().where { RatingsTable.id eq ratingId }.singleOrNull()
+            ?: return@dbQuery false
+        val updated = RatingsTable.update({ RatingsTable.id eq ratingId }) {
+            it[RatingsTable.status] = status
+        } > 0
+        if (updated) {
+            recalculatePortfolioScore(ratingRow[RatingsTable.rateeId].value)
+        }
+        updated
     }
 
     suspend fun listMedia(page: Int, limit: Int, search: String?): AdminMediaLibraryResponse = dbQuery {
@@ -431,7 +454,7 @@ class AdminRepository {
         AdminNotificationsResponse(notifications = notifications, total = total, page = page, limit = limit)
     }
 
-    suspend fun createNotification(title: String, body: String, target: String): AdminCreateNotificationResponse = dbQuery {
+    suspend fun listNotificationRecipientIds(target: String): List<Long> = dbQuery {
         var condition: Op<Boolean> = (UsersTable.isActive eq true) and UsersTable.deletedAt.isNull()
 
         when (target.uppercase()) {
@@ -439,21 +462,10 @@ class AdminRepository {
             "CLIENT", "CLIENTS", "USER", "USERS" -> condition = condition and (UsersTable.userType eq UserType.CLIENT)
         }
 
-        val userIds = UsersTable
+        UsersTable
             .select(UsersTable.id)
             .where { condition }
             .map { it[UsersTable.id].value }
-
-        userIds.forEach { userId ->
-            NotificationsTable.insert {
-                it[NotificationsTable.userId] = userId
-                it[type] = NotificationType.SYSTEM
-                it[NotificationsTable.title] = title
-                it[NotificationsTable.body] = body
-            }
-        }
-
-        AdminCreateNotificationResponse(sentCount = userIds.size)
     }
 
     // --- FR-46: TỪ KHÓA CẤM ---
@@ -472,7 +484,7 @@ class AdminRepository {
             }
     }
 
-    suspend fun addBannedKeyword(keyword: String): Boolean = dbQuery {
+    suspend fun addBannedKeyword(keyword: String, isRegex: Boolean): Boolean = dbQuery {
         val exists = BannedWordsTable
             .selectAll()
             .where { BannedWordsTable.wordOrRegex eq keyword }
@@ -480,7 +492,7 @@ class AdminRepository {
         if (!exists) {
             BannedWordsTable.insert {
                 it[wordOrRegex] = keyword
-                it[isRegex] = false
+                it[BannedWordsTable.isRegex] = isRegex
             }
         }
         true
@@ -488,6 +500,23 @@ class AdminRepository {
 
     suspend fun removeBannedKeyword(keywordId: Long): Boolean = dbQuery {
         BannedWordsTable.deleteWhere { BannedWordsTable.id eq keywordId } > 0
+    }
+
+    private fun recalculatePortfolioScore(photographerId: Long) {
+        val ratings = RatingsTable.selectAll()
+            .where { (RatingsTable.rateeId eq photographerId) and (RatingsTable.status eq "APPROVED") }
+            .map { it[RatingsTable.ratingValue] }
+        val reviewCount = ratings.size
+        val averageScore = if (reviewCount > 0) {
+            ratings.sum() / reviewCount.toDouble()
+        } else {
+            0.0
+        }
+
+        PortfoliosTable.update({ PortfoliosTable.userId eq photographerId }) {
+            it[PortfoliosTable.ratingAvg] = averageScore.toBigDecimal()
+            it[PortfoliosTable.reviewCount] = reviewCount
+        }
     }
 
     private fun ResultRow.toAdminPostDto(includeMedia: Boolean): AdminPostDto {
@@ -516,7 +545,7 @@ class AdminRepository {
             .where { (ReportsTable.targetType eq ReportTargetType.POST) and (ReportsTable.targetId eq postId) }
             .count()
         val deletedAtValue = this[PostsTable.deletedAt]?.toString()
-        val cover = media.firstOrNull()?.thumbnailUrl ?: media.firstOrNull()?.url
+        val cover = media.firstOrNull()?.url ?: media.firstOrNull()?.thumbnailUrl
 
         return AdminPostDto(
             id = postId,
@@ -596,7 +625,7 @@ class AdminRepository {
             reviewerAvatarUrl = reviewer?.get(UsersTable.profilePictureUrl),
             ratingValue = this[RatingsTable.ratingValue].toInt(),
             comment = this[RatingsTable.comment],
-            status = "APPROVED",
+            status = this[RatingsTable.status],
             createdAt = this[RatingsTable.createdAt].toString()
         )
     }

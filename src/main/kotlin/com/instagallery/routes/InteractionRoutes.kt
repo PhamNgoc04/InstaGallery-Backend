@@ -85,7 +85,7 @@ fun Route.interactionRoutes() {
                 val page = call.request.queryParameters["page"]?.toIntOrNull() ?: 1
                 val limit = call.request.queryParameters["limit"]?.toIntOrNull() ?: 20
 
-                val res = interactionService.getComments(postId, page, limit)
+                val res = interactionService.getComments(userId, postId, page, limit)
                 call.respond(HttpStatusCode.OK, ApiResponse.success(data = res))
             }
 
@@ -151,9 +151,24 @@ fun Route.interactionRoutes() {
                 val commentId = call.parameters["commentId"]?.toLongOrNull()
                     ?: return@post call.respond(HttpStatusCode.BadRequest, ApiResponse.error("INVALID_ID", "ID bình luận không hợp lệ."))
 
-                val isLiked = interactionService.toggleCommentLike(userId, commentId)
+                val reaction = interactionService.toggleCommentLike(userId, commentId)
+                val isLiked = reaction.isLiked
                 val msg = if (isLiked) "Đã thích bình luận." else "Đã bỏ thích bình luận."
-                call.respond(HttpStatusCode.OK, ApiResponse.success(data = mapOf("isLiked" to isLiked), message = msg))
+                call.respond(HttpStatusCode.OK, ApiResponse.success(data = reaction, message = msg))
+            }
+
+            // --- DISLIKE / UNDISLIKE COMMENT ---
+            post("/{commentId}/dislike") {
+                val principal = call.principal<JWTPrincipal>()
+                val userId = principal?.payload?.getClaim("userId")?.asLong()
+                    ?: return@post call.respond(HttpStatusCode.Unauthorized, ApiResponse.error("UNAUTHORIZED", "Invalid token."))
+
+                val commentId = call.parameters["commentId"]?.toLongOrNull()
+                    ?: return@post call.respond(HttpStatusCode.BadRequest, ApiResponse.error("INVALID_ID", "Invalid comment ID."))
+
+                val reaction = interactionService.toggleCommentDislike(userId, commentId)
+                val msg = if (reaction.isDisliked) "Disliked comment." else "Undisliked comment."
+                call.respond(HttpStatusCode.OK, ApiResponse.success(data = reaction, message = msg))
             }
         }
     }

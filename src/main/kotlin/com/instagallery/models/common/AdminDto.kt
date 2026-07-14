@@ -262,6 +262,18 @@ data class AdminPostStatusRequest(
 )
 
 @Serializable
+data class AdminRatingStatusRequest(
+    val status: String
+)
+
+@Serializable
+data class AdminBannedKeywordRequest(
+    val keyword: String? = null,
+    val wordOrRegex: String? = null,
+    val isRegex: Boolean = false
+)
+
+@Serializable
 data class AdminVerifyUserRequest(
     val isVerified: Boolean
 )

@@ -49,6 +49,7 @@ object DatabaseFactory {
                 LikesTable,
                 CommentsTable,
                 CommentLikesTable,
+                CommentDislikesTable,
                 SavedPostsTable,
                 BookingsTable,
                 RatingsTable,

@@ -4,6 +4,7 @@ import com.instagallery.database.DatabaseFactory.dbQuery
 import com.instagallery.database.tables.*
 import com.instagallery.models.common.FeedMediaDto
 import com.instagallery.models.common.FeedPostDto
+import com.instagallery.models.common.CommentReactionResponse
 import com.instagallery.models.common.PaginatedFeedResponse
 import com.instagallery.models.common.PaginationMeta
 import com.instagallery.models.common.PostLikeUserDto
@@ -159,7 +160,7 @@ class InteractionRepository {
         )
     }
 
-    suspend fun getComments(postId: Long, page: Int, limit: Int): com.instagallery.models.common.PaginatedCommentsResponse = dbQuery {
+    suspend fun getComments(userId: Long, postId: Long, page: Int, limit: Int): com.instagallery.models.common.PaginatedCommentsResponse = dbQuery {
         val offsetVal = ((page - 1) * limit).toLong()
 
         // Fetch ROOT comments only (parentId is null)
@@ -184,6 +185,12 @@ class InteractionRepository {
         } else {
             emptyList()
         }
+
+        val allCommentIds = (commentRows + allRepliesRows)
+            .map { row -> row[CommentsTable.id].value }
+            .distinct()
+        val likedCommentIds = likedCommentIdsFor(userId, allCommentIds)
+        val dislikedCommentIds = dislikedCommentIdsFor(userId, allCommentIds)
         
         val repliesByParentId = allRepliesRows.groupBy { it[CommentsTable.parentCommentId]!!.value }
 
@@ -199,6 +206,10 @@ class InteractionRepository {
                     avatar = rRow[UsersTable.profilePictureUrl],
                     content = rRow[CommentsTable.content],
                     parentId = rRow[CommentsTable.parentCommentId]?.value,
+                    likeCount = rRow[CommentsTable.likeCount],
+                    dislikeCount = rRow[CommentsTable.dislikeCount],
+                    isLiked = replyId in likedCommentIds,
+                    isDisliked = replyId in dislikedCommentIds,
                     replyCount = childReplies.size,
                     createdAt = rRow[CommentsTable.createdAt].toString(),
                     replies = childReplies
@@ -218,6 +229,10 @@ class InteractionRepository {
                 avatar = row[UsersTable.profilePictureUrl],
                 content = row[CommentsTable.content],
                 parentId = null,
+                likeCount = row[CommentsTable.likeCount],
+                dislikeCount = row[CommentsTable.dislikeCount],
+                isLiked = cId in likedCommentIds,
+                isDisliked = cId in dislikedCommentIds,
                 replyCount = repliesList.size,
                 createdAt = row[CommentsTable.createdAt].toString(),
                 replies = repliesList
@@ -257,6 +272,16 @@ class InteractionRepository {
                 avatar = row[UsersTable.profilePictureUrl],
                 content = row[CommentsTable.content],
                 parentId = row[CommentsTable.parentCommentId]?.value,
+                likeCount = row[CommentsTable.likeCount],
+                dislikeCount = row[CommentsTable.dislikeCount],
+                isLiked = CommentLikesTable
+                    .selectAll()
+                    .where { (CommentLikesTable.userId eq userId) and (CommentLikesTable.commentId eq commentId) }
+                    .count() > 0,
+                isDisliked = CommentDislikesTable
+                    .selectAll()
+                    .where { (CommentDislikesTable.userId eq userId) and (CommentDislikesTable.commentId eq commentId) }
+                    .count() > 0,
                 replyCount = row[CommentsTable.replyCount],
                 createdAt = row[CommentsTable.createdAt].toString()
             )
@@ -294,29 +319,38 @@ class InteractionRepository {
         }
     }
 
-    suspend fun toggleCommentLike(userId: Long, commentId: Long): Boolean = dbQuery {
+    suspend fun toggleCommentLike(userId: Long, commentId: Long): CommentReactionResponse = dbQuery {
         val existingLike = CommentLikesTable.selectAll().where { (CommentLikesTable.userId eq userId) and (CommentLikesTable.commentId eq commentId) }.singleOrNull()
 
         if (existingLike != null) {
             CommentLikesTable.deleteWhere { (CommentLikesTable.userId eq userId) and (CommentLikesTable.commentId eq commentId) }
-            CommentsTable.update({ CommentsTable.id eq commentId }) {
-                with(SqlExpressionBuilder) {
-                    it.update(likeCount, likeCount - 1)
-                }
-            }
-            false
         } else {
+            CommentDislikesTable.deleteWhere { (CommentDislikesTable.userId eq userId) and (CommentDislikesTable.commentId eq commentId) }
             CommentLikesTable.insert {
                 it[CommentLikesTable.userId] = EntityID(userId, UsersTable)
                 it[CommentLikesTable.commentId] = EntityID(commentId, CommentsTable)
             }
-            CommentsTable.update({ CommentsTable.id eq commentId }) {
-                with(SqlExpressionBuilder) {
-                    it.update(likeCount, likeCount + 1)
-                }
-            }
-            true
         }
+
+        syncCommentReactionCounts(commentId)
+        commentReactionFor(userId, commentId)
+    }
+
+    suspend fun toggleCommentDislike(userId: Long, commentId: Long): CommentReactionResponse = dbQuery {
+        val existingDislike = CommentDislikesTable.selectAll().where { (CommentDislikesTable.userId eq userId) and (CommentDislikesTable.commentId eq commentId) }.singleOrNull()
+
+        if (existingDislike != null) {
+            CommentDislikesTable.deleteWhere { (CommentDislikesTable.userId eq userId) and (CommentDislikesTable.commentId eq commentId) }
+        } else {
+            CommentLikesTable.deleteWhere { (CommentLikesTable.userId eq userId) and (CommentLikesTable.commentId eq commentId) }
+            CommentDislikesTable.insert {
+                it[CommentDislikesTable.userId] = EntityID(userId, UsersTable)
+                it[CommentDislikesTable.commentId] = EntityID(commentId, CommentsTable)
+            }
+        }
+
+        syncCommentReactionCounts(commentId)
+        commentReactionFor(userId, commentId)
     }
 
     // ----- FOLLOWERS -----
@@ -558,6 +592,45 @@ class InteractionRepository {
         }
     }
 
+    private fun syncCommentReactionCounts(commentId: Long) {
+        val likeTotal = CommentLikesTable
+            .selectAll()
+            .where { CommentLikesTable.commentId eq commentId }
+            .count()
+            .toInt()
+        val dislikeTotal = CommentDislikesTable
+            .selectAll()
+            .where { CommentDislikesTable.commentId eq commentId }
+            .count()
+            .toInt()
+
+        CommentsTable.update({ CommentsTable.id eq commentId }) {
+            it[likeCount] = likeTotal
+            it[dislikeCount] = dislikeTotal
+            it[updatedAt] = Instant.now()
+        }
+    }
+
+    private fun commentReactionFor(userId: Long, commentId: Long): CommentReactionResponse {
+        val commentRow = CommentsTable
+            .select(CommentsTable.likeCount, CommentsTable.dislikeCount)
+            .where { CommentsTable.id eq commentId }
+            .single()
+
+        return CommentReactionResponse(
+            isLiked = CommentLikesTable
+                .selectAll()
+                .where { (CommentLikesTable.userId eq userId) and (CommentLikesTable.commentId eq commentId) }
+                .count() > 0,
+            isDisliked = CommentDislikesTable
+                .selectAll()
+                .where { (CommentDislikesTable.userId eq userId) and (CommentDislikesTable.commentId eq commentId) }
+                .count() > 0,
+            likeCount = commentRow[CommentsTable.likeCount],
+            dislikeCount = commentRow[CommentsTable.dislikeCount],
+        )
+    }
+
     private fun ResultRow.toFeedPostDto(
         isLiked: Boolean,
         isSaved: Boolean,
@@ -602,6 +675,24 @@ class InteractionRepository {
             .selectAll()
             .where { (LikesTable.userId eq userId) and (LikesTable.postId inList postIds) }
             .map { row -> row[LikesTable.postId].value }
+            .toSet()
+    }
+
+    private fun likedCommentIdsFor(userId: Long, commentIds: List<Long>): Set<Long> {
+        if (commentIds.isEmpty()) return emptySet()
+        return CommentLikesTable
+            .selectAll()
+            .where { (CommentLikesTable.userId eq userId) and (CommentLikesTable.commentId inList commentIds) }
+            .map { row -> row[CommentLikesTable.commentId].value }
+            .toSet()
+    }
+
+    private fun dislikedCommentIdsFor(userId: Long, commentIds: List<Long>): Set<Long> {
+        if (commentIds.isEmpty()) return emptySet()
+        return CommentDislikesTable
+            .selectAll()
+            .where { (CommentDislikesTable.userId eq userId) and (CommentDislikesTable.commentId inList commentIds) }
+            .map { row -> row[CommentDislikesTable.commentId].value }
             .toSet()
     }
 

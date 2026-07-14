@@ -28,6 +28,14 @@ data class PostLikesResponse(
 )
 
 @Serializable
+data class CommentReactionResponse(
+    val isLiked: Boolean,
+    val isDisliked: Boolean,
+    val likeCount: Int,
+    val dislikeCount: Int
+)
+
+@Serializable
 data class CommentDto(
     val commentId: Long,
     val postId: Long,
@@ -36,6 +44,10 @@ data class CommentDto(
     val avatar: String?,
     val content: String,
     val parentId: Long?,
+    val likeCount: Int = 0,
+    val dislikeCount: Int = 0,
+    val isLiked: Boolean = false,
+    val isDisliked: Boolean = false,
     val replyCount: Int,
     val createdAt: String,
     val replies: List<CommentDto>? = null

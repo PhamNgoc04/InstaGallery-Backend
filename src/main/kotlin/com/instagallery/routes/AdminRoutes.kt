@@ -1,8 +1,10 @@
 package com.instagallery.routes
 
 import com.instagallery.models.common.ApiResponse
+import com.instagallery.models.common.AdminBannedKeywordRequest
 import com.instagallery.models.common.AdminCreateNotificationRequest
 import com.instagallery.models.common.AdminPostStatusRequest
+import com.instagallery.models.common.AdminRatingStatusRequest
 import com.instagallery.models.common.AdminVerifyUserRequest
 import com.instagallery.models.common.Role
 import com.instagallery.models.request.BanUserRequest
@@ -177,9 +179,19 @@ fun Route.adminRoutes() {
                 val page = call.request.queryParameters["page"]?.toIntOrNull() ?: 1
                 val limit = call.request.queryParameters["limit"]?.toIntOrNull() ?: 20
                 val search = call.request.queryParameters["search"]
+                val status = call.request.queryParameters["status"]
 
-                val ratings = adminService.listRatings(page, limit, search)
+                val ratings = adminService.listRatings(page, limit, search, status)
                 call.respond(HttpStatusCode.OK, ApiResponse.success(data = ratings))
+            }
+
+            put("/ratings/{ratingId}/status") {
+                val ratingId = call.parameters["ratingId"]?.toLongOrNull()
+                    ?: return@put call.respond(HttpStatusCode.BadRequest, ApiResponse.error("INVALID_ID", "ID rating is invalid."))
+
+                val request = call.receive<AdminRatingStatusRequest>()
+                adminService.updateRatingStatus(ratingId, request.status)
+                call.respond(HttpStatusCode.OK, ApiResponse.success(data = true, message = "Rating status updated."))
             }
 
             delete("/ratings/{ratingId}") {
@@ -229,12 +241,12 @@ fun Route.adminRoutes() {
             }
 
             post("/banned-keywords") {
-                val body = call.receiveText()
-                val keyword = kotlinx.serialization.json.Json { ignoreUnknownKeys = true }
-                    .decodeFromString<Map<String, String>>(body)["keyword"]
-                    ?: return@post call.respond(HttpStatusCode.BadRequest, ApiResponse.error("MISSING_FIELD", "Thiếu trường keyword."))
+                val request = call.receive<AdminBannedKeywordRequest>()
+                val keyword = request.keyword?.takeIf { it.isNotBlank() }
+                    ?: request.wordOrRegex?.takeIf { it.isNotBlank() }
+                    ?: return@post call.respond(HttpStatusCode.BadRequest, ApiResponse.error("MISSING_FIELD", "Missing keyword."))
 
-                adminService.addBannedKeyword(keyword)
+                adminService.addBannedKeyword(keyword, request.isRegex)
                 call.respond(HttpStatusCode.Created, ApiResponse.success(data = true, message = "Đã thêm từ khóa cấm: \"$keyword\"."))
             }
 
@@ -244,6 +256,15 @@ fun Route.adminRoutes() {
 
                 adminService.removeBannedKeyword(keywordId)
                 call.respond(HttpStatusCode.OK, ApiResponse.success(data = true, message = "Đã xóa từ khóa cấm."))
+            }
+
+            get("/activity-logs") {
+                val page = call.request.queryParameters["page"]?.toIntOrNull() ?: 1
+                val limit = call.request.queryParameters["limit"]?.toIntOrNull() ?: 20
+                val query = call.request.queryParameters["search"] ?: call.request.queryParameters["query"]
+
+                val logs = adminService.getActivityLogs(query, page, limit)
+                call.respond(HttpStatusCode.OK, ApiResponse.success(data = logs))
             }
         }
     }
