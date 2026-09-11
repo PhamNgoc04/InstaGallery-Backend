@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>Biểu đồ phân rã Use Case - Đăng nhập (Admin)</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { 
+            font-family: "Times New Roman", Times, serif; 
+            background: #fff; 
+            display: flex; 
+            justify-content: center; 
+            padding: 30px; 
+        }
+        .page { 
+            width: 900px;
+            height: 750px;
+            position: relative;
+            background: #fff; 
+        }
+        h1 { 
+            position: absolute;
+            top: 15px;
+            width: 100%;
+            text-align: center; 
+            font-size: 16pt; 
+            font-weight: bold; 
+            z-index: 10;
+        }
+        
+        #diagram {
+            width: 100%;
+            height: 100%;
+            position: relative;
+        }
+
+        #linesSvg {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .uc {
+            position: absolute;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1.5px solid #222;
+            border-radius: 50% / 100%;
+            background-color: #ffffff;
+            font-size: 11pt;
+            text-align: center;
+            padding: 5px 12px;
+            z-index: 2;
+            width: 140px;
+            height: 60px;
+            transform: translate(-50%, -50%); 
+        }
+
+        .uc.center-node {
+            width: 175px;
+            height: 80px;
+            font-weight: bold;
+            font-size: 13pt;
+            border-width: 2.5px;
+            background-color: #fff;
+        }
+
+        .label {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 2px 4px;
+            font-style: italic;
+            font-size: 10pt;
+            color: #444;
+            transform: translate(-50%, -50%);
+            z-index: 2;
+        }
+
+    </style>
+</head>
+<body>
+
+<div class="page">
+    <h1>Biểu đồ phân rã Use Case – Đăng nhập (Dành cho Admin)</h1>
+    
+    <div id="diagram">
+        <svg id="linesSvg" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+                <marker id="arrowIn" markerWidth="8" markerHeight="8" refX="8" refY="4" orient="auto">
+                    <polyline points="0,0 8,4 0,8" fill="none" stroke="#222" stroke-width="1.5" />
+                </marker>
+            </defs>
+        </svg>
+
+        <div class="uc center-node" id="centerNode" style="left: 450px; top: 380px;">
+            Đăng nhập<br>(Admin)
+        </div>
+    </div>
+</div>
+
+<script>
+window.addEventListener('load', () => {
+    const diagram = document.getElementById('diagram');
+    const svg = document.getElementById('linesSvg');
+    
+    const nodes = [
+        { text: "Quản lý<br>người dùng" },
+        { text: "Kiểm duyệt<br>nội dung" },
+        { text: "Xóa bài đăng<br>vi phạm" },
+        { text: "Thống kê<br>hệ thống" },
+        { text: "Đổi mật<br>khẩu" },
+        { text: "Cập nhật<br>thông tin cá nhân" },
+        { text: "Đăng xuất" }
+    ];
+
+    const cX = 450;
+    const cY = 380;
+    
+    const radiusX = 310;
+    const radiusY = 260;
+    
+    const centerNodeR = 90; 
+    const outerNodeR = 70;
+
+    const startAngle = -Math.PI / 2;
+    const numNodes = nodes.length;
+    const step = (2 * Math.PI) / numNodes;
+
+    nodes.forEach((node, i) => {
+        const angle = startAngle + i * step;
+        
+        const nodeX = cX + radiusX * Math.cos(angle);
+        const nodeY = cY + radiusY * Math.sin(angle);
+
+        const div = document.createElement('div');
+        div.className = 'uc';
+        div.innerHTML = node.text;
+        div.style.left = nodeX + 'px';
+        div.style.top = nodeY + 'px';
+        diagram.appendChild(div);
+
+        const dx = nodeX - cX;
+        const dy = nodeY - cY;
+        const dist = Math.sqrt(dx*dx + dy*dy);
+        
+        const lineStartX = cX + (dx/dist) * centerNodeR;
+        const lineStartY = cY + (dy/dist) * centerNodeR;
+        const lineEndX = nodeX - (dx/dist) * outerNodeR;
+        const lineEndY = nodeY - (dy/dist) * outerNodeR;
+
+        const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        line.setAttribute('x1', lineStartX);
+        line.setAttribute('y1', lineStartY);
+        line.setAttribute('x2', lineEndX);
+        line.setAttribute('y2', lineEndY);
+        line.setAttribute('stroke', '#444');
+        line.setAttribute('stroke-width', '1.2');
+        line.setAttribute('stroke-dasharray', '5, 5'); 
+        line.setAttribute('marker-end', 'url(#arrowIn)');
+        svg.appendChild(line);
+
+        const labelRadiusFactor = 0.50;
+        const labelX = lineStartX + (lineEndX - lineStartX) * labelRadiusFactor;
+        const labelY = lineStartY + (lineEndY - lineStartY) * labelRadiusFactor;
+
+        const label = document.createElement('div');
+        label.className = 'label';
+        label.innerHTML = `&laquo;include&raquo;`;
+        label.style.left = labelX + 'px';
+        label.style.top = labelY + 'px';
+        diagram.appendChild(label);
+    });
+});
+</script>
+</body>
+</html>

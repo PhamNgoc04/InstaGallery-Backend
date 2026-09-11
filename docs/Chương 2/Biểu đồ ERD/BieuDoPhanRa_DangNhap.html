@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>Biểu đồ phân rã Use Case - Đăng nhập</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { 
+            font-family: "Times New Roman", Times, serif; 
+            background: #fff; 
+            display: flex; 
+            justify-content: center; 
+            padding: 30px; 
+            background-image: 
+                linear-gradient(rgba(0,0,0,0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0,0,0,0.03) 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+        .page { 
+            width: 1400px;
+            height: 1100px;
+            position: relative;
+            background: rgba(255, 255, 255, 0.7); 
+            box-shadow: 0 0 15px rgba(0,0,0,0.05);
+            border: 1px solid #eaeaea;
+        }
+        h1 { 
+            position: absolute;
+            top: 25px;
+            width: 100%;
+            text-align: center; 
+            font-size: 18pt; 
+            font-weight: bold; 
+            z-index: 10;
+        }
+        
+        #diagram {
+            width: 100%;
+            height: 100%;
+            position: relative;
+        }
+
+        #linesSvg {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .uc {
+            position: absolute;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1.5px solid #222;
+            border-radius: 50% / 100%;
+            background-color: #ffffff;
+            font-size: 10pt;
+            text-align: center;
+            padding: 5px 12px;
+            z-index: 2;
+            box-shadow: 2px 2px 6px rgba(0,0,0,0.04);
+            width: 125px;
+            height: 60px;
+            transform: translate(-50%, -50%); 
+        }
+
+        .uc.center-node {
+            width: 160px;
+            height: 75px;
+            font-weight: bold;
+            font-size: 13pt;
+            border-width: 2.5px;
+            box-shadow: 3px 3px 12px rgba(0,0,0,0.08);
+            background-color: #fdfdfd;
+        }
+
+        .label {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 2px 4px;
+            font-style: italic;
+            font-size: 9.5pt;
+            color: #444;
+            transform: translate(-50%, -50%);
+            z-index: 2;
+            border-radius: 3px;
+        }
+
+    </style>
+</head>
+<body>
+
+<div class="page">
+    <h1>Biểu đồ phân rã Use Case - Đăng nhập (Dành cho Client & Photographer)</h1>
+    
+    <div id="diagram">
+        <svg id="linesSvg" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+                <marker id="arrowOut" markerWidth="8" markerHeight="8" refX="8" refY="4" orient="auto-start-reverse">
+                    <polyline points="0,0 8,4 0,8" fill="none" stroke="#222" stroke-width="1.5" />
+                </marker>
+                <marker id="arrowIn" markerWidth="8" markerHeight="8" refX="8" refY="4" orient="auto">
+                    <polyline points="0,0 8,4 0,8" fill="none" stroke="#222" stroke-width="1.5" />
+                </marker>
+            </defs>
+        </svg>
+
+        <div class="uc center-node" id="centerNode" style="left: 700px; top: 550px;">
+            Đăng nhập
+        </div>
+    </div>
+</div>
+
+<script>
+window.addEventListener('load', () => {
+    const diagram = document.getElementById('diagram');
+    const svg = document.getElementById('linesSvg');
+    
+    // Exactly 27 functional UCs for Client/Photo
+    const nodes = [
+        { text: "Đăng ký<br>tài khoản", type: "extend" },
+        { text: "Quên mật<br>khẩu", type: "extend" },
+        { text: "Đăng xuất", type: "include" },
+        { text: "Đổi mật<br>khẩu", type: "include" },
+        { text: "Cập nhật<br>thông tin", type: "include" },
+        { text: "Xóa tài<br>khoản", type: "include" },
+        { text: "Duyệt Feed<br>ảnh", type: "include" },
+        { text: "Khám phá<br>(Explore)", type: "include" },
+        { text: "Xem chi<br>tiết ảnh", type: "include" },
+        { text: "Upload ảnh", type: "include" },
+        { text: "Chỉnh sửa<br>bài đăng", type: "include" },
+        { text: "Xóa bài<br>đăng", type: "include" },
+        { text: "Like /<br>Unlike", type: "include" },
+        { text: "Bình luận<br>(Comment)", type: "include" },
+        { text: "Lưu bài<br>đăng", type: "include" },
+        { text: "Chia sẻ<br>bài đăng", type: "include" },
+        { text: "Follow /<br>Unfollow", type: "include" },
+        { text: "Tìm kiếm<br>ảnh / Thợ", type: "include" },
+        { text: "Báo cáo<br>vi phạm", type: "include" },
+        { text: "Chặn người<br>dùng", type: "include" },
+        { text: "Xem<br>Portfolio", type: "include" },
+        { text: "Đặt lịch<br>chụp", type: "include" },
+        { text: "Đánh giá<br>thợ ảnh", type: "include" },
+        { text: "Tạo / Sửa<br>Portfolio", type: "include" },
+        { text: "Quản lý<br>Booking", type: "include" },
+        { text: "Nhắn tin<br>(Chat)", type: "include" },
+        { text: "Xem thông<br>báo", type: "include" }
+    ];
+
+    const cX = 700;
+    const cY = 550;
+    
+    // "Sweet spot" dimensions ensuring tightness without overlap
+    const radiusX = 580;
+    const radiusY = 440;
+    
+    // Line boundary adjustments
+    const centerNodeR = 85; 
+    const outerNodeR = 65;
+
+    const startAngle = -Math.PI / 2; // Top
+    const numNodes = nodes.length;
+    const step = (2 * Math.PI) / numNodes;
+
+    nodes.forEach((node, i) => {
+        const angle = startAngle + i * step;
+        
+        const nodeX = cX + radiusX * Math.cos(angle);
+        const nodeY = cY + radiusY * Math.sin(angle);
+
+        // Render oval
+        const div = document.createElement('div');
+        div.className = 'uc';
+        div.innerHTML = node.text;
+        div.style.left = nodeX + 'px';
+        div.style.top = nodeY + 'px';
+        diagram.appendChild(div);
+
+        // Line math
+        const dx = nodeX - cX;
+        const dy = nodeY - cY;
+        const dist = Math.sqrt(dx*dx + dy*dy);
+        
+        const lineStartX = cX + (dx/dist) * centerNodeR;
+        const lineStartY = cY + (dy/dist) * centerNodeR;
+        const lineEndX = nodeX - (dx/dist) * outerNodeR;
+        const lineEndY = nodeY - (dy/dist) * outerNodeR;
+
+        // Draw line
+        const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        line.setAttribute('x1', lineStartX);
+        line.setAttribute('y1', lineStartY);
+        line.setAttribute('x2', lineEndX);
+        line.setAttribute('y2', lineEndY);
+        line.setAttribute('stroke', '#444');
+        line.setAttribute('stroke-width', '1.2');
+        line.setAttribute('stroke-dasharray', '5, 5'); 
+
+        // Arrow directions
+        if (node.type === 'extend') {
+            line.setAttribute('marker-start', 'url(#arrowOut)'); 
+        } else {
+            line.setAttribute('marker-end', 'url(#arrowIn)');
+        }
+        svg.appendChild(line);
+
+        // Aligning all labels to form a perfect concentric ellipse
+        // Placing at 55% of the distance from the center
+        const labelRadiusFactor = 0.55;
+        const labelX = lineStartX + (lineEndX - lineStartX) * labelRadiusFactor;
+        const labelY = lineStartY + (lineEndY - lineStartY) * labelRadiusFactor;
+
+        const label = document.createElement('div');
+        label.className = 'label';
+        label.innerHTML = `&laquo;${node.type}&raquo;`;
+        label.style.left = labelX + 'px';
+        label.style.top = labelY + 'px';
+        diagram.appendChild(label);
+    });
+});
+</script>
+</body>
+</html>

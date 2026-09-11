@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>Biểu đồ Use Case - InstaGallery</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: "Times New Roman", serif; background: #eee; display:flex; justify-content:center; padding:20px; }
+        .page { background: white; width: 620px; padding: 15px 10px 25px; box-shadow: 0 2px 10px rgba(0,0,0,0.15); }
+        h1 { text-align: center; font-size: 14pt; margin-bottom: 10px; }
+        .diagram { position: relative; display: flex; }
+        #linesSvg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1; }
+
+        .actors {
+            width: 110px; flex-shrink: 0; position: relative; z-index: 2;
+            display: flex; flex-direction: column; align-items: center;
+        }
+        .actor { text-align: center; position: absolute; }
+        .actor-name { font-size: 7.5pt; font-weight: bold; color: #1a1a2e; line-height: 1.2; margin-top: 2px; }
+
+        .uc-col {
+            flex: 1; border: 2px solid #aaa; border-radius: 8px; background: #fffde7;
+            padding: 10px 12px 10px 12px; position: relative; z-index: 2;
+        }
+
+        .uc-grp { margin-bottom: 5px; }
+        .uc-grp-title { font-size: 8pt; font-weight: bold; color: #555; margin-bottom: 2px; }
+
+        .uc {
+            display: block; width: fit-content; padding: 4px 14px; margin: 3px 0 3px 8px;
+            border: 1.5px solid #5a7ab5; border-radius: 16px; background: #dce4f0;
+            font-size: 9pt; color: #1a1a2e;
+        }
+        .uc.new { border-color: #e67e22; background: #fde8c8; }
+
+        .caption { text-align: center; font-style: italic; font-size: 10pt; color: #333; margin-top: 8px; }
+        .legend { display:flex; gap:10px; justify-content:center; margin-top:6px; font-size:7.5pt; color:#666; align-items:center; }
+        .legend .d { display:inline-block; width:14px; height:10px; border-radius:5px; border:1.5px solid; vertical-align:middle; }
+
+        @media print { body { background: white; } .page { box-shadow: none; } }
+    </style>
+</head>
+<body>
+<div class="page">
+    <h1>Biểu đồ Use Case - Hệ thống InstaGallery</h1>
+    <div class="diagram" id="diagram">
+        <svg id="linesSvg" xmlns="http://www.w3.org/2000/svg"></svg>
+
+        <div class="actors">
+            <!-- Photographer -->
+            <div class="actor" id="actorP" style="top: 180px;">
+                <svg width="40" height="48" viewBox="0 0 40 48">
+                    <circle cx="20" cy="8" r="7" fill="#dce4f0" stroke="#4a6fa5" stroke-width="1.8"/>
+                    <line x1="20" y1="15" x2="20" y2="30" stroke="#4a6fa5" stroke-width="1.8"/>
+                    <line x1="9" y1="21" x2="31" y2="21" stroke="#4a6fa5" stroke-width="1.8"/>
+                    <line x1="20" y1="30" x2="10" y2="44" stroke="#4a6fa5" stroke-width="1.8"/>
+                    <line x1="20" y1="30" x2="30" y2="44" stroke="#4a6fa5" stroke-width="1.8"/>
+                </svg>
+                <div class="actor-name">Nhiếp ảnh gia<br>(PHOTOGRAPHER)</div>
+            </div>
+            <!-- Client -->
+            <div class="actor" id="actorC" style="top: 350px;">
+                <svg width="40" height="48" viewBox="0 0 40 48">
+                    <circle cx="20" cy="8" r="7" fill="#dce4f0" stroke="#4a6fa5" stroke-width="1.8"/>
+                    <line x1="20" y1="15" x2="20" y2="30" stroke="#4a6fa5" stroke-width="1.8"/>
+                    <line x1="9" y1="21" x2="31" y2="21" stroke="#4a6fa5" stroke-width="1.8"/>
+                    <line x1="20" y1="30" x2="10" y2="44" stroke="#4a6fa5" stroke-width="1.8"/>
+                    <line x1="20" y1="30" x2="30" y2="44" stroke="#4a6fa5" stroke-width="1.8"/>
+                </svg>
+                <div class="actor-name">Khách hàng<br>(CLIENT)</div>
+            </div>
+            <!-- Admin -->
+            <div class="actor" id="actorA" style="bottom: 20px;">
+                <svg width="40" height="48" viewBox="0 0 40 48">
+                    <circle cx="20" cy="8" r="7" fill="#dce4f0" stroke="#4a6fa5" stroke-width="1.8"/>
+                    <line x1="20" y1="15" x2="20" y2="30" stroke="#4a6fa5" stroke-width="1.8"/>
+                    <line x1="9" y1="21" x2="31" y2="21" stroke="#4a6fa5" stroke-width="1.8"/>
+                    <line x1="20" y1="30" x2="10" y2="44" stroke="#4a6fa5" stroke-width="1.8"/>
+                    <line x1="20" y1="30" x2="30" y2="44" stroke="#4a6fa5" stroke-width="1.8"/>
+                </svg>
+                <div class="actor-name">Quản trị viên<br>(ADMIN)</div>
+            </div>
+        </div>
+
+        <div class="uc-col">
+            <div class="uc-grp">
+                <div class="uc-grp-title">UC6: Chat</div>
+                <div class="uc" data-a="p,c">Nhắn tin</div>
+            </div>
+            <div class="uc-grp">
+                <div class="uc-grp-title">UC5: Portfolio & Booking</div>
+                <div class="uc" data-a="p,c">Xem Portfolio nhiếp ảnh gia</div>
+                <div class="uc" data-a="c">Đặt lịch chụp</div>
+                <div class="uc" data-a="p">Quản lý Booking</div>
+                <div class="uc" data-a="c">Đánh giá thợ ảnh</div>
+                <div class="uc new" data-a="p">Tạo / Sửa Portfolio</div>
+            </div>
+            <div class="uc-grp">
+                <div class="uc-grp-title">UC4: Tìm kiếm</div>
+                <div class="uc" data-a="p,c">Tìm kiếm ảnh / Thợ ảnh</div>
+            </div>
+            <div class="uc-grp">
+                <div class="uc-grp-title">UC3: Tương tác</div>
+                <div class="uc" data-a="p,c">Like / Unlike</div>
+                <div class="uc" data-a="p,c">Bình luận (Comment)</div>
+                <div class="uc" data-a="p,c">Follow / Unfollow</div>
+                <div class="uc new" data-a="p,c">Lưu bài đăng</div>
+                <div class="uc new" data-a="p,c">Báo cáo vi phạm</div>
+            </div>
+            <div class="uc-grp">
+                <div class="uc-grp-title">UC2: Quản lý bài đăng</div>
+                <div class="uc" data-a="p,c">Duyệt Feed ảnh</div>
+                <div class="uc new" data-a="p,c">Khám phá (Explore)</div>
+                <div class="uc" data-a="p,c">Xem chi tiết ảnh</div>
+                <div class="uc" data-a="p,c">Upload ảnh</div>
+                <div class="uc" data-a="p,c">Chỉnh sửa bài đăng</div>
+                <div class="uc new" data-a="p,c,a">Xóa bài đăng</div>
+            </div>
+            <div class="uc-grp">
+                <div class="uc-grp-title">UC1: Xác thực</div>
+                <div class="uc" data-a="p,c">Đăng ký tài khoản</div>
+                <div class="uc" data-a="p,c,a">Đăng nhập</div>
+                <div class="uc" data-a="p,c">Quên mật khẩu</div>
+                <div class="uc" data-a="p,c">Cập nhật thông tin cá nhân</div>
+                <div class="uc new" data-a="p,c,a">Đăng xuất</div>
+                <div class="uc new" data-a="p,c,a">Đổi mật khẩu</div>
+            </div>
+            <div class="uc-grp">
+                <div class="uc-grp-title">UC8: Thông báo</div>
+                <div class="uc new" data-a="p,c">Xem thông báo</div>
+            </div>
+            <div class="uc-grp">
+                <div class="uc-grp-title">UC9: An toàn & Bảo mật</div>
+                <div class="uc new" data-a="p,c">Chặn người dùng (Block)</div>
+                <div class="uc new" data-a="p,c">Xóa tài khoản</div>
+                <div class="uc new" data-a="p,c">Chia sẻ bài đăng</div>
+            </div>
+            <div class="uc-grp">
+                <div class="uc-grp-title">UC7: Quản trị</div>
+                <div class="uc" data-a="a">Quản lý người dùng</div>
+                <div class="uc" data-a="a">Kiểm duyệt nội dung</div>
+                <div class="uc" data-a="a">Thống kê hệ thống</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="legend">
+        <span><span class="d" style="background:#dce4f0;border-color:#5a7ab5;"></span> UC gốc (19)</span>
+        <span><span class="d" style="background:#fde8c8;border-color:#e67e22;"></span> UC bổ sung (12)</span>
+        <span>Tổng: 31 UC · 3 Actors · 31 FR (1:1)</span>
+    </div>
+    <p class="caption">Hình 2.2: Biểu đồ Use Case tổng thể hệ thống InstaGallery</p>
+</div>
+
+<script>
+window.addEventListener('load', () => {
+    const diagram = document.getElementById('diagram');
+    const svg = document.getElementById('linesSvg');
+    const rect = diagram.getBoundingClientRect();
+
+    svg.setAttribute('width', diagram.offsetWidth);
+    svg.setAttribute('height', diagram.offsetHeight);
+    svg.setAttribute('viewBox', `0 0 ${diagram.offsetWidth} ${diagram.offsetHeight}`);
+
+    function pos(el) {
+        const r = el.getBoundingClientRect();
+        return {
+            cx: r.left - rect.left + r.width / 2,
+            cy: r.top - rect.top + r.height / 2,
+            l: r.left - rect.left,
+            r: r.right - rect.left
+        };
+    }
+
+    const pSvg = document.querySelector('#actorP svg');
+    const cSvg = document.querySelector('#actorC svg');
+    const aSvg = document.querySelector('#actorA svg');
+
+    const pPt = pos(pSvg);
+    const cPt = pos(cSvg);
+    const aPt = pos(aSvg);
+
+    document.querySelectorAll('.uc').forEach(uc => {
+        const actors = uc.getAttribute('data-a').split(',');
+        const ucP = pos(uc);
+
+        actors.forEach(a => {
+            const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+            let fromX, fromY;
+
+            if (a === 'p') { fromX = pPt.r; fromY = pPt.cy; }
+            else if (a === 'c') { fromX = cPt.r; fromY = cPt.cy; }
+            else if (a === 'a') { fromX = aPt.r; fromY = aPt.cy; }
+
+            line.setAttribute('x1', fromX);
+            line.setAttribute('y1', fromY);
+            line.setAttribute('x2', ucP.l);
+            line.setAttribute('y2', ucP.cy);
+            line.setAttribute('stroke', '#4a6fa5');
+            line.setAttribute('stroke-width', '1.2');
+            svg.appendChild(line);
+        });
+    });
+});
+</script>
+</body>
+</html>

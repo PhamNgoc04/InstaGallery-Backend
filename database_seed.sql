@@ -18,13 +18,17 @@ TRUNCATE TABLE albums;
 TRUNCATE TABLE album_media;
 SET FOREIGN_KEY_CHECKS = 1;
 
+
+
 -- ==========================================
 -- BẢNG 1: NGƯỜI DÙNG (USERS)
 -- ==========================================
 INSERT INTO users (id, username, email, password_hash, full_name, profile_picture_url, role, user_type, is_active, is_verified, provider, is_private) VALUES
 (1, 'superadmin', 'admin@instagallery.com', '$2a$10$8.UnVuG9HHgffUDAlk8qfOuVGkqRzgVymGe07xd00DMxs.TsphxXK', 'Hệ Thống Quản Trị', 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png', 'ADMIN', 'CLIENT', 1, 1, 'LOCAL', 0),
 (2, 'thaopham', 'thaopham02@gmail.com', '$2a$10$8.UnVuG9HHgffUDAlk8qfOuVGkqRzgVymGe07xd00DMxs.TsphxXK', 'Phạm Phương Thảo', 'https://i.pinimg.com/736x/89/90/48/899048ab0cc455154006fdb9676964b3.jpg', 'USER', 'PHOTOGRAPHER', 1, 1, 'LOCAL', 0),
-(3, 'hienpham', 'hienpham89@gmail.com', '$2a$10$8.UnVuG9HHgffUDAlk8qfOuVGkqRzgVymGe07xd00DMxs.TsphxXK', 'Phạm Văn Hiền', NULL, 'USER', 'CLIENT', 1, 0, 'LOCAL', 1);
+(3, 'hienpham', 'hienpham89@gmail.com', '$2a$10$8.UnVuG9HHgffUDAlk8qfOuVGkqRzgVymGe07xd00DMxs.TsphxXK', 'Phạm Văn Hiền', NULL, 'USER', 'CLIENT', 1, 0, 'LOCAL', 1),
+(4, 'ngocpb04', 'ngocpb04@gmail.com', '$2a$12$/PCBsTE.KHqz.VMYZVzLcOsebL1nHQL6mfpY1cSwjGQWzstfklXHa', 'Phạm Ngọc', 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e', 'USER', 'CLIENT', 1, 1, 'LOCAL', 0),
+(5, 'nhitt83', 'nhitt83@gmail.com', '$2a$12$.qiH4qO3ZdGiqm500mv6sex1YDbEItrj1i0jf7pWG.O1NXOfqO7ES', 'Trần Nhi', 'https://images.unsplash.com/photo-1494790108377-be9c29b29330', 'USER', 'CLIENT', 1, 0, 'LOCAL', 0);
 
 -- ==========================================
 -- BẢNG 2: HỒ SƠ THỢ CHỤP (PORTFOLIOS)

@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>Phân tích Use Case - Phần 1</title>
+    <style>
+        * { box-sizing: border-box; }
+        body { font-family: 'Times New Roman', serif; max-width: 1000px; margin: auto; padding: 30px; background: #f5f5f5; }
+        h1 { text-align: center; color: #1a1a2e; font-size: 24px; margin-bottom: 30px; }
+        h2 { color: #16213e; border-bottom: 2px solid #0f3460; padding-bottom: 8px; margin-top: 50px; font-size: 20px; }
+        h3 { color: #533483; font-size: 18px; margin-top: 30px; }
+        .diagram-container { background: #fff; border: 1px solid #ccc; padding: 25px; margin: 15px 0 30px 0; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); overflow-x: auto; text-align: center; }
+        .mermaid-placeholder { color: #999; font-style: italic; }
+        .label-text { font-weight: bold; color: #333; margin: 10px 0 5px; font-size: 15px; }
+        hr { border: none; border-top: 2px dashed #ccc; margin: 40px 0; }
+        svg { max-width: 100%; }
+        @media print {
+            body { background: white; max-width: 100%; }
+            .diagram-container { break-inside: avoid; page-break-inside: avoid; box-shadow: none; border: 1px solid #999; }
+        }
+    </style>
+</head>
+<body>
+<h1>Phân tích Use Case - Phần 1</h1>
+<h1>2.2.5. Phân tích các Use Case</h1>
+<h2>--- Nhóm: Xác thực & Quản lý tài khoản ---</h2>
+<h3>2.2.5.1. Use Case Đăng ký</h3>
+<p class="label-text">- Biểu đồ lớp phân tích:</p>
+<div class="diagram-container"><div id="mermaid-0" class="mermaid-placeholder">Đang tải biểu đồ...</div></div>
+<p class="label-text">- Biểu đồ trình tự:</p>
+<div class="diagram-container"><div id="mermaid-1" class="mermaid-placeholder">Đang tải biểu đồ...</div></div>
+<hr>
+<h3>2.2.5.2. Use Case Đăng nhập</h3>
+<p class="label-text">- Biểu đồ lớp phân tích:</p>
+<div class="diagram-container"><div id="mermaid-2" class="mermaid-placeholder">Đang tải biểu đồ...</div></div>
+<p class="label-text">- Biểu đồ trình tự:</p>
+<div class="diagram-container"><div id="mermaid-3" class="mermaid-placeholder">Đang tải biểu đồ...</div></div>
+<hr>
+<h3>2.2.5.3. Use Case Quên mật khẩu</h3>
+<p class="label-text">- Biểu đồ lớp phân tích:</p>
+<div class="diagram-container"><div id="mermaid-4" class="mermaid-placeholder">Đang tải biểu đồ...</div></div>
+<p class="label-text">- Biểu đồ trình tự:</p>
+<div class="diagram-container"><div id="mermaid-5" class="mermaid-placeholder">Đang tải biểu đồ...</div></div>
+<hr>
+<h3>2.2.5.4. Use Case Cập nhật thông tin cá nhân</h3>
+<p class="label-text">- Biểu đồ lớp phân tích:</p>
+<div class="diagram-container"><div id="mermaid-6" class="mermaid-placeholder">Đang tải biểu đồ...</div></div>
+<p class="label-text">- Biểu đồ trình tự:</p>
+<div class="diagram-container"><div id="mermaid-7" class="mermaid-placeholder">Đang tải biểu đồ...</div></div>
+<hr>
+<h3>2.2.5.5. Use Case Duyệt Feed ảnh</h3>
+<p class="label-text">- Biểu đồ lớp phân tích:</p>
+<div class="diagram-container"><div id="mermaid-8" class="mermaid-placeholder">Đang tải biểu đồ...</div></div>
+<p class="label-text">- Biểu đồ trình tự:</p>
+<div class="diagram-container"><div id="mermaid-9" class="mermaid-placeholder">Đang tải biểu đồ...</div></div>
+
+<script type="module">
+import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+mermaid.initialize({ startOnLoad: false, theme: 'default', securityLevel: 'loose' });
+
+const diagrams = [{"id":"mermaid-0","code":"classDiagram\n    class DangKyUI {\n        <<boundary>>\n        +clickNutDangKy()\n        +clickNutQuayLai()\n        +hienThiManHinhDangKy()\n        +nhapThongTinDangKy()\n        +hienThiThongBaoLoi()\n    }\n\n    class DangKyController {\n        <<control>>\n        +validateDuLieu()\n        +kiemTraTrungEmail()\n        +kiemTraTrungUsername()\n        +taoTaiKhoanMoi()\n        +maHoaMatKhau()\n        +taoTokens()\n        +chuyenManHinh()\n    }\n\n    class User {\n        <<entity>>\n        +id : BIGINT\n        +username : VARCHAR\n        +email : VARCHAR\n        +password_hash : VARCHAR\n        +full_name : VARCHAR\n        +role : ENUM\n        +is_active : BOOLEAN\n        +created_at : TIMESTAMP\n        +getId()\n        +setId()\n        +getUsername()\n        +setUsername()\n        +getEmail()\n        +setEmail()\n        +getPasswordHash()\n        +setPasswordHash()\n        +getFullName()\n        +setFullName()\n        +getRole()\n        +setRole()\n        +getIsActive()\n        +setIsActive()\n        +getCreatedAt()\n        +setCreatedAt()\n    }\n\n    class UserSession {\n        <<entity>>\n        +id : BIGINT\n        +user_id : BIGINT\n        +refresh_token : VARCHAR\n        +expired_at : TIMESTAMP\n        +created_at : TIMESTAMP\n        +getId()\n        +setId()\n        +getUserId()\n        +setUserId()\n        +getRefreshToken()\n        +setRefreshToken()\n        +getExpiredAt()\n        +setExpiredAt()\n    }\n\n    class ICsdl {\n        <<boundary>>\n        +themBangUsers()\n        +kiemTraBangUsers()\n        +themBangUserSessions()\n    }\n\n    DangKyUI \"1\" -- \"1\" DangKyController\n    DangKyController \"1\" -- \"1\" User\n    DangKyController \"1\" -- \"1\" UserSession\n    DangKyController \"1\" -- \"*\" ICsdl"},{"id":"mermaid-1","code":"sequenceDiagram\n    actor KH as Người dùng\n    participant UI as DangKyUI\n    participant CT as DangKyController\n    participant U as User\n    participant US as UserSession\n    participant DB as ICsdl\n\n    KH->>UI: clickNutDangKy()\n    UI->>UI: hienThiManHinhDangKy()\n    KH->>UI: nhapThongTinDangKy()\n    KH->>UI: clickNutDangKy()\n    UI->>CT: validateDuLieu()\n    CT->>DB: kiemTraBangUsers(email)\n    DB-->>CT: không tồn tại\n    CT->>DB: kiemTraBangUsers(username)\n    DB-->>CT: không tồn tại\n    CT->>CT: maHoaMatKhau()\n    CT->>U: createUser()\n    U->>DB: themBangUsers()\n    DB-->>CT: user_id\n    CT->>US: createSession()\n    US->>DB: themBangUserSessions()\n    DB-->>CT: return kết quả\n    CT->>UI: hienThiDangKyThanhCong()\n    UI-->>KH: chuyển đến màn hình Location"},{"id":"mermaid-2","code":"classDiagram\n    class DangNhapUI {\n        <<boundary>>\n        +hienThiManHinhDangNhap()\n        +nhapEmailMatKhau()\n        +clickNutDangNhap()\n        +hienThiThongBaoLoi()\n        +chuyenDenFeed()\n    }\n\n    class DangNhapController {\n        <<control>>\n        +kiemTraTokenLocal()\n        +validateDuLieu()\n        +kiemTraRateLimit()\n        +xacThucTaiKhoan()\n        +soSanhMatKhau()\n        +kiemTraTrangThai()\n        +taoTokens()\n        +chuyenManHinh()\n    }\n\n    class User {\n        <<entity>>\n        +id : BIGINT\n        +email : VARCHAR\n        +password_hash : VARCHAR\n        +is_active : BOOLEAN\n        +role : ENUM\n        +getEmail()\n        +setEmail()\n        +getPasswordHash()\n        +getIsActive()\n        +getRole()\n    }\n\n    class UserSession {\n        <<entity>>\n        +id : BIGINT\n        +user_id : BIGINT\n        +refresh_token : VARCHAR\n        +device_info : VARCHAR\n        +ip_address : VARCHAR\n        +expired_at : TIMESTAMP\n        +getUserId()\n        +setUserId()\n        +getRefreshToken()\n        +setRefreshToken()\n    }\n\n    class ICsdl {\n        <<boundary>>\n        +truyVanBangUsers()\n        +themBangUserSessions()\n        +kiemTraRateLimit()\n    }\n\n    DangNhapUI \"1\" -- \"1\" DangNhapController\n    DangNhapController \"1\" -- \"1\" User\n    DangNhapController \"1\" -- \"1\" UserSession\n    DangNhapController \"1\" -- \"*\" ICsdl"},{"id":"mermaid-3","code":"sequenceDiagram\n    actor KH as Người dùng\n    participant UI as DangNhapUI\n    participant CT as DangNhapController\n    participant U as User\n    participant US as UserSession\n    participant DB as ICsdl\n\n    KH->>UI: mở ứng dụng\n    UI->>CT: kiemTraTokenLocal()\n    CT-->>UI: không có token\n    UI->>UI: hienThiManHinhDangNhap()\n    KH->>UI: nhapEmailMatKhau()\n    KH->>UI: clickNutDangNhap()\n    UI->>CT: xacThucTaiKhoan()\n    CT->>DB: kiemTraRateLimit()\n    DB-->>CT: chưa vượt giới hạn\n    CT->>DB: truyVanBangUsers(email)\n    DB-->>U: thông tin user\n    CT->>CT: soSanhMatKhau()\n    CT->>CT: kiemTraTrangThai()\n    CT->>US: createSession()\n    US->>DB: themBangUserSessions()\n    DB-->>CT: return tokens\n    CT->>UI: chuyenDenFeed()\n    UI-->>KH: hiển thị màn hình Feed"},{"id":"mermaid-4","code":"classDiagram\n    class QuenMatKhauUI {\n        <<boundary>>\n        +hienThiFormNhapEmail()\n        +nhapEmail()\n        +clickGuiLink()\n        +hienThiFormDatLaiMK()\n        +nhapMatKhauMoi()\n        +clickDatLaiMatKhau()\n        +hienThiThongBao()\n    }\n\n    class QuenMatKhauController {\n        <<control>>\n        +kiemTraEmailTonTai()\n        +taoResetToken()\n        +guiEmailReset()\n        +xacThucResetToken()\n        +maHoaMatKhauMoi()\n        +capNhatMatKhau()\n        +xoaPhienDangNhapCu()\n        +chuyenManHinh()\n    }\n\n    class User {\n        <<entity>>\n        +id : BIGINT\n        +email : VARCHAR\n        +password_hash : VARCHAR\n        +getEmail()\n        +setEmail()\n        +getPasswordHash()\n        +setPasswordHash()\n    }\n\n    class UserSession {\n        <<entity>>\n        +id : BIGINT\n        +user_id : BIGINT\n        +getUserId()\n    }\n\n    class ICsdl {\n        <<boundary>>\n        +truyVanBangUsers()\n        +capNhatBangUsers()\n        +xoaBangUserSessions()\n    }\n\n    QuenMatKhauUI \"1\" -- \"1\" QuenMatKhauController\n    QuenMatKhauController \"1\" -- \"1\" User\n    QuenMatKhauController \"1\" -- \"1\" UserSession\n    QuenMatKhauController \"1\" -- \"*\" ICsdl"},{"id":"mermaid-5","code":"sequenceDiagram\n    actor KH as Người dùng\n    participant UI as QuenMatKhauUI\n    participant CT as QuenMatKhauController\n    participant U as User\n    participant US as UserSession\n    participant DB as ICsdl\n\n    KH->>UI: click \"Quên mật khẩu?\"\n    UI->>UI: hienThiFormNhapEmail()\n    KH->>UI: nhapEmail()\n    KH->>UI: clickGuiLink()\n    UI->>CT: kiemTraEmailTonTai()\n    CT->>DB: truyVanBangUsers(email)\n    DB-->>CT: tìm thấy user\n    CT->>CT: taoResetToken()\n    CT->>CT: guiEmailReset()\n    CT-->>UI: hienThiThongBao(\"Kiểm tra email\")\n\n    Note over KH: Mở email, bấm link reset\n\n    KH->>UI: nhapMatKhauMoi()\n    KH->>UI: clickDatLaiMatKhau()\n    UI->>CT: xacThucResetToken()\n    CT->>CT: maHoaMatKhauMoi()\n    CT->>U: setPasswordHash()\n    U->>DB: capNhatBangUsers()\n    CT->>US: xoaPhienCu()\n    US->>DB: xoaBangUserSessions()\n    DB-->>CT: return kết quả\n    CT->>UI: hienThiThongBao(\"Thành công\")\n    UI-->>KH: chuyển về màn hình Đăng nhập"},{"id":"mermaid-6","code":"classDiagram\n    class CapNhatThongTinUI {\n        <<boundary>>\n        +hienThiTrangProfile()\n        +clickChinhSuaHoSo()\n        +hienThiFormChinhSua()\n        +nhapThongTinMoi()\n        +chonAnhAvatar()\n        +clickLuu()\n        +hienThiThongBao()\n    }\n\n    class CapNhatThongTinController {\n        <<control>>\n        +layThongTinHienTai()\n        +validateDuLieu()\n        +kiemTraTrungUsername()\n        +uploadAvatar()\n        +capNhatThongTin()\n        +chuyenManHinh()\n    }\n\n    class User {\n        <<entity>>\n        +id : BIGINT\n        +username : VARCHAR\n        +full_name : VARCHAR\n        +email : VARCHAR\n        +bio : TEXT\n        +profile_picture_url : VARCHAR\n        +website : VARCHAR\n        +gender : VARCHAR\n        +phone_number : VARCHAR\n        +date_of_birth : DATE\n        +updated_at : TIMESTAMP\n        +getId()\n        +getUsername()\n        +setUsername()\n        +getFullName()\n        +setFullName()\n        +getBio()\n        +setBio()\n        +getProfilePictureUrl()\n        +setProfilePictureUrl()\n        +getWebsite()\n        +setWebsite()\n        +getGender()\n        +setGender()\n        +getPhoneNumber()\n        +setPhoneNumber()\n        +getDateOfBirth()\n        +setDateOfBirth()\n    }\n\n    class ICsdl {\n        <<boundary>>\n        +truyVanBangUsers()\n        +capNhatBangUsers()\n        +uploadFirebaseStorage()\n    }\n\n    CapNhatThongTinUI \"1\" -- \"1\" CapNhatThongTinController\n    CapNhatThongTinController \"1\" -- \"1\" User\n    CapNhatThongTinController \"1\" -- \"*\" ICsdl"},{"id":"mermaid-7","code":"sequenceDiagram\n    actor KH as Người dùng\n    participant UI as CapNhatThongTinUI\n    participant CT as CapNhatThongTinController\n    participant U as User\n    participant DB as ICsdl\n\n    KH->>UI: clickChinhSuaHoSo()\n    UI->>CT: layThongTinHienTai()\n    CT->>DB: truyVanBangUsers(userId)\n    DB-->>U: thông tin user hiện tại\n    U-->>CT: return User\n    CT-->>UI: hienThiFormChinhSua()\n    UI-->>KH: hiển thị form với dữ liệu hiện tại\n\n    KH->>UI: nhapThongTinMoi()\n    opt Đổi avatar\n        KH->>UI: chonAnhAvatar()\n        UI->>CT: uploadAvatar()\n        CT->>DB: uploadFirebaseStorage()\n        DB-->>CT: avatar_url\n    end\n    KH->>UI: clickLuu()\n    UI->>CT: capNhatThongTin()\n    CT->>CT: validateDuLieu()\n    CT->>U: setFullName(), setBio(), setWebsite()\n    U->>DB: capNhatBangUsers()\n    DB-->>CT: return kết quả\n    CT->>UI: hienThiThongBao(\"Cập nhật thành công\")\n    UI-->>KH: cập nhật giao diện"},{"id":"mermaid-8","code":"classDiagram\n    class FeedUI {\n        <<boundary>>\n        +hienThiDanhSachBaiDang()\n        +cuonXuongLoadMore()\n        +keoXuongRefresh()\n        +clickBaiDang()\n        +hienThiFeedTrong()\n    }\n\n    class FeedController {\n        <<control>>\n        +layDanhSachFeed()\n        +kiemTraCache()\n        +taiThemBaiDang()\n        +lamMoiFeed()\n        +chuyenManHinh()\n    }\n\n    class Post {\n        <<entity>>\n        +id : BIGINT\n        +user_id : BIGINT\n        +caption : TEXT\n        +location : VARCHAR\n        +like_count : INT\n        +comment_count : INT\n        +created_at : TIMESTAMP\n        +getId()\n        +setId()\n        +getUserId()\n        +getCaption()\n        +getLocation()\n        +getLikeCount()\n        +getCommentCount()\n        +getCreatedAt()\n    }\n\n    class Follower {\n        <<entity>>\n        +follower_id : BIGINT\n        +following_id : BIGINT\n        +getFollowerId()\n        +getFollowingId()\n    }\n\n    class ICsdl {\n        <<boundary>>\n        +truyVanBangPosts()\n        +truyVanBangFollowers()\n        +kiemTraRedisCache()\n        +luuRedisCache()\n    }\n\n    FeedUI \"1\" -- \"1\" FeedController\n    FeedController \"1\" -- \"*\" Post\n    FeedController \"1\" -- \"*\" Follower\n    FeedController \"1\" -- \"*\" ICsdl"},{"id":"mermaid-9","code":"sequenceDiagram\n    actor KH as Người dùng\n    participant UI as FeedUI\n    participant CT as FeedController\n    participant P as Post\n    participant F as Follower\n    participant DB as ICsdl\n\n    KH->>UI: mở tab Home\n    UI->>CT: layDanhSachFeed()\n    CT->>DB: kiemTraRedisCache()\n    alt Cache hit\n        DB-->>CT: cached feed data\n    else Cache miss\n        CT->>DB: truyVanBangFollowers(userId)\n        DB-->>F: danh sách following\n        CT->>DB: truyVanBangPosts(followingIds)\n        DB-->>P: danh sách bài đăng\n        CT->>DB: luuRedisCache()\n    end\n    CT-->>UI: hienThiDanhSachBaiDang()\n    UI-->>KH: hiển thị feed\n\n    KH->>UI: cuonXuongLoadMore()\n    UI->>CT: taiThemBaiDang(cursor)\n    CT->>DB: truyVanBangPosts(cursor)\n    DB-->>P: bài đăng tiếp theo\n    CT-->>UI: hienThiDanhSachBaiDang()\n    UI-->>KH: thêm bài vào danh sách"}];
+
+async function renderAll() {
+    for (const d of diagrams) {
+        const el = document.getElementById(d.id);
+        if (el) {
+            try {
+                const { svg } = await mermaid.render(d.id + '-svg', d.code);
+                el.innerHTML = svg;
+                el.classList.remove('mermaid-placeholder');
+            } catch (err) {
+                el.innerHTML = '<p style="color:red;">Lỗi render: ' + err.message + '</p><pre>' + d.code.replace(/</g,'&lt;') + '</pre>';
+                el.classList.remove('mermaid-placeholder');
+            }
+        }
+    }
+}
+
+renderAll();
+</script>
+</body>
+</html>

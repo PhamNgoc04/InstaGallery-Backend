@@ -11,7 +11,7 @@
 |---|---|
 | **A** | [Kiến Trúc Tổng Quan](#a-kiến-trúc-tổng-quan) |
 | **B** | [ERD & Quan Hệ Giữa Các Bảng](#b-erd--quan-hệ-giữa-các-bảng) |
-| **C** | [SQL Schema Hoàn Chỉnh (30 bảng)](#c-sql-schema-hoàn-chỉnh) |
+| **C** | [SQL Schema Hoàn Chỉnh (33 bảng)](#c-sql-schema-hoàn-chỉnh) |
 | **D** | [Phân Tích Chuẩn Hóa & Denormalization](#d-phân-tích-chuẩn-hóa) |
 | **E** | [API Endpoints Toàn Bộ (107 REST + 5 system + 1 WebSocket)](#e-api-endpoints-toàn-bộ) |
 | **F** | [Chi Tiết Logic Từng Module API](#f-chi-tiết-logic-từng-module) |
@@ -28,7 +28,7 @@
 
 | Chỉ số | Giá trị |
 |---|---|
-| Tổng số bảng | **30** |
+| Tổng số bảng | **33** |
 | Tổng API endpoints | **107 REST `/api/v1` + 5 system HTTP + 1 WebSocket** |
 | API Modules | **15 route modules** (Auth, Users, Posts, Interactions, Media, Albums, Explore, Search, Chat, Notifications, Portfolios, Bookings, Ratings, Reports, Admin) |
 | Hệ quản trị | MySQL 8.x, utf8mb4, InnoDB |
@@ -52,7 +52,7 @@ graph TB
         Search["Search Module"]
     end
     subgraph "💾 Data Layer"
-        DB[(MySQL 8.x<br/>30 bảng)]
+        DB[(MySQL 8.x<br/>33 bảng)]
         Redis[(Redis 7.x<br/>Cache + Session)]
         S3[Firebase Storage<br/>Ảnh + Video]
     end
@@ -68,17 +68,17 @@ graph TB
 
 ```mermaid
 graph TB
-    subgraph "🔵 Core Identity (3)"
-        users; user_sessions; password_reset_tokens
+    subgraph "🔵 Core Identity (4)"
+        users; user_sessions; password_reset_tokens; device_tokens
     end
     subgraph "🟢 Content & Media (5)"
         posts; post_media; filters; media_tags; post_media_tags
     end
-    subgraph "🟡 Social Interactions (4)"
-        likes; comment_likes; comments; saved_posts
+    subgraph "🟡 Social Interactions (6)"
+        likes; comment_likes; comment_dislikes; comments; saved_posts; followers
     end
-    subgraph "🟣 User Relations (4)"
-        followers; follow_requests; blocked_users; muted_users
+    subgraph "🟣 User Relations (3)"
+        follow_requests; blocked_users; muted_users
     end
     subgraph "🟠 Messaging (3)"
         conversations; conversation_members; messages
@@ -86,11 +86,11 @@ graph TB
     subgraph "📁 Albums (2)"
         albums; album_media
     end
-    subgraph "📷 Photographer Business (4)"
-        portfolios; availability_schedules; bookings; ratings
+    subgraph "📷 Photographer Business (5)"
+        portfolios; photographer_services; availability_schedules; bookings; ratings
     end
-    subgraph "🔴 System, Search & Moderation (5)"
-        notifications; activity_logs; reports; search_histories; banned_words
+    subgraph "🔴 System, Search & Moderation (6)"
+        notifications; activity_logs; reports; search_histories; banned_words; device_tokens
     end
 ```
 
@@ -252,6 +252,16 @@ CREATE TABLE user_sessions (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE password_reset_tokens (
+    id              BIGINT AUTO_INCREMENT PRIMARY KEY,
+    user_id         BIGINT NOT NULL,
+    token           VARCHAR(255) NOT NULL,
+    expired_at      DATETIME NOT NULL,
+    created_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uk_token (token),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE portfolios (
     id              BIGINT AUTO_INCREMENT PRIMARY KEY,
     user_id         BIGINT NOT NULL,
@@ -404,6 +414,43 @@ CREATE TABLE saved_posts (
 ### C.4. Business — Booking, Rating & Messaging
 
 ```sql
+CREATE TABLE comment_dislikes (
+    id              BIGINT AUTO_INCREMENT PRIMARY KEY,
+    user_id         BIGINT NOT NULL,
+    comment_id      BIGINT NOT NULL,
+    created_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uk_user_comment_dislikes (user_id, comment_id),
+    INDEX idx_comment_id (comment_id),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (comment_id) REFERENCES comments(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE photographer_services (
+    id                  BIGINT AUTO_INCREMENT PRIMARY KEY,
+    photographer_id     BIGINT NOT NULL,
+    name                VARCHAR(120) NOT NULL,
+    category            VARCHAR(40) NOT NULL,
+    price               DECIMAL(12, 2) NOT NULL,
+    currency            VARCHAR(3) NOT NULL DEFAULT 'VND',
+    duration_minutes    INT NOT NULL,
+    photo_count         INT DEFAULT NULL,
+    edited_photo_count  INT DEFAULT NULL,
+    makeup_included     BOOLEAN NOT NULL DEFAULT FALSE,
+    outfit_included     BOOLEAN NOT NULL DEFAULT FALSE,
+    location_support    BOOLEAN NOT NULL DEFAULT TRUE,
+    description         TEXT DEFAULT NULL,
+    includes            TEXT DEFAULT NULL,
+    cover_url           VARCHAR(1024) DEFAULT NULL,
+    is_active           BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at          TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at          TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_photographer_id (photographer_id),
+    INDEX idx_category (category),
+    INDEX idx_is_active (is_active),
+    INDEX idx_photo_category (photographer_id, category),
+    FOREIGN KEY (photographer_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE bookings (
     id                  BIGINT AUTO_INCREMENT PRIMARY KEY,
     client_id           BIGINT NOT NULL,
@@ -504,6 +551,21 @@ CREATE TABLE notifications (
     INDEX idx_created_at (created_at DESC),
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     FOREIGN KEY (sender_id) REFERENCES users(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE device_tokens (
+    id              BIGINT AUTO_INCREMENT PRIMARY KEY,
+    user_id         BIGINT NOT NULL,
+    token           VARCHAR(512) NOT NULL,
+    platform        VARCHAR(20) NOT NULL DEFAULT 'ANDROID',
+    device_id       VARCHAR(128) DEFAULT NULL,
+    app_version     VARCHAR(64) DEFAULT NULL,
+    created_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    last_seen_at    TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uk_device_token (token),
+    INDEX idx_user_id (user_id),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE activity_logs (
@@ -607,9 +669,9 @@ DELIMITER ;
 
 ---
 
-## E. API Endpoints Toan Bo (Current Source Snapshot)
+## E. Toàn Bộ API Endpoints (Ảnh Chụp Source Code Hiện Tại)
 
-> Section nay da duoc dong bo lai theo source hien tai. Danh sach endpoint day du va de copy nhat nam o [Backend_APIs.md](Backend_APIs.md).
+> Phần này đã được đồng bộ lại theo mã nguồn hiện tại. Danh sách endpoint đầy đủ và dễ sao chép nhất nằm ở [Backend_APIs.md](../api-specs/Backend_APIs.md).
 
 ### Current counts
 

@@ -19,7 +19,7 @@
 ## 1.1. AGENTS — Bộ Não Ktor
 Giống như Android, Backend cũng cần "Hiến Pháp". Mọi AI Agent khi làm việc trong thư mục `instagallery-backend` **BẮT BUỘC** phải tuân thủ:
 
-- **Công nghệ lõi:** Kotlin 2.0, Ktor 2.3.12, Exposed (ORM), HikariCP.
+- **Công nghệ lõi:** Kotlin 2.0, Ktor 3.0.2, Exposed (ORM), HikariCP.
 - **Quy tắc tuyệt đối (DO):**
   - LUÔN LUÔN xử lý Exception tập trung tại StatusPages.
   - LUÔN LUÔN chia file theo chức năng (Auth, Posts, Users) chứ không để phình to `Application.kt`.
@@ -47,7 +47,7 @@ Các Hooks không cho phép AI làm càn trên Database:
 # 🧪 PHẦN 2: CỘT MỐC MỚI (ASH 2.0) CHO KTOR
 
 ## 2.1. CONTEXT ENGINEERING (Thiết kế bối cảnh)
-Đồ án của bạn có 30 bảng CSDL. AI không thể tự nghĩ ra.
+Đồ án của bạn có 33 bảng CSDL. AI không thể tự nghĩ ra.
 **Chiến lược Context:** Trước khi tôi code bất cứ cụm API nào, CẤM tôi nhảy vào code luôn mà bắt buộc phải:
 1. Đọc file `instagallery_complete_system.md` từ ổ C:\ OneDrive của bạn.
 2. Nắm rõ liên kết Khóa chính - Khóa ngoại (1-N hay N-N).

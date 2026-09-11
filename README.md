@@ -97,7 +97,7 @@ Hệ thống tích hợp quy trình **7 Tầng Bảo Mật (7-Layer Security Mod
 
 ## 🚀 7. Triển khai & Chạy thử Hệ thống (Getting Started)
 
-Cần cài đặt **JDK 17/21** và **Docker** trên thiết bị của bạn. Vui lòng xem hướng dẫn cực kỳ chi tiết tại [Hướng dẫn Cài Đặt (Setup Guide)](docs/setup_guide.md).
+Cần cài đặt **JDK 17/21** và **Docker** trên thiết bị của bạn. Vui lòng xem hướng dẫn cực kỳ chi tiết tại [Hướng dẫn Cài Đặt (Setup Guide)](docs/guides/setup_guide.md).
 
 **Quick Start via Docker:**
 ```bash
@@ -113,9 +113,9 @@ curl http://localhost:8080/health
 ---
 
 ## 🗂 8. Tài liệu API Thực Tế (API Documentation)
-Toàn bộ dự án hiện có **107 REST APIs dưới `/api/v1`**, **5 HTTP routes hệ thống**, và **1 WebSocket endpoint** đã được ghi chép đặc tả chi tiết.
-- Xem danh sách và luồng chạy: [📖 Backend API Overview](docs/Backend_APIs.md)
-- Mô hình dữ liệu quan hệ: [🗄️ Database Schema Cấu trúc Liên Kết](docs/database_schema.md)
+Toàn bộ dự án hiện có **139 REST APIs dưới `/api/v1`**, **5 HTTP routes hệ thống**, và **1 WebSocket endpoint** đã được ghi chép đặc tả chi tiết.
+- Xem danh sách và luồng chạy: [📖 Backend API Overview](docs/api-specs/Backend_APIs.md)
+- Mô hình dữ liệu quan hệ: [🗄️ Database Schema Cấu trúc Liên Kết](docs/database/database_schema.md)
 - Postman Collection tự động đi kèm trong source code: `InstaGallery_Local.postman_collection.json`.
 
 ---

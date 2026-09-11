@@ -1,8 +1,8 @@
 # 🗄️ InstaGallery — Tổng Hợp Cấu Trúc Database
 
-> **Công nghệ**: MySQL · **ORM**: Jetbrains Exposed · **Tổng số bảng**: 30
+> **Công nghệ**: MySQL · **ORM**: Jetbrains Exposed · **Tổng số bảng**: 33
 >
-> Cập nhật lần cuối: 2026-06-25
+> Cập nhật lần cuối: 2026-07-18
 
 ---
 
@@ -12,12 +12,12 @@
 |---|------|----------|
 | 1 | [🔐 Auth & Identity](#-auth--identity) | `users`, `user_sessions`, `password_reset_tokens` |
 | 2 | [📸 Nội dung & Media](#-nội-dung--media) | `posts`, `post_media`, `filters`, `media_tags`, `post_media_tags` |
-| 3 | [💬 Tương tác xã hội](#-tương-tác-xã-hội) | `likes`, `comment_likes`, `comments`, `saved_posts` |
+| 3 | [💬 Tương tác xã hội](#-tương-tác-xã-hội) | `likes`, `comment_likes`, `comment_dislikes`, `comments`, `saved_posts` |
 | 4 | [👥 Quan hệ người dùng](#-quan-hệ-người-dùng) | `followers`, `follow_requests`, `blocked_users`, `muted_users` |
 | 5 | [💌 Nhắn tin](#-nhắn-tin) | `conversations`, `conversation_members`, `messages` |
 | 6 | [📁 Album](#-album) | `albums`, `album_media` |
-| 7 | [📷 Dịch vụ nhiếp ảnh](#-dịch-vụ-nhiếp-ảnh) | `portfolios`, `availability_schedules`, `bookings`, `ratings` |
-| 8 | [🔔 Thông báo](#-thông-báo) | `notifications` |
+| 7 | [📷 Dịch vụ nhiếp ảnh & Đặt lịch](#-dịch-vụ-nhiếp-ảnh--đặt-lịch) | `portfolios`, `photographer_services`, `availability_schedules`, `bookings`, `ratings` |
+| 8 | [🔔 Thông báo & Thiết bị](#-thông-báo--thiết-bị) | `notifications`, `device_tokens` |
 | 9 | [🔍 Tìm kiếm](#-tìm-kiếm) | `search_histories` |
 | 10 | [🛡️ Kiểm duyệt & Audit](#️-kiểm-duyệt--audit) | `reports`, `banned_words`, `activity_logs` |
 
@@ -29,15 +29,19 @@
 erDiagram
     USERS ||--o{ POSTS : "đăng"
     USERS ||--o{ LIKES : "thích"
+    USERS ||--o{ COMMENT_LIKES : "thích bình luận"
+    USERS ||--o{ COMMENT_DISLIKES : "không thích bình luận"
     USERS ||--o{ COMMENTS : "bình luận"
     USERS ||--o{ FOLLOWERS : "follow/following"
     USERS ||--o{ FOLLOW_REQUESTS : "yêu cầu follow"
     USERS ||--o{ BLOCKED_USERS : "chặn"
     USERS ||--o{ MUTED_USERS : "tắt tiếng"
     USERS ||--o| PORTFOLIOS : "sở hữu portfolio"
+    USERS ||--o{ PHOTOGRAPHER_SERVICES : "cung cấp dịch vụ"
     USERS ||--o{ BOOKINGS : "đặt lịch (client)"
     USERS ||--o{ BOOKINGS : "nhận đặt (photographer)"
     USERS ||--o{ NOTIFICATIONS : "nhận thông báo"
+    USERS ||--o{ DEVICE_TOKENS : "đăng ký thiết bị"
     USERS ||--o{ USER_SESSIONS : "phiên đăng nhập"
     USERS ||--o{ ALBUMS : "tạo album"
     USERS ||--o{ SAVED_POSTS : "lưu bài"
@@ -55,12 +59,14 @@ erDiagram
     FILTERS ||--o{ POST_MEDIA : "áp dụng filter"
 
     COMMENTS ||--o{ COMMENT_LIKES : "được thích"
+    COMMENTS ||--o{ COMMENT_DISLIKES : "bị không thích"
     COMMENTS ||--o{ COMMENTS : "trả lời (self-ref)"
 
     CONVERSATIONS ||--o{ CONVERSATION_MEMBERS : "có thành viên"
     CONVERSATIONS ||--o{ MESSAGES : "chứa tin nhắn"
     MESSAGES ||--o{ MESSAGES : "trả lời (self-ref)"
 
+    PORTFOLIOS ||--o{ PHOTOGRAPHER_SERVICES : "có gói dịch vụ"
     PORTFOLIOS ||--o{ AVAILABILITY_SCHEDULES : "lịch rảnh"
     BOOKINGS ||--o| RATINGS : "được đánh giá"
 
@@ -272,6 +278,20 @@ erDiagram
 
 ---
 
+### `comment_dislikes`
+> Người dùng không thích một bình luận cụ thể.
+
+| Cột | Kiểu dữ liệu | Ràng buộc | Mô tả |
+|-----|-------------|-----------|-------|
+| `id` | BIGINT | PK | ID bản ghi |
+| `user_id` | BIGINT | FK → `users` CASCADE | Người không thích |
+| `comment_id` | BIGINT | FK → `comments` CASCADE, INDEX | Bình luận bị không thích |
+| `created_at` | TIMESTAMP | DEFAULT NOW, INDEX | Thời điểm không thích |
+
+**Unique Index:** `uk_user_comment_dislikes(user_id, comment_id)`
+
+---
+
 ### `saved_posts`
 > Người dùng lưu bài viết vào bộ sưu tập cá nhân.
 
@@ -432,7 +452,7 @@ erDiagram
 
 ---
 
-## 📷 Dịch vụ nhiếp ảnh
+## 📷 Dịch vụ nhiếp ảnh & Đặt lịch
 
 ### `portfolios`
 > Hồ sơ chuyên nghiệp của nhiếp ảnh gia (1-1 với user).
@@ -452,6 +472,34 @@ erDiagram
 | `review_count` | INT | DEFAULT `0` | Tổng số đánh giá |
 | `created_at` | TIMESTAMP | DEFAULT NOW | Thời điểm tạo |
 | `updated_at` | TIMESTAMP | DEFAULT NOW | Thời điểm cập nhật |
+
+---
+
+### `photographer_services`
+> Gói dịch vụ nhiếp ảnh cụ thể của nhiếp ảnh gia.
+
+| Cột | Kiểu dữ liệu | Ràng buộc | Mô tả |
+|-----|-------------|-----------|-------|
+| `id` | BIGINT | PK | ID dịch vụ |
+| `photographer_id` | BIGINT | FK → `users` CASCADE, INDEX | ID nhiếp ảnh gia |
+| `name` | VARCHAR(120) | NOT NULL | Tên gói dịch vụ |
+| `category` | VARCHAR(40) | INDEX | Phân loại (đại sảnh, chân dung, lễ hội...) |
+| `price` | DECIMAL(12,2) | NOT NULL | Giá gói dịch vụ |
+| `currency` | VARCHAR(3) | DEFAULT `VND` | Đơn vị tiền tệ |
+| `duration_minutes` | INT | NOT NULL | Thời lượng chụp (phút) |
+| `photo_count` | INT | NULLABLE | Số ảnh tối thiểu nhận được |
+| `edited_photo_count` | INT | NULLABLE | Số ảnh được photoshop chỉnh sửa |
+| `makeup_included` | BOOLEAN | DEFAULT `false` | Bao gồm gói trang điểm makeup |
+| `outfit_included` | BOOLEAN | DEFAULT `false` | Bao gồm trang phục chụp |
+| `location_support` | BOOLEAN | DEFAULT `true` | Hỗ trợ tìm và tư vấn địa điểm |
+| `description` | TEXT | NULLABLE | Mô tả chi tiết gói |
+| `includes` | TEXT | NULLABLE | Chi tiết vật tư kèm theo |
+| `cover_url` | VARCHAR(1024) | NULLABLE | Ảnh đại diện gói dịch vụ |
+| `is_active` | BOOLEAN | DEFAULT `true`, INDEX | Gói dịch vụ còn hoạt động không |
+| `created_at` | TIMESTAMP | DEFAULT NOW | Thời điểm tạo |
+| `updated_at` | TIMESTAMP | DEFAULT NOW | Thời điểm cập nhật |
+
+**Composite Index:** `idx_photographer_services_category(photographer_id, category)`
 
 ---
 
@@ -512,7 +560,7 @@ erDiagram
 
 ---
 
-## 🔔 Thông báo
+## 🔔 Thông báo & Thiết bị
 
 ### `notifications`
 > Thông báo đẩy cho người dùng về các sự kiện liên quan.
@@ -531,6 +579,23 @@ erDiagram
 | `created_at` | TIMESTAMP | DEFAULT NOW, INDEX | Thời điểm tạo |
 
 **Composite Index:** `idx_user_read(user_id, is_read)`
+
+---
+
+### `device_tokens`
+> Lưu FCM Token phục vụ cho việc gửi thông báo đẩy.
+
+| Cột | Kiểu dữ liệu | Ràng buộc | Mô tả |
+|-----|-------------|-----------|-------|
+| `id` | BIGINT | PK | ID bản ghi |
+| `user_id` | BIGINT | FK → `users` CASCADE, INDEX | Người dùng sở hữu thiết bị |
+| `token` | VARCHAR(512) | UNIQUE INDEX | FCM token phục vụ push notification |
+| `platform` | VARCHAR(20) | DEFAULT `ANDROID` | Nền tảng hệ điều hành thiết bị |
+| `device_id` | VARCHAR(128) | NULLABLE | Chuỗi định danh ID thiết bị vật lý |
+| `app_version` | VARCHAR(64) | NULLABLE | Phiên bản ứng dụng di động đang cài |
+| `created_at` | TIMESTAMP | DEFAULT NOW | Thời điểm tạo |
+| `updated_at` | TIMESTAMP | DEFAULT NOW | Thời điểm cập nhật |
+| `last_seen_at` | TIMESTAMP | DEFAULT NOW | Thời điểm hoạt động cuối |
 
 ---
 
@@ -614,9 +679,11 @@ users (1) ──────────────────── (N) follo
 users (N) ──────────────────── (N) blocked_users [via blocked_users table]
 users (N) ──────────────────── (N) muted_users [via muted_users table]
 users (1) ──────────────────── (1) portfolios
+users (1) ──────────────────── (N) photographer_services
 users (1) ──────────────────── (N) bookings (as client)
 users (1) ──────────────────── (N) bookings (as photographer)
 users (1) ──────────────────── (N) notifications
+users (1) ──────────────────── (N) device_tokens
 users (1) ──────────────────── (N) user_sessions
 users (1) ──────────────────── (N) albums
 users (N) ──────────────────── (N) conversations [via conversation_members]
@@ -627,12 +694,45 @@ posts (N) ──────────────────── (N) album
 
 post_media (N) ─────────────── (N) media_tags [via post_media_tags]
 
+comments (1) ───────────────── (N) comment_dislikes
+
 conversations (1) ───────────── (N) messages
 messages (1) ────────────────── (N) messages [reply_to_id self-ref]
 
 bookings (1) ────────────────── (1) ratings
 portfolios (1) ──────────────── (N) availability_schedules
 ```
+
+## 🧩 Phân Tích Chi Tiết Quan Hệ Nghiệp Vụ
+
+Hệ thống database của InstaGallery xoay quanh 5 vùng trục chính với các ràng buộc dữ liệu chặt chẽ hỗ trợ business flows:
+
+### 1. Phân hệ Xác thực & Quản lý thiết bị (Security Subsystem)
+* **`users` (1) ── (N) `user_sessions`**: Cho phép một tài khoản đăng nhập trên nhiều thiết bị khác nhau. Khóa ngoại `user_id` liên kết dạng `ON DELETE CASCADE`. Khi người dùng xóa tài khoản, tất cả phiên đăng nhập sẽ tự động bị hủy để bảo mật.
+* **`users` (1) ── (N) `device_tokens`**: Phục vụ Push Notification. Mỗi người dùng có thể dùng nhiều thiết bị (điện thoại Android, tablet...). Hệ thống ánh xạ token của từng thiết bị để gửi tin nhắn/thông báo chính xác. Có ràng buộc duy nhất `UNIQUE` trên `token` để tránh gửi lặp thông báo.
+
+### 2. Trục Tương tác Xã hội & Quyền riêng tư (Social Graph & Engagement)
+* **`users` (N) ── (N) `users` qua `followers`**: Quan hệ tự thân M:N (Self-referencing). Ràng buộc ở tầng nghiệp vụ yêu cầu `follower_id ≠ following_id` để ngăn chặn việc người dùng tự theo dõi chính mình.
+* **`users` (1) ── (N) `follow_requests`**: Được sử dụng khi đích đến follow cấu hình tài khoản ở chế độ riêng tư (`is_private = true`). Sử dụng trạng thái `status` (`PENDING`, `ACCEPTED`, `REJECTED`) để xác định luồng dữ liệu. Khi được duyệt (`ACCEPTED`), một bản ghi sẽ tự động được ghi nhận vào bảng `followers`.
+* **`posts` (1) ── (N) `comments`**: Mỗi bài viết có nhiều bình luận. Bình luận lại có liên kết đè tự thân `comments` (1) ── (N) `comments` qua `parent_comment_id` để tạo luồng cây bình luận (Nested Comment). Ràng buộc check ở tầng nghiệp vụ giới hạn độ sâu tối đa là 3 cấp (`depth <= 3`) để tránh phình dữ liệu và tối ưu hiệu năng hiển thị.
+* **`comments` (1) ── (N) `comment_likes` / `comment_dislikes`**: Biểu cảm tương tác bình luận. Hai quan hệ này độc lập nhưng ràng buộc ở tầng logic không cho phép một user vừa Like vừa Dislike đồng thời trên cùng một bình luận.
+
+### 3. Phân hệ Nội dung Carousel & Từ khóa (Carousel & Tagging System)
+* **`posts` (1) ── (N) `post_media`**: Hỗ trợ bài đăng đa phương tiện (carousel slide). Quan hệ được sắp xếp tuyến tính thông qua cột `position` (0, 1, 2...). Nếu post bị xóa, cascade xóa sạch media đi kèm để giải phóng không gian ổ đĩa.
+* **`post_media` (N) ── (N) `media_tags` qua `post_media_tags`**: Quan hệ M:N cho phép gắn thẻ tìm kiếm cụ thể lên từng bức ảnh hoặc video riêng biệt trong slide bài đăng (chứ không chỉ gắn lên toàn bộ bài đăng).
+
+### 4. Nghiệp vụ Photographer & Đặt lịch (Domain Booking Core)
+* **`users` (1) ── (1) `portfolios`**: Ràng buộc duy nhất `UNIQUE KEY` đối với `user_id` đảm bảo mỗi tài khoản Nhiếp ảnh gia chỉ có thể kích hoạt hiển thị 1 trang Portfolio giới thiệu năng lực.
+* **`portfolios` (1) ── (N) `photographer_services`**: Mỗi Portfolio có nhiều gói dịch vụ tương ứng với các danh mục chụp (`category`) khác nhau kèm mô tả và chi phí cụ thể.
+* **`portfolios` (1) ── (N) `availability_schedules`**: Cung cấp khung thời gian rảnh rỗi phục vụ cho thuật toán tự động kiểm tra xung đột thời gian đặt lịch.
+* **`bookings` (Quan hệ 3 bên)**:
+  - Liên kết khách hàng (`client_id`) ── Nhiếp ảnh gia (`photographer_id`) ── Dịch vụ.
+  - Có ràng buộc validation bắt buộc `client_id ≠ photographer_id` (Nhiếp ảnh gia không thể tự đặt lịch chụp đối với chính bản thân).
+* **`bookings` (1) ── (1) `ratings`**: Đánh giá chất lượng sau buổi chụp. Khóa ngoại `booking_id` cấu hình `UNIQUE INDEX` ngăn cấm việc đánh giá trùng lặp nhiều lần cho cùng một buổi chụp đã hoàn thành.
+
+### 5. Quản trị, Kiểm duyệt & Log vết (Control & Audit Trail)
+* **`users` (1) ── (N) `reports`**: Người dùng báo cáo nội dung vi phạm. Bảng `reports` liên kết linh động thông qua cặp trường `target_type` (`POST`, `USER`, `COMMENT`) và `target_id`. Việc kiểm duyệt dùng cơ chế `ON DELETE SET NULL` ở trường `reviewed_by` (giúp giữ lại lịch sử xử lý báo cáo của Admin ngay cả khi tài khoản Admin đó bị xóa khỏi hệ thống).
+* **`users` (1) ── (N) `activity_logs`**: Thu thập chuỗi hành động kiểm tra bảo mật (Audit Trail). Trường `user_id` dùng `SET NULL` để lưu lại nhật ký sự kiện lịch sử hệ thống ngay cả khi tài khoản tương tác ban đầu đã thực hiện xóa tài khoản hoàn toàn.
 
 ---
 

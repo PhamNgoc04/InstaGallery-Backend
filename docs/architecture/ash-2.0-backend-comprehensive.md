@@ -43,7 +43,7 @@ ASH Backend xoanh quanh một triết lý thiết kế tối cao duy nhất: **B
 > **AGENTS = Tập hợp các giới luật sinh tử mà AI PHẢI tuân theo khi chạm vào Backend.**
 
 ## 1.1. Core Tech Stack (Hệ Sinh Thái Ktor)
-- **Framework Lõi:** Ktor 2.3+ (Gọn nhẹ, Coroutine-based).
+- **Framework Lõi:** Ktor 3.0+ (Gọn nhẹ, Coroutine-based).
 - **ORM & Database:** Jetbrains Exposed (Kotlin DSL), MySQL, HikariCP Connection Pool.
 - **Cache & Session:** Redis (Jedis).
 - **Security:** JWT Authentication, BCrypt Hashing.
@@ -124,7 +124,7 @@ Không bao giờ push thẳng code lên `main` nếu chưa vượt qua Unit Test
 
 > **CONTEXT = Bạn phải cho AI nhìn thấy "Chiến Trường" trước khi ra lệnh nổ súng.**
 
-**Vấn Đề Ở Backend:** Có quá nhiều bảng cơ sở dữ liệu (Ví dụ: Đồ án hiện có 30 bảng). AI không thể đoán được bảng `users` nối với bảng `posts` kiểu gì nếu không có Context.
+**Vấn Đề Ở Backend:** Có quá nhiều bảng cơ sở dữ liệu (Ví dụ: Đồ án hiện có 33 bảng). AI không thể đoán được bảng `users` nối với bảng `posts` kiểu gì nếu không có Context.
 
 ## Chiến Lược Tiêm Ngữ Cảnh Chuyên Sâu (Context Injection):
 

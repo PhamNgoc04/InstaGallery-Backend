@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>Biểu đồ ERD - InstaGallery</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: "Times New Roman", serif; background: #f0f0f0; }
+        .page { width: 794px; min-height: 1123px; margin: 20px auto; padding: 40px 50px; background: white; box-shadow: 0 2px 10px rgba(0,0,0,0.15); }
+        h1 { text-align: center; font-size: 16pt; margin-bottom: 8px; color: #000; }
+        h2 { text-align: center; font-size: 14pt; margin-bottom: 15px; color: #333; }
+        h3 { font-size: 13pt; margin: 20px 0 10px; color: #1a1a2e; border-bottom: 1px solid #ccc; padding-bottom: 4px; }
+        .diagram-box { border: 1px solid #ddd; padding: 15px; margin: 10px 0 25px; background: #fafafa; overflow: hidden; text-align: center; }
+        .diagram-box svg { max-width: 100% !important; height: auto !important; }
+        .mermaid-placeholder { color: #999; font-style: italic; padding: 40px 0; }
+        .caption { text-align: center; font-style: italic; font-size: 11pt; color: #333; margin-top: 5px; }
+        @media print { body { background: white; } .page { box-shadow: none; margin: 0; width: 100%; page-break-after: always; } }
+    </style>
+</head>
+<body>
+<div class="page">
+    <h1>2.3. Xây dựng cơ sở dữ liệu</h1>
+    <h2>2.3.1. Biểu đồ Entity Relationship Diagram</h2>
+    <p style="text-align:center; font-size:11pt; color:#555; margin-bottom:20px;">Hệ thống InstaGallery gồm 30 bảng, chia thành 10 nhóm</p>
+    <h3>Nhóm 1: Core Identity (3 bảng)</h3>
+    <div class="diagram-box"><div id="erd-core" class="mermaid-placeholder">Đang tải...</div></div>
+    <p class="caption">Hình 2.34a: ERD nhóm Core Identity (users, user_sessions, portfolios)</p>
+</div>
+<div class="page">
+    <h3>Nhóm 2: Content &amp; Media (5 bảng)</h3>
+    <div class="diagram-box"><div id="erd-content" class="mermaid-placeholder">Đang tải...</div></div>
+    <p class="caption">Hình 2.34b: ERD nhóm Content &amp; Media</p>
+</div>
+<div class="page">
+    <h3>Nhóm 3: Social &amp; Engagement (4 bảng)</h3>
+    <div class="diagram-box"><div id="erd-social" class="mermaid-placeholder">Đang tải...</div></div>
+    <p class="caption">Hình 2.34c: ERD nhóm Social</p>
+</div>
+<div class="page">
+    <h3>Nhóm 4: Business - Booking &amp; Rating (2 bảng)</h3>
+    <div class="diagram-box"><div id="erd-business" class="mermaid-placeholder">Đang tải...</div></div>
+    <p class="caption">Hình 2.34d: ERD nhóm Business</p>
+</div>
+<div class="page">
+    <h3>Nhóm 5: Messaging (3 bảng)</h3>
+    <div class="diagram-box"><div id="erd-messaging" class="mermaid-placeholder">Đang tải...</div></div>
+    <p class="caption">Hình 2.34e: ERD nhóm Messaging</p>
+</div>
+<div class="page">
+    <h3>Nhóm 6: System &amp; Admin (4 bảng)</h3>
+    <div class="diagram-box"><div id="erd-system" class="mermaid-placeholder">Đang tải...</div></div>
+    <p class="caption">Hình 2.34f: ERD nhóm System</p>
+</div>
+<script type="module">
+import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs";
+mermaid.initialize({ startOnLoad: false, theme: "default", securityLevel: "loose", er: { useMaxWidth: true, fontSize: 11 } });
+const diagrams = [{"id":"erd-core","title":"Nhóm 1: Core Identity (3 bảng)","code":"erDiagram\n    users {\n        BIGINT id PK \"AUTO_INCREMENT\"\n        VARCHAR username UK \"NOT NULL\"\n        VARCHAR email UK \"NOT NULL\"\n        VARCHAR password_hash \"NOT NULL\"\n        VARCHAR full_name \"NOT NULL\"\n        VARCHAR profile_picture_url \"NULL\"\n        TEXT bio \"NULL\"\n        VARCHAR website \"NULL\"\n        VARCHAR gender \"NULL\"\n        VARCHAR phone_number \"NULL\"\n        DATE date_of_birth \"NULL\"\n        VARCHAR location \"NULL\"\n        ENUM role \"PHOTOGRAPHER CLIENT ADMIN\"\n        BOOLEAN is_verified \"DEFAULT FALSE\"\n        BOOLEAN is_active \"DEFAULT TRUE\"\n        INT follower_count \"DEFAULT 0\"\n        INT following_count \"DEFAULT 0\"\n        INT post_count \"DEFAULT 0\"\n        TIMESTAMP created_at \"NOT NULL\"\n        TIMESTAMP updated_at \"NOT NULL\"\n        TIMESTAMP deleted_at \"NULL soft delete\"\n    }\n\n    user_sessions {\n        BIGINT id PK \"AUTO_INCREMENT\"\n        BIGINT user_id FK \"NOT NULL\"\n        VARCHAR device_info \"NULL\"\n        VARCHAR ip_address \"NULL\"\n        VARCHAR refresh_token UK \"NOT NULL\"\n        TIMESTAMP created_at \"NOT NULL\"\n        TIMESTAMP expired_at \"NOT NULL\"\n    }\n\n    portfolios {\n        BIGINT id PK \"AUTO_INCREMENT\"\n        BIGINT user_id FK \"NOT NULL UNIQUE\"\n        VARCHAR title \"NULL\"\n        TEXT description \"NULL\"\n        JSON specialties \"NULL\"\n        DECIMAL hourly_rate \"NULL\"\n        VARCHAR currency \"DEFAULT VND\"\n        VARCHAR service_area \"NULL\"\n        BOOLEAN is_available \"DEFAULT TRUE\"\n        DECIMAL rating_avg \"DEFAULT 0.00\"\n        INT review_count \"DEFAULT 0\"\n        TIMESTAMP created_at \"NOT NULL\"\n        TIMESTAMP updated_at \"NOT NULL\"\n    }\n\n    users ||--o{ user_sessions : \"phien dang nhap\"\n    users ||--o| portfolios : \"ho so photographer\""},{"id":"erd-content","title":"Nhóm 2: Content & Media (5 bảng)","code":"erDiagram\n    posts {\n        BIGINT id PK \"AUTO_INCREMENT\"\n        BIGINT user_id FK \"NOT NULL\"\n        TEXT caption \"NULL\"\n        VARCHAR location \"NULL\"\n        ENUM visibility \"PUBLIC PRIVATE FRIENDS_ONLY\"\n        INT like_count \"DEFAULT 0\"\n        INT comment_count \"DEFAULT 0\"\n        INT share_count \"DEFAULT 0\"\n        TIMESTAMP created_at \"NOT NULL\"\n        TIMESTAMP updated_at \"NOT NULL\"\n        TIMESTAMP deleted_at \"NULL soft delete\"\n    }\n\n    post_media {\n        BIGINT id PK \"AUTO_INCREMENT\"\n        BIGINT post_id FK \"NOT NULL\"\n        VARCHAR media_file_url \"NOT NULL\"\n        VARCHAR thumbnail_url \"NULL\"\n        ENUM media_type \"IMAGE VIDEO\"\n        INT position \"DEFAULT 0\"\n        BIGINT filter_id FK \"NULL\"\n        INT width \"NULL\"\n        INT height \"NULL\"\n        BIGINT file_size \"NULL\"\n        JSON metadata \"NULL EXIF\"\n        TIMESTAMP created_at \"NOT NULL\"\n    }\n\n    filters {\n        BIGINT id PK \"AUTO_INCREMENT\"\n        VARCHAR name UK \"NOT NULL\"\n        TEXT description \"NULL\"\n        JSON config_json \"NULL\"\n        VARCHAR preview_url \"NULL\"\n        BOOLEAN is_active \"DEFAULT TRUE\"\n    }\n\n    media_tags {\n        BIGINT id PK \"AUTO_INCREMENT\"\n        VARCHAR name UK \"NOT NULL\"\n        TEXT description \"NULL\"\n        INT usage_count \"DEFAULT 0\"\n        TIMESTAMP created_at \"NOT NULL\"\n    }\n\n    post_media_tags {\n        BIGINT media_id PK \"FK post_media\"\n        BIGINT tag_id PK \"FK media_tags\"\n        TIMESTAMP created_at \"NOT NULL\"\n    }\n\n    posts ||--o{ post_media : \"chua media\"\n    post_media }o--o| filters : \"ap dung filter\"\n    post_media ||--o{ post_media_tags : \"gan tag\"\n    media_tags ||--o{ post_media_tags : \"duoc gan\""},{"id":"erd-social","title":"Nhóm 3: Social & Engagement (4 bảng)","code":"erDiagram\n    users {\n        BIGINT id PK \"AUTO_INCREMENT\"\n        VARCHAR username UK \"NOT NULL\"\n        VARCHAR email UK \"NOT NULL\"\n        ENUM role \"PHOTOGRAPHER CLIENT ADMIN\"\n    }\n\n    posts {\n        BIGINT id PK \"AUTO_INCREMENT\"\n        BIGINT user_id FK \"NOT NULL\"\n        INT like_count \"DEFAULT 0\"\n        INT comment_count \"DEFAULT 0\"\n    }\n\n    followers {\n        BIGINT follower_id PK \"FK users\"\n        BIGINT following_id PK \"FK users\"\n        TIMESTAMP created_at \"NOT NULL\"\n    }\n\n    likes {\n        BIGINT id PK \"AUTO_INCREMENT\"\n        BIGINT user_id FK \"NOT NULL\"\n        BIGINT post_id FK \"NOT NULL\"\n        TIMESTAMP created_at \"NOT NULL\"\n    }\n\n    comments {\n        BIGINT id PK \"AUTO_INCREMENT\"\n        BIGINT post_id FK \"NOT NULL\"\n        BIGINT user_id FK \"NOT NULL\"\n        TEXT content \"NOT NULL\"\n        BIGINT parent_comment_id FK \"NULL threaded\"\n        INT like_count \"DEFAULT 0\"\n        INT reply_count \"DEFAULT 0\"\n        TINYINT depth \"DEFAULT 0 max 3\"\n        TIMESTAMP created_at \"NOT NULL\"\n        TIMESTAMP deleted_at \"NULL soft delete\"\n    }\n\n    saved_posts {\n        BIGINT id PK \"AUTO_INCREMENT\"\n        BIGINT user_id FK \"NOT NULL\"\n        BIGINT post_id FK \"NOT NULL\"\n        TIMESTAMP saved_at \"NOT NULL\"\n    }\n\n    users ||--o{ followers : \"theo doi\"\n    users ||--o{ likes : \"thich bai\"\n    users ||--o{ comments : \"binh luan\"\n    users ||--o{ saved_posts : \"luu bai\"\n    posts ||--o{ likes : \"nhan like\"\n    posts ||--o{ comments : \"nhan comment\"\n    posts ||--o{ saved_posts : \"duoc luu\"\n    comments ||--o{ comments : \"threaded cha-con\""},{"id":"erd-business","title":"Nhóm 4: Business - Booking & Rating (2 bảng)","code":"erDiagram\n    users {\n        BIGINT id PK \"AUTO_INCREMENT\"\n        VARCHAR username UK \"NOT NULL\"\n        ENUM role \"PHOTOGRAPHER CLIENT ADMIN\"\n    }\n\n    portfolios {\n        BIGINT id PK \"AUTO_INCREMENT\"\n        BIGINT user_id FK \"NOT NULL UNIQUE\"\n        DECIMAL hourly_rate \"NULL\"\n        DECIMAL rating_avg \"DEFAULT 0.00\"\n        INT review_count \"DEFAULT 0\"\n    }\n\n    bookings {\n        BIGINT id PK \"AUTO_INCREMENT\"\n        BIGINT client_id FK \"NOT NULL\"\n        BIGINT photographer_id FK \"NOT NULL\"\n        DATETIME booking_date \"NOT NULL\"\n        DECIMAL duration_hours \"NULL\"\n        VARCHAR location_booking \"NULL\"\n        TEXT details \"NULL\"\n        DECIMAL price \"NULL\"\n        VARCHAR currency \"DEFAULT VND\"\n        ENUM status \"PENDING CONFIRMED IN_PROGRESS COMPLETED CANCELLED\"\n        TEXT cancellation_reason \"NULL\"\n        TIMESTAMP created_at \"NOT NULL\"\n        TIMESTAMP updated_at \"NOT NULL\"\n    }\n\n    ratings {\n        BIGINT id PK \"AUTO_INCREMENT\"\n        BIGINT booking_id FK \"NOT NULL UNIQUE\"\n        BIGINT rater_id FK \"NOT NULL\"\n        BIGINT ratee_id FK \"NOT NULL\"\n        SMALLINT rating_value \"NOT NULL 1-5\"\n        TEXT comment \"NULL\"\n        TIMESTAMP created_at \"NOT NULL\"\n    }\n\n    users ||--o{ bookings : \"dat lich client\"\n    users ||--o{ bookings : \"nhan lich photographer\"\n    users ||--o| portfolios : \"ho so photographer\"\n    users ||--o{ ratings : \"danh gia\"\n    bookings ||--o| ratings : \"danh gia booking\""},{"id":"erd-messaging","title":"Nhóm 5: Messaging (3 bảng)","code":"erDiagram\n    users {\n        BIGINT id PK \"AUTO_INCREMENT\"\n        VARCHAR username UK \"NOT NULL\"\n    }\n\n    conversations {\n        BIGINT id PK \"AUTO_INCREMENT\"\n        VARCHAR title \"NULL\"\n        ENUM type \"DIRECT GROUP\"\n        TIMESTAMP created_at \"NOT NULL\"\n        TIMESTAMP updated_at \"NOT NULL\"\n    }\n\n    conversation_members {\n        BIGINT conversation_id PK \"FK conversations\"\n        BIGINT user_id PK \"FK users\"\n        ENUM role \"MEMBER ADMIN\"\n        BOOLEAN is_muted \"DEFAULT FALSE\"\n        TIMESTAMP joined_at \"NOT NULL\"\n        TIMESTAMP last_read_at \"NULL\"\n    }\n\n    messages {\n        BIGINT id PK \"AUTO_INCREMENT\"\n        BIGINT conversation_id FK \"NOT NULL\"\n        BIGINT sender_id FK \"NOT NULL\"\n        TEXT content \"NULL\"\n        ENUM message_type \"TEXT IMAGE VIDEO FILE SYSTEM\"\n        VARCHAR media_url \"NULL\"\n        BIGINT reply_to_id FK \"NULL self-ref\"\n        BOOLEAN is_deleted \"DEFAULT FALSE\"\n        TIMESTAMP created_at \"NOT NULL\"\n    }\n\n    users ||--o{ conversation_members : \"tham gia chat\"\n    users ||--o{ messages : \"gui tin nhan\"\n    conversations ||--o{ conversation_members : \"thanh vien\"\n    conversations ||--o{ messages : \"chua tin nhan\""},{"id":"erd-system","title":"Nhóm 6: System & Admin (4 bảng)","code":"erDiagram\n    users {\n        BIGINT id PK \"AUTO_INCREMENT\"\n        VARCHAR username UK \"NOT NULL\"\n        ENUM role \"PHOTOGRAPHER CLIENT ADMIN\"\n    }\n\n    notifications {\n        BIGINT id PK \"AUTO_INCREMENT\"\n        BIGINT user_id FK \"NOT NULL\"\n        BIGINT sender_id FK \"NULL\"\n        ENUM type \"NEW_LIKE NEW_COMMENT NEW_FOLLOWER BOOKING SYSTEM\"\n        ENUM target_type \"POST COMMENT USER BOOKING CONVERSATION\"\n        BIGINT target_id \"NULL\"\n        VARCHAR title \"NULL\"\n        TEXT body \"NULL\"\n        BOOLEAN is_read \"DEFAULT FALSE\"\n        TIMESTAMP created_at \"NOT NULL\"\n    }\n\n    activity_logs {\n        BIGINT id PK \"AUTO_INCREMENT\"\n        BIGINT user_id FK \"NULL\"\n        VARCHAR action \"NOT NULL\"\n        ENUM target_type \"POST USER COMMENT BOOKING MEDIA SESSION\"\n        BIGINT target_id \"NULL\"\n        VARCHAR ip_address \"NULL\"\n        JSON metadata \"NULL\"\n        TIMESTAMP created_at \"NOT NULL\"\n    }\n\n    reports {\n        BIGINT id PK \"AUTO_INCREMENT\"\n        BIGINT reporter_id FK \"NOT NULL\"\n        ENUM target_type \"POST COMMENT USER BOOKING MESSAGE\"\n        BIGINT target_id \"NOT NULL\"\n        TEXT reason \"NOT NULL\"\n        TEXT admin_note \"NULL\"\n        BIGINT reviewed_by FK \"NULL\"\n        ENUM status \"PENDING REVIEWING RESOLVED DISMISSED\"\n        TIMESTAMP created_at \"NOT NULL\"\n        TIMESTAMP updated_at \"NOT NULL\"\n    }\n\n    search_histories {\n        BIGINT id PK \"AUTO_INCREMENT\"\n        BIGINT user_id FK \"NOT NULL\"\n        VARCHAR query_text \"NOT NULL\"\n        INT result_count \"NULL\"\n        TIMESTAMP searched_at \"NOT NULL\"\n    }\n\n    users ||--o{ notifications : \"nhan thong bao\"\n    users ||--o{ activity_logs : \"nhat ky\"\n    users ||--o{ reports : \"bao cao\"\n    users ||--o{ search_histories : \"lich su tim kiem\""}];
+async function renderAll() {
+    for (const d of diagrams) {
+        const el = document.getElementById(d.id);
+        if (el) {
+            try {
+                const { svg } = await mermaid.render(d.id + "-svg", d.code);
+                el.innerHTML = svg;
+                el.classList.remove("mermaid-placeholder");
+            } catch (err) {
+                el.innerHTML = "<p style=\"color:red\">Loi: " + err.message + "</p>";
+                el.classList.remove("mermaid-placeholder");
+            }
+        }
+    }
+}
+renderAll();
+</script>
+</body>
+</html>

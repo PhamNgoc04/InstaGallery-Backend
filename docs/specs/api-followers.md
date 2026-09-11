@@ -1,77 +1,54 @@
 # API Đặc Tả: Hệ Thống Người Theo Dõi (Followers System)
 
-*(Giao tiếp mạng xã hội giữa Users - Phase 2)*
+Mã nguồn hiện tại: `src/main/kotlin/com/instagallery/routes/UserRoutes.kt`
 
-## 1. Theo Dõi (Follow) Một Người Dùng
-- **Cụm:** `Interaction` / `Social`
+## 1. Bật/tắt theo dõi (Follow / Unfollow toggle)
+
+- **Cụm:** `Users` / `Social`
 - **Endpoint:** `POST /api/v1/users/{userId}/follow`
-- **Access:** Bắt buộc có AccessToken
-- **Mô tả:** Request để Theodõi một User khác. Hệ thống sẽ:
-  1. Thêm một dòng vào bảng `followers`.
-  2. Tăng `following_count` của người gửi.
-  3. Tăng `follower_count` của người nhận.
-  4. (Tùy chọn) Gửi Push Notification đến người nhận.
+- **Access:** Bắt buộc có Access Token
+- **Mô tả:** Mã nguồn hiện tại dùng endpoint này như một dạng chuyển đổi tắt mở (toggle). Nếu chưa theo dõi thì tạo quan hệ theo dõi; nếu đã theo dõi thì hủy theo dõi.
 
-**Response Thành Công (200 OK):**
+Phản hồi gợi ý:
+
 ```json
 {
-  "success": true,
+  "status": "success",
+  "data": {
+    "isFollowing": true
+  },
   "message": "Đã theo dõi người dùng này."
 }
 ```
-**Ngoại lệ:**
-- HTTP 400: Không thể tự Follow chính mình.
-- HTTP 409: Đã theo dõi người này rồi.
 
----
+## 2. Danh sách người theo dõi (Followers)
 
-## 2. Bỏ Theo Dõi (Unfollow)
-- **Cụm:** `Interaction` / `Social`
-- **Endpoint:** `DELETE /api/v1/users/{userId}/follow`
-- **Access:** Bắt buộc có AccessToken
-- **Mô tả:** Hủy theo dõi một User khác. Hệ thống sẽ giảm đếm Counter ở cả 2 đầu.
-
----
-
-## 3. Lấy Danh Sách Người Theo Dõi Của Tôi (Get Followers)
-- **Cụm:** `Users` / `Social`
 - **Endpoint:** `GET /api/v1/users/{userId}/followers?page=1&limit=20`
-- **Access:** Tùy chọn (Public Profile thì ai cũng có thể xem được)
-- **Mô tả:** Lấy danh sách những người đang bấm Follow User này. 
+- **Access:** Công khai (Public) theo mã nguồn hiện tại
+- **Mô tả:** Lấy danh sách người dùng đang theo dõi `userId`.
 
-**Response Thành Công:**
-```json
-{
-  "success": true,
-  "data": {
-    "users": [
-      {
-        "id": 101,
-        "username": "client01",
-        "full_name": "Tên Khách Hàng",
-        "avatar": "https://..."
-      }
-    ],
-    "meta": {
-      "total": 1500,
-      "page": 1
-    }
-  }
-}
-```
+## 3. Danh sách đang theo dõi (Following)
 
----
-
-## 4. Lấy Danh Sách Đang Theo Dõi (Get Following)
-- **Cụm:** `Users` / `Social`
 - **Endpoint:** `GET /api/v1/users/{userId}/following?page=1&limit=20`
-- **Access:** Tùy chọn 
-- **Mô tả:** Lấy xem User này đang theo dõi ngược lại những ai. Cấu trúc Response tương tự Get Followers.
+- **Access:** Công khai (Public) theo mã nguồn hiện tại
+- **Mô tả:** Lấy danh sách người dùng mà `userId` đang theo dõi.
 
----
+## 4. Gợi ý theo dõi (Suggestions)
 
-## 5. Gợi Ý Theo Dõi (Suggestions)
-- **Cụm:** `Users` / `Social`
-- **Endpoint:** `GET /api/v1/users/suggestions`
-- **Access:** Bắt buộc có AccessToken
-- **Mô tả:** Gợi ý các user mới ngẫu nhiên hoặc có nhiều tương tác để khuyến khích kết nối ban đầu. Cấu trúc Response trả về mảng UserDto rút gọn.
+- **Endpoint:** `GET /api/v1/users/suggestions?limit=10`
+- **Access:** Bắt buộc có Access Token
+- **Mô tả:** Gợi ý người dùng nên theo dõi.
+
+## 5. Yêu cầu theo dõi tài khoản riêng tư (Private follow requests)
+
+| Phương thức | Endpoint | Quyền hạn | Ghi chú |
+|---|---|:---:|---|
+| GET | `/api/v1/users/me/follow-requests` | Khách hàng | Hiện đang là khung chức năng / TODO trong route |
+| POST | `/api/v1/users/me/follow-requests/{followerId}/{action}` | Khách hàng | `action` thường là `accept` hoặc `reject`; đang là khung chức năng / TODO |
+
+## 6. Chặn / tắt tiếng liên quan đến mạng lưới xã hội (Block / mute)
+
+| Phương thức | Endpoint | Quyền hạn | Ghi chú |
+|---|---|:---:|---|
+| POST | `/api/v1/users/{id}/block` | Khách hàng | Bật/tắt chặn người dùng (toggle); đang là khung chức năng / TODO |
+| POST | `/api/v1/users/{id}/mute` | Khách hàng | Bật/tắt tắt tiếng người dùng (toggle); đang là khung chức năng / TODO |

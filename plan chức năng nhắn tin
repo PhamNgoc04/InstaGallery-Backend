@@ -8,7 +8,6 @@ Bản nâng cấp này đã được thiết kế lại dựa trên **5 Đóng g
 3. **Quản trị Message Status**: Thêm enum trạng thái (`SENDING`, `SENT`, `DELIVERED`, `READ`, `FAILED`) để kiểm soát chặt vòng đời của một tin nhắn.
 4. **Độ tinh xảo UI/UX (Messenger level)**: Xử lý Keyboard mượt mà với `Modifier.imePadding()` và `WindowInsets`. Phân nhóm logic theo Date Header ("Hôm nay", "T6"). Bổ sung Animation "Người kia đang nhập...".
 5. **Flow triển khai ổn định**: Lặp lại quy trình vàng (REST trước → DB Local & UI → Đắp WebSocket lên đỉnh) để không gãy gánh giữa chừng.
-
 ---
 
 ## Phân tích Reference UI & Trải nghiệm
@@ -28,7 +27,6 @@ Bản nâng cấp này đã được thiết kế lại dựa trên **5 Đóng g
   - Typing Indicator: Hiện bong bóng với 3 dấu chấm nhấp nháy khi bắt được event.
   - Xử lý bàn phím `imePadding()`: Không làm giật khung LazyColumn.
 - **Bottom Input Bar**: Khung gửi chữ "Aa", icon chụp ảnh/gửi ảnh. (Phase 1 hiển thị hình từ URL, Phase sau làm tính năng push file).
-
 ---
 
 ## Lộ Trình Triển Khai (Roadmap Phase)
