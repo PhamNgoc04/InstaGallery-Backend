@@ -27,7 +27,7 @@ Nếu phía backend phản hồi đường dẫn hình ảnh có chứa địa c
 
 ## 2. Số liệu thống kê Backend hiện tại (Backend Metrics)
 
-- Database tables (Số lượng bảng): **36**.
+- Database tables (Số lượng bảng): **37**.
 - REST endpoints under `/api/v1`: **139**.
 - System/debug HTTP endpoints outside `/api/v1`: **5**.
 - Total HTTP endpoints: **144**.
@@ -293,4 +293,4 @@ Sử dụng mặc định `BASE_URL = http://10.0.2.2:8080/api/v1`. Các endpoin
 
 ## 7. Mẫu gợi ý (prompt) cho các trợ lý AI Android
 
-> Tôi đang xây dựng ứng dụng di động Android cho hệ thống InstaGallery. Backend Ktor hiện tại có 36 bảng cơ sở dữ liệu, 139 REST endpoints dưới dạng prefix `/api/v1`, 5 system HTTP routes kiểm định hệ thống, và 1 đường kết nối thời gian thực WebSocket `/api/v1/ws/chat`. Hãy tạo một Network Module sử dụng Ktor Client và Koin phục vụ cho cấu trúc Dependency Injection, viết logic xử lý đính kèm Bearer token + cơ chế refresh token luân chuyển tự động, cấu hình ánh xạ IP local `10.0.2.2` tương ứng cho emulator giả lập, và chỉ sinh mã nguồn cho các API service theo các endpoints quy hoạch rõ ràng trong file ngữ cảnh này. Refresh token trên server là bản băm. Tạo chat trả `conversationId` và `isNew`.
+> Tôi đang xây dựng ứng dụng di động Android cho hệ thống InstaGallery. Backend Ktor hiện tại có 37 bảng cơ sở dữ liệu, 139 REST endpoints dưới dạng prefix `/api/v1`, 5 system HTTP routes kiểm định hệ thống, và 1 đường kết nối thời gian thực WebSocket `/api/v1/ws/chat`. Hãy tạo một Network Module sử dụng Ktor Client và Koin phục vụ cho cấu trúc Dependency Injection, viết logic xử lý đính kèm Bearer token + cơ chế refresh token luân chuyển tự động, cấu hình ánh xạ IP local `10.0.2.2` tương ứng cho emulator giả lập, và chỉ sinh mã nguồn cho các API service theo các endpoints quy hoạch rõ ràng trong file ngữ cảnh này. Refresh token trên server là bản băm. Tạo chat trả `conversationId` và `isNew`.

@@ -2,7 +2,7 @@
 
 ### 2.3.1. Biểu đồ Entity Relationship Diagram (ERD)
 
-Hệ thống InstaGallery sử dụng MySQL 8.x với charset utf8mb4 (hỗ trợ emoji), engine InnoDB. Theo bộ backend mới nhất, tổng cộng có **36 bảng** được phân thành 10 nhóm. ERD dưới đây minh họa các quan hệ lõi; danh sách schema đầy đủ xem `docs/database/database_schema.md`.
+Hệ thống InstaGallery sử dụng MySQL 8.x với charset utf8mb4 (hỗ trợ emoji), engine InnoDB. Theo bộ backend mới nhất, tổng cộng có **37 bảng** được phân thành 10 nhóm. ERD dưới đây minh họa các quan hệ lõi; danh sách schema đầy đủ xem `docs_backend/database/database_schema.md`.
 
 #### ERD Tổng thể
 
@@ -149,7 +149,7 @@ erDiagram
 
 ### 2.3.2. Các bảng trong cơ sở dữ liệu
 
-Hệ thống hiện gồm 36 bảng được phân thành 10 nhóm chức năng. Phần mô tả chi tiết mới nhất được chuẩn hóa tại [database_schema.md](../database/database_schema.md) và các file mô tả bảng trong [Các bảng trong cơ sở dữ liệu/](Các%20bảng%20trong%20cơ%20sở%20dữ%20liệu/).
+Hệ thống hiện gồm 37 bảng được phân thành 10 nhóm chức năng. Phần mô tả chi tiết mới nhất được chuẩn hóa tại [database_schema.md](../database/database_schema.md) và các file mô tả bảng trong [Các bảng trong cơ sở dữ liệu/](Các%20bảng%20trong%20cơ%20sở%20dữ%20liệu/).
 
 #### Nhóm 1: Auth & Identity (3 bảng)
 

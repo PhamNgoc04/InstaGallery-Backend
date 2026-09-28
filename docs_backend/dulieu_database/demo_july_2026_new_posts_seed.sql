@@ -7,6 +7,7 @@ SET CHARACTER SET utf8mb4;
 -- Adds new client users, new photographers with portfolios, 
 -- and 30+ highly-recent social posts across all categories.
 -- High likes ensure they rank in Page 1 (top 80 explore posts) for client-side filtering.
+-- Password is username + 123!. Admin is the only account that uses Admin@123.
 -- =========================================================================
 
 SET FOREIGN_KEY_CHECKS = 0;
@@ -17,12 +18,15 @@ INSERT IGNORE INTO users (
     location, role, user_type, is_active, is_verified, provider, is_private,
     follower_count, following_count, post_count
 ) VALUES
-(201, 'hoangnam', 'hoangnam@gmail.com', '$2a$12$1tPMR06e8N/p.r03cWpXpOS0VpePshq4w1bHq0Y.xJ4V8z1z1z1z1', 'Hoàng Nam', 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150', 'Thích chụp ảnh đường phố Hà Nội, thích cà phê vỉa hè và lưu giữ góc phố thân quen.', 'Ha Noi', 'USER', 'CLIENT', 1, 0, 'LOCAL', 0, 180, 95, 0),
-(202, 'bichthuy', 'bichthuy@gmail.com', '$2a$12$1tPMR06e8N/p.r03cWpXpOS0VpePshq4w1bHq0Y.xJ4V8z1z1z1z1', 'Bích Thủy', 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150', 'Quan tâm ảnh chân dung nghệ thuật, muốn tìm thợ ảnh chụp album cá nhân.', 'Ha Noi', 'USER', 'CLIENT', 1, 0, 'LOCAL', 0, 240, 120, 0),
-(203, 'phuonganh', 'phuonganh@gmail.com', '$2a$12$1tPMR06e8N/p.r03cWpXpOS0VpePshq4w1bHq0Y.xJ4V8z1z1z1z1', 'Phương Anh', 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150', 'Mê du lịch và chụp ảnh couple outdoor ở Đà Lạt. Cần tìm thợ ảnh có tâm.', 'Da Lat', 'USER', 'CLIENT', 1, 1, 'LOCAL', 0, 310, 155, 0),
-(204, 'quocanh', 'quocanh@gmail.com', '$2a$12$1tPMR06e8N/p.r03cWpXpOS0VpePshq4w1bHq0Y.xJ4V8z1z1z1z1', 'Quốc Anh', 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150', 'Sáng lập local brand tại Sài Gòn, chuyên tìm photographer chụp lookbook sản phẩm.', 'Ho Chi Minh City', 'USER', 'CLIENT', 1, 0, 'LOCAL', 0, 140, 78, 0),
-(205, 'lanhuong', 'lanhuong@gmail.com', '$2a$12$1tPMR06e8N/p.r03cWpXpOS0VpePshq4w1bHq0Y.xJ4V8z1z1z1z1', 'Lan Hương', 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150', 'Thích lưu giữ những khoảnh khắc gia đình nhỏ ấm áp và bình dị.', 'Da Nang', 'USER', 'CLIENT', 1, 0, 'LOCAL', 0, 215, 110, 0)
+(201, 'hoangnam', 'hoangnam@gmail.com', '$2a$10$i7h0X/VeB7QGAV5dx1X5BObm20vn9WAYWyjXU51KRM8EqF3z9I/Hm', 'Hoàng Nam', 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150', 'Thích chụp ảnh đường phố Hà Nội, thích cà phê vỉa hè và lưu giữ góc phố thân quen.', 'Ha Noi', 'USER', 'CLIENT', 1, 0, 'LOCAL', 0, 180, 95, 0),
+(202, 'buibichthuy', 'buibichthuy@gmail.com', '$2a$10$AeAuQe2JJD/Qy952T7j/meU2FI/AzMYAIiyXAXi0Ii0Ft7m2YZYyW', 'Bùi Bích Thủy', 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150', 'Quan tâm ảnh chân dung nghệ thuật, muốn tìm thợ ảnh chụp album cá nhân.', 'Ha Noi', 'USER', 'CLIENT', 1, 0, 'LOCAL', 0, 240, 120, 0),
+(203, 'dophuonganh', 'dophuonganh@gmail.com', '$2a$10$2AFbK4oBdgHd6qTbybvfb.iC/2GmPPKONadWF4mUVufFRKcjOWZvS', 'Đỗ Phương Anh', 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150', 'Mê du lịch và chụp ảnh couple outdoor ở Đà Lạt. Cần tìm thợ ảnh có tâm.', 'Da Lat', 'USER', 'CLIENT', 1, 1, 'LOCAL', 0, 310, 155, 0),
+(204, 'hoquocanh', 'hoquocanh@gmail.com', '$2a$10$XsDryFr3TlRjem8OsVkPtuv6rtp9030FGN3nQkgtT5WCuTtLvJv0i', 'Hồ Quốc Anh', 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150', 'Sáng lập local brand tại Sài Gòn, chuyên tìm photographer chụp lookbook sản phẩm.', 'Ho Chi Minh City', 'USER', 'CLIENT', 1, 0, 'LOCAL', 0, 140, 78, 0),
+(205, 'ngolanhuong', 'ngolanhuong@gmail.com', '$2a$10$WFxXnHITxuWJl429JQzUrOuBqkZBeLy0rpioGSczV98/ni6K.Wu8a', 'Ngô Lan Hương', 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150', 'Thích lưu giữ những khoảnh khắc gia đình nhỏ ấm áp và bình dị.', 'Da Nang', 'USER', 'CLIENT', 1, 0, 'LOCAL', 0, 215, 110, 0)
 ON DUPLICATE KEY UPDATE
+    username = VALUES(username),
+    email = VALUES(email),
+    password_hash = VALUES(password_hash),
     full_name = VALUES(full_name),
     bio = VALUES(bio),
     location = VALUES(location);
@@ -33,12 +37,15 @@ INSERT IGNORE INTO users (
     location, role, user_type, is_active, is_verified, provider, is_private,
     follower_count, following_count, post_count
 ) VALUES
-(206, 'photoducduy', 'photoducduy@gmail.com', '$2a$12$1tPMR06e8N/p.r03cWpXpOS0VpePshq4w1bHq0Y.xJ4V8z1z1z1z1', 'Đức Duy Photo', 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150', 'Nhiếp ảnh gia chuyên chân dung tự nhiên, phóng sự đường phố và ảnh thu Hà Nội trầm mặc.', 'Ha Noi', 'USER', 'PHOTOGRAPHER', 1, 1, 'LOCAL', 0, 1520, 180, 20),
-(207, 'photothutrang', 'photothutrang@gmail.com', '$2a$12$1tPMR06e8N/p.r03cWpXpOS0VpePshq4w1bHq0Y.xJ4V8z1z1z1z1', 'Thu Trang Photo', 'https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91?w=150', 'Nhận chụp couple outdoor Đà Lạt, phong cách nhẹ nhàng, thơ mộng, lãng mạn.', 'Da Lat', 'USER', 'PHOTOGRAPHER', 1, 1, 'LOCAL', 0, 1840, 210, 20),
-(208, 'photominhquan', 'photominhquan@gmail.com', '$2a$12$1tPMR06e8N/p.r03cWpXpOS0VpePshq4w1bHq0Y.xJ4V8z1z1z1z1', 'Minh Quân Studio', 'https://images.unsplash.com/photo-1500048993953-d23a436266cf?w=150', 'Studio chuyên nghiệp cho local brand, lookbook sản phẩm và ảnh thời trang tại Sài Gòn.', 'Ho Chi Minh City', 'USER', 'PHOTOGRAPHER', 1, 1, 'LOCAL', 0, 2150, 230, 20),
-(209, 'phototruclam', 'phototruclam@gmail.com', '$2a$12$1tPMR06e8N/p.r03cWpXpOS0VpePshq4w1bHq0Y.xJ4V8z1z1z1z1', 'Trúc Lâm FineArt', 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=150', 'Kể câu chuyện văn hóa, nghệ thuật cố đô qua các bộ ảnh phục cổ và fine art tại Huế.', 'Hue', 'USER', 'PHOTOGRAPHER', 1, 1, 'LOCAL', 0, 1310, 140, 20),
-(210, 'photophuongvy', 'photophuongvy@gmail.com', '$2a$12$1tPMR06e8N/p.r03cWpXpOS0VpePshq4w1bHq0Y.xJ4V8z1z1z1z1', 'Phương Vy Baby', 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150', 'Lưu giữ nụ cười trẻ thơ và khoảnh khắc gia đình nhỏ đón bình minh trên biển Đà Nẵng.', 'Da Nang', 'USER', 'PHOTOGRAPHER', 1, 1, 'LOCAL', 0, 1690, 175, 20)
+(206, 'duongducduy', 'duongducduy@gmail.com', '$2a$10$ydwVZ4Nx62HIyMBYDR9CZubQGzLX9rrYw9SL2IJkWli/An6fmuwQq', 'Dương Đức Duy', 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150', 'Nhiếp ảnh gia chuyên chân dung tự nhiên, phóng sự đường phố và ảnh thu Hà Nội trầm mặc.', 'Ha Noi', 'USER', 'PHOTOGRAPHER', 1, 1, 'LOCAL', 0, 1520, 180, 20),
+(207, 'vuhuuphuc', 'vuhuuphuc@gmail.com', '$2a$10$Je349boCeLFmwVzGj5echub1yGQ8Ly13xZs55yqS0dEt0ebs94fHK', 'Vũ Hữu Phúc', 'https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91?w=150', 'Nhận chụp couple outdoor Đà Lạt, phong cách nhẹ nhàng, thơ mộng, lãng mạn.', 'Da Lat', 'USER', 'PHOTOGRAPHER', 1, 1, 'LOCAL', 0, 1840, 210, 20),
+(208, 'nguyenminhquan', 'nguyenminhquan@gmail.com', '$2a$10$Khg57tPWL8DQh4jKNCNTHe14BsFY8As4.aOSHbW3eK3pRg9HTK78G', 'Nguyễn Minh Quân', 'https://images.unsplash.com/photo-1500048993953-d23a436266cf?w=150', 'Studio chuyên nghiệp cho local brand, lookbook sản phẩm và ảnh thời trang tại Sài Gòn.', 'Ho Chi Minh City', 'USER', 'PHOTOGRAPHER', 1, 1, 'LOCAL', 0, 2150, 230, 20),
+(209, 'trantruclam', 'trantruclam@gmail.com', '$2a$10$ztPHZFGPBAQjiXNAvE26We8mSko43AHw43qn1D99VBKVUZszrjHhi', 'Trần Trúc Lâm', 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=150', 'Kể câu chuyện văn hóa, nghệ thuật cố đô qua các bộ ảnh phục cổ và fine art tại Huế.', 'Hue', 'USER', 'PHOTOGRAPHER', 1, 1, 'LOCAL', 0, 1310, 140, 20),
+(210, 'lephuongvy', 'lephuongvy@gmail.com', '$2a$10$2jXqd/gbNFcLsi21OFYqRugFRGtGqhKXRJr63qsAuUVIgVFINtSoq', 'Lê Phương Vy', 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150', 'Lưu giữ nụ cười trẻ thơ và khoảnh khắc gia đình nhỏ đón bình minh trên biển Đà Nẵng.', 'Da Nang', 'USER', 'PHOTOGRAPHER', 1, 1, 'LOCAL', 0, 1690, 175, 20)
 ON DUPLICATE KEY UPDATE
+    username = VALUES(username),
+    email = VALUES(email),
+    password_hash = VALUES(password_hash),
     full_name = VALUES(full_name),
     bio = VALUES(bio),
     location = VALUES(location);
@@ -257,5 +264,84 @@ INSERT IGNORE INTO likes (id, user_id, post_id, created_at) VALUES
 (7008, 205, 1303, CURRENT_TIMESTAMP - INTERVAL 21 MINUTE),
 (7009, 201, 1304, CURRENT_TIMESTAMP - INTERVAL 44 MINUTE),
 (7010, 205, 1304, CURRENT_TIMESTAMP - INTERVAL 42 MINUTE);
+
+-- Users 211-250. Password is username + 123!
+INSERT INTO users (
+    id, username, email, password_hash, full_name, profile_picture_url, bio,
+    location, role, user_type, is_active, is_verified, provider, is_private,
+    follower_count, following_count, post_count
+) VALUES
+(211, 'hoangphuongvy', 'hoangphuongvy@gmail.com', '$2a$10$JewhntoaCoXwD18VvD0YAeBbDDCdYWE9Tcm3uwaBDUV4xxsRbuw4.', 'Hoàng Phương Vy', 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80', 'Muốn lưu lại ảnh cưới tối giản và khoảnh khắc đời thường.', 'Da Nang', 'USER', 'CLIENT', 1, 0, 'LOCAL', 0, 303, 77, 0),
+(212, 'phanhuuphuc', 'phanhuuphuc@gmail.com', '$2a$10$9IYzMDo7GxdcrKCyCPm1ZOy2ycJ3JjXOO1Q6icuNVuFkOTnwF/Jui', 'Phan Hữu Phúc', 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d', 'Thích ảnh đường phố, quán cà phê và những buổi chiều có nắng.', 'Ho Chi Minh City', 'USER', 'CLIENT', 1, 0, 'LOCAL', 0, 316, 84, 0),
+(213, 'phanphuongvy', 'phanphuongvy@gmail.com', '$2a$10$PpgiIkyt.r09a3CgYDdbeei0KJ1Tq2Z6W.0RpKx9xDeCperm8bzJu', 'Phan Phương Vy', 'https://images.unsplash.com/photo-1534528741775-53994a69daeb', 'Hay tìm nhiếp ảnh gia cho ảnh gia đình và chuyến đi cuối tuần.', 'Hue', 'USER', 'CLIENT', 1, 0, 'LOCAL', 0, 329, 91, 0),
+(214, 'vuphuongvy', 'vuphuongvy@gmail.com', '$2a$10$oVBCF/xmV3wtH7RGa.8kpeFqyJcvtIhuFn05hgtcL9oluWue31Y1O', 'Vũ Phương Vy', 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1', 'Mê ảnh phong cảnh, biển và các bộ ảnh màu trong trẻo.', 'Da Lat', 'USER', 'CLIENT', 1, 0, 'LOCAL', 0, 342, 98, 0),
+(215, 'danghuuphuc', 'danghuuphuc@gmail.com', '$2a$10$sLLrYbY7yJoN.QrkbljPeugKxl3VLzmSG0/qgl0R3DyiO2hG5WdmC', 'Đặng Hữu Phúc', 'https://images.unsplash.com/photo-1547425260-76bcadfb4f2c', 'Muốn lưu lại ảnh cưới tối giản và khoảnh khắc đời thường.', 'Nha Trang', 'USER', 'CLIENT', 1, 1, 'LOCAL', 0, 355, 105, 0),
+(216, 'buihuuphuc', 'buihuuphuc@gmail.com', '$2a$10$p84qFkysYMBOmCptfMK.6uZYHRSbUocVVJ5C/4RRImlKsCV5VVDVG', 'Bùi Hữu Phúc', 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e', 'Thích ảnh đường phố, quán cà phê và những buổi chiều có nắng.', 'Hoi An', 'USER', 'CLIENT', 1, 0, 'LOCAL', 0, 88, 112, 0),
+(217, 'hohaianh', 'hohaianh@gmail.com', '$2a$10$0J7qMQaJj62MzBh0esP48unJ7gTJv6crYTZV6NNbOusYrEaLH3KSy', 'Hồ Hải Anh', 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80', 'Hay tìm nhiếp ảnh gia cho ảnh gia đình và chuyến đi cuối tuần.', 'Can Tho', 'USER', 'CLIENT', 1, 0, 'LOCAL', 0, 101, 119, 0),
+(218, 'dophuongvy', 'dophuongvy@gmail.com', '$2a$10$yRb818Np33n/gmGxeMcb1uNOb7cIlS5NIQl8u12Ca514cTl2mdty6', 'Đỗ Phương Vy', 'https://images.unsplash.com/photo-1544005313-94ddf0286df2', 'Mê ảnh phong cảnh, biển và các bộ ảnh màu trong trẻo.', 'Sa Pa', 'USER', 'CLIENT', 1, 0, 'LOCAL', 0, 114, 126, 0),
+(219, 'ngohuuphuc', 'ngohuuphuc@gmail.com', '$2a$10$wEJxmvd0YE8FdQkUYV/KI.B/HuqF9AG3tef7K9nE/7gL1I5VsFLFO', 'Ngô Hữu Phúc', 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde', 'Muốn lưu lại ảnh cưới tối giản và khoảnh khắc đời thường.', 'Phu Quoc', 'USER', 'CLIENT', 1, 0, 'LOCAL', 0, 127, 133, 0),
+(220, 'ngophuongvy', 'ngophuongvy@gmail.com', '$2a$10$5dgWvfHInBlGqLkCYnqJPO6QY5NihDlKAP6Ki/2sk8B.4NFwSg9hO', 'Ngô Phương Vy', 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1', 'Thích ảnh đường phố, quán cà phê và những buổi chiều có nắng.', 'Ha Noi', 'USER', 'CLIENT', 1, 1, 'LOCAL', 0, 140, 140, 0),
+(221, 'lyhuuphuc', 'lyhuuphuc@gmail.com', '$2a$10$fz5z.IODr0CiSnqlpZYEG.0I5QQjA6buBYnh5bO32vbmBGwTTDi.O', 'Lý Hữu Phúc', 'https://images.unsplash.com/photo-1547425260-76bcadfb4f2c', 'Hay tìm nhiếp ảnh gia cho ảnh gia đình và chuyến đi cuối tuần.', 'Da Nang', 'USER', 'CLIENT', 1, 0, 'LOCAL', 0, 153, 147, 0),
+(222, 'lyphuongvy', 'lyphuongvy@gmail.com', '$2a$10$2frSURNJZulIDiT1kJePKObbdklXg6aEXiFSRE8GnskMb.M2YyUQG', 'Lý Phương Vy', 'https://images.unsplash.com/photo-1494790108377-be9c29b29330', 'Mê ảnh phong cảnh, biển và các bộ ảnh màu trong trẻo.', 'Ho Chi Minh City', 'USER', 'CLIENT', 1, 0, 'LOCAL', 0, 166, 154, 0),
+(223, 'lytuankiet', 'lytuankiet@gmail.com', '$2a$10$oGBuEuRzrs8JjY.3L8ns1eAAbGNNmnphEXRYI7Mqx4wT/KExKZfB6', 'Lý Tuấn Kiệt', 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d', 'Muốn lưu lại ảnh cưới tối giản và khoảnh khắc đời thường.', 'Hue', 'USER', 'CLIENT', 1, 0, 'LOCAL', 0, 179, 161, 0),
+(224, 'tranhuuphuc', 'tranhuuphuc@gmail.com', '$2a$10$tilJRFyCuzc8xkbKuigdD.hkIuhVVSw.ua/Cgox3AIgyvdL7uNEY2', 'Trần Hữu Phúc', 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d', 'Thích ảnh đường phố, quán cà phê và những buổi chiều có nắng.', 'Da Lat', 'USER', 'CLIENT', 1, 0, 'LOCAL', 0, 192, 168, 0),
+(225, 'lehuuphuc', 'lehuuphuc@gmail.com', '$2a$10$p32d0DHqRxWxC.LDpLxQtuy0B6eiVeK5psGP3RyyQKvkiutAL8rzG', 'Lê Hữu Phúc', 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde', 'Hay tìm nhiếp ảnh gia cho ảnh gia đình và chuyến đi cuối tuần.', 'Nha Trang', 'USER', 'CLIENT', 1, 1, 'LOCAL', 0, 205, 175, 0),
+(226, 'phamhuuphuc', 'phamhuuphuc@gmail.com', '$2a$10$1xPsJ1Y83A3JqbdhLQydmezAl0/Iim7yfwi/gkBrWz9Dr.27EM8OW', 'Phạm Hữu Phúc', 'https://images.unsplash.com/photo-1527980965255-d3b416303d12', 'Mê ảnh phong cảnh, biển và các bộ ảnh màu trong trẻo.', 'Hoi An', 'USER', 'CLIENT', 1, 0, 'LOCAL', 0, 218, 182, 0),
+(227, 'phamphuongvy', 'phamphuongvy@gmail.com', '$2a$10$NRiXXPSGH3hYxmjKFrTRx.WGbEVioZQCLLSG3OtwvpTuywQP4zbKS', 'Phạm Phương Vy', 'https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91', 'Muốn lưu lại ảnh cưới tối giản và khoảnh khắc đời thường.', 'Can Tho', 'USER', 'CLIENT', 1, 0, 'LOCAL', 0, 231, 189, 0),
+(228, 'huynhhuuphuc', 'huynhhuuphuc@gmail.com', '$2a$10$iAmGM1pN8rRTBJjJP9RDRO4bMj7LpQY9TPYPfZyqG/lvwvM4L99cK', 'Huỳnh Hữu Phúc', 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e', 'Thích ảnh đường phố, quán cà phê và những buổi chiều có nắng.', 'Sa Pa', 'USER', 'CLIENT', 1, 0, 'LOCAL', 0, 244, 196, 0),
+(229, 'vuhaianh', 'vuhaianh@gmail.com', '$2a$10$LqFqtB7oGzUnV1venzonOORyk6C4Hui5jQePGbvZpCi5B/21HMqpm', 'Vũ Hải Anh', 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80', 'Hay tìm nhiếp ảnh gia cho ảnh gia đình và chuyến đi cuối tuần.', 'Phu Quoc', 'USER', 'CLIENT', 1, 0, 'LOCAL', 0, 257, 203, 0),
+(230, 'vohaianh', 'vohaianh@gmail.com', '$2a$10$fcaV58J.WPhDprag9xxyU.WWFO8i/.i4YLAhmQBuIO4LjuhJCf69W', 'Võ Hải Anh', 'https://images.unsplash.com/photo-1544005313-94ddf0286df2', 'Mê ảnh phong cảnh, biển và các bộ ảnh màu trong trẻo.', 'Ha Noi', 'USER', 'CLIENT', 1, 1, 'LOCAL', 0, 270, 210, 0),
+(231, 'vohuuphuc', 'vohuuphuc@gmail.com', '$2a$10$lstotTS9Cfxgdizd159ByOxMdqdYQJ6pm5tEZmOZwmTNC7d7KErku', 'Võ Hữu Phúc', 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde', 'Muốn lưu lại ảnh cưới tối giản và khoảnh khắc đời thường.', 'Da Nang', 'USER', 'CLIENT', 1, 0, 'LOCAL', 0, 283, 217, 0),
+(232, 'buihaianh', 'buihaianh@gmail.com', '$2a$10$X5sfTVMRSGuh7u./8Xk1b.n631Jo44Q4OD2F7txbuyV7x4B3YeT2C', 'Bùi Hải Anh', 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1', 'Thích ảnh đường phố, quán cà phê và những buổi chiều có nắng.', 'Ho Chi Minh City', 'USER', 'CLIENT', 1, 0, 'LOCAL', 0, 296, 44, 0),
+(233, 'dohaianh', 'dohaianh@gmail.com', '$2a$10$wBYmHcPZzu0LKMdJztnOVe.X4YqRWgYVl7d/RDTONYfysMEls2fWe', 'Đỗ Hải Anh', 'https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91', 'Hay tìm nhiếp ảnh gia cho ảnh gia đình và chuyến đi cuối tuần.', 'Hue', 'USER', 'CLIENT', 1, 0, 'LOCAL', 0, 309, 51, 0),
+(234, 'ngoquocbao', 'ngoquocbao@gmail.com', '$2a$10$qs1v1GCQuv/aK94nTY/DFe8meXd9/SCJvDdFem/RXxrqxCAsg.8ES', 'Ngô Quốc Bảo', 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e', 'Mê ảnh phong cảnh, biển và các bộ ảnh màu trong trẻo.', 'Da Lat', 'USER', 'CLIENT', 1, 0, 'LOCAL', 0, 322, 58, 0),
+(235, 'hohuuphuc', 'hohuuphuc@gmail.com', '$2a$10$qCVq1IXe8bfYznY.xjcsR.u04gMH9Ji9p7sIPyKkbIPpxUNhkX3eu', 'Hồ Hữu Phúc', 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d', 'Muốn lưu lại ảnh cưới tối giản và khoảnh khắc đời thường.', 'Nha Trang', 'USER', 'CLIENT', 1, 1, 'LOCAL', 0, 335, 65, 0),
+(236, 'duonghaianh', 'duonghaianh@gmail.com', '$2a$10$131dYg3PMHLDRJojVcwTyeqIV/4xTPIhLKUQgK9Ir9FK/MgzPT1xS', 'Dương Hải Anh', 'https://images.unsplash.com/photo-1544005313-94ddf0286df2', 'Nhận chụp chân dung tự nhiên, ảnh cặp đôi và kỷ niệm gia đình.', 'Hoi An', 'USER', 'PHOTOGRAPHER', 1, 1, 'LOCAL', 0, 2712, 72, 0),
+(237, 'duonghuuphuc', 'duonghuuphuc@gmail.com', '$2a$10$OvAk2pv4Vpl5j9xPAbukA.46CO8CUubdM7jIRNp6Si9RwILPLah2e', 'Dương Hữu Phúc', 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde', 'Chụp ảnh cưới, lễ hỏi và các buổi gặp mặt thân mật.', 'Can Tho', 'USER', 'PHOTOGRAPHER', 1, 1, 'LOCAL', 0, 2729, 79, 0),
+(238, 'tranthaonguyen', 'tranthaonguyen@gmail.com', '$2a$10$11dk.Irvalo4kTp5Ur.KKurZtRJDZKhycfGfkEDO0ZhR.YUUA4TxC', 'Trần Thảo Nguyên', 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1', 'Chuyên ảnh du lịch, lifestyle và chân dung ngoài trời.', 'Sa Pa', 'USER', 'PHOTOGRAPHER', 1, 1, 'LOCAL', 0, 2746, 86, 0),
+(239, 'nguyenhaianh', 'nguyenhaianh@gmail.com', '$2a$10$e73vcnxBMrXOVJrI2KA.k.JdZ09pWE94SbCEfwPYmBToEJmkGMvIq', 'Nguyễn Hải Anh', 'https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91', 'Chụp sự kiện, lookbook và những câu chuyện đời thường.', 'Phu Quoc', 'USER', 'PHOTOGRAPHER', 1, 1, 'LOCAL', 0, 2763, 93, 0),
+(240, 'nguyenhuuphuc', 'nguyenhuuphuc@gmail.com', '$2a$10$d/EeIp9pntirwP6KVWxic.MvaRlOVoSug2L0Y1uECto05sbvbHHm.', 'Nguyễn Hữu Phúc', 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e', 'Nhận chụp chân dung tự nhiên, ảnh cặp đôi và kỷ niệm gia đình.', 'Ha Noi', 'USER', 'PHOTOGRAPHER', 1, 1, 'LOCAL', 0, 2780, 100, 0),
+(241, 'phamquocbao', 'phamquocbao@gmail.com', '$2a$10$6v69DKmEhPHkkGTR2LW9yu9qo2v2OcZPRIfAbvWRXf01GYIbEY.NO', 'Phạm Quốc Bảo', 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d', 'Chụp ảnh cưới, lễ hỏi và các buổi gặp mặt thân mật.', 'Da Nang', 'USER', 'PHOTOGRAPHER', 1, 1, 'LOCAL', 0, 2797, 107, 0),
+(242, 'phamhaianh', 'phamhaianh@gmail.com', '$2a$10$Rdc2.EF4MtAvJxWlr8NgGO5LhXJr7IHnT.XWGIYfgJ.cPKwQpHHvW', 'Phạm Hải Anh', 'https://images.unsplash.com/photo-1544005313-94ddf0286df2', 'Chuyên ảnh du lịch, lifestyle và chân dung ngoài trời.', 'Ho Chi Minh City', 'USER', 'PHOTOGRAPHER', 1, 1, 'LOCAL', 0, 2814, 114, 0),
+(243, 'hoanghaianh', 'hoanghaianh@gmail.com', '$2a$10$MezCVk0R15EKiFuFprGWXOJT5//FGj.t.vrDNlYfz8gPlN7HYmSMe', 'Hoàng Hải Anh', 'https://images.unsplash.com/photo-1534528741775-53994a69daeb', 'Chụp sự kiện, lookbook và những câu chuyện đời thường.', 'Hue', 'USER', 'PHOTOGRAPHER', 1, 1, 'LOCAL', 0, 2831, 121, 0),
+(244, 'hoanghuuphuc', 'hoanghuuphuc@gmail.com', '$2a$10$RMXVf8lgylII.woFSxEnCu2InQ0gXMu2VHhtc5RVbYa/EQ.GVIH1C', 'Hoàng Hữu Phúc', 'https://images.unsplash.com/photo-1527980965255-d3b416303d12', 'Nhận chụp chân dung tự nhiên, ảnh cặp đôi và kỷ niệm gia đình.', 'Da Lat', 'USER', 'PHOTOGRAPHER', 1, 1, 'LOCAL', 0, 2848, 128, 0),
+(245, 'phanhaianh', 'phanhaianh@gmail.com', '$2a$10$rCEPwi72vT4XucV5.pig/uqkylmQzc2josFXziuaPCNXbqRv6eGlG', 'Phan Hải Anh', 'https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91', 'Chụp ảnh cưới, lễ hỏi và các buổi gặp mặt thân mật.', 'Nha Trang', 'USER', 'PHOTOGRAPHER', 1, 1, 'LOCAL', 0, 2865, 135, 0),
+(246, 'voquocbao', 'voquocbao@gmail.com', '$2a$10$jDYiTp2KLL9jCvzwLQ0vmerZb1322cqrHaVYy1H323PGVY3/sWKC.', 'Võ Quốc Bảo', 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e', 'Chuyên ảnh du lịch, lifestyle và chân dung ngoài trời.', 'Hoi An', 'USER', 'PHOTOGRAPHER', 1, 1, 'LOCAL', 0, 2882, 142, 0),
+(247, 'dangquocbao', 'dangquocbao@gmail.com', '$2a$10$mLIpBhoo15ppjD3W4tmIxO5M/Nmt1KUjvWZzApryp.GCAaqd6SHJK', 'Đặng Quốc Bảo', 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d', 'Chụp sự kiện, lookbook và những câu chuyện đời thường.', 'Can Tho', 'USER', 'PHOTOGRAPHER', 1, 1, 'LOCAL', 0, 2899, 149, 0),
+(248, 'danghaianh', 'danghaianh@gmail.com', '$2a$10$WRJXvWtbVzBvztZNf5J8XugicrsUIK5wQfuXG.BzdCxMORrZOTsfS', 'Đặng Hải Anh', 'https://images.unsplash.com/photo-1544005313-94ddf0286df2', 'Nhận chụp chân dung tự nhiên, ảnh cặp đôi và kỷ niệm gia đình.', 'Sa Pa', 'USER', 'PHOTOGRAPHER', 1, 1, 'LOCAL', 0, 2916, 156, 0),
+(249, 'doquocbao', 'doquocbao@gmail.com', '$2a$10$kFl2a/CGkJ0pKTwY.Hn9meHZ6Y0P.WBc6OxR0kvyy3iX0ISwy8LeK', 'Đỗ Quốc Bảo', 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde', 'Chụp ảnh cưới, lễ hỏi và các buổi gặp mặt thân mật.', 'Phu Quoc', 'USER', 'PHOTOGRAPHER', 1, 1, 'LOCAL', 0, 2933, 163, 0),
+(250, 'hoquocbao', 'hoquocbao@gmail.com', '$2a$10$w4JiG937nNXo5DUnBNUsiumcIzPfHfiW8OYw0rWeCjgdqVkLAUAj6', 'Hồ Quốc Bảo', 'https://images.unsplash.com/photo-1527980965255-d3b416303d12', 'Chuyên ảnh du lịch, lifestyle và chân dung ngoài trời.', 'Ha Noi', 'USER', 'PHOTOGRAPHER', 1, 1, 'LOCAL', 0, 2950, 170, 0)
+ON DUPLICATE KEY UPDATE
+    username = VALUES(username),
+    email = VALUES(email),
+    password_hash = VALUES(password_hash),
+    full_name = VALUES(full_name),
+    bio = VALUES(bio),
+    location = VALUES(location),
+    user_type = VALUES(user_type);
+
+INSERT INTO portfolios (
+    id, user_id, title, description, specialties, hourly_rate, currency,
+    service_area, is_available, rating_avg, review_count
+) VALUES
+(236, 236, 'Ảnh của Dương Hải Anh', 'Nhận chụp chân dung, cặp đôi và kỷ niệm tại Hoi An.', '["Portrait","Lifestyle","Outdoor"]', 700000.00, 'VND', 'Hoi An', 1, 4.80, 12),
+(237, 237, 'Ảnh của Dương Hữu Phúc', 'Nhận chụp chân dung, cặp đôi và kỷ niệm tại Can Tho.', '["Portrait","Lifestyle","Outdoor"]', 750000.00, 'VND', 'Can Tho', 1, 4.80, 12),
+(238, 238, 'Ảnh của Trần Thảo Nguyên', 'Nhận chụp chân dung, cặp đôi và kỷ niệm tại Sa Pa.', '["Portrait","Lifestyle","Outdoor"]', 800000.00, 'VND', 'Sa Pa', 1, 4.80, 12),
+(239, 239, 'Ảnh của Nguyễn Hải Anh', 'Nhận chụp chân dung, cặp đôi và kỷ niệm tại Phu Quoc.', '["Portrait","Lifestyle","Outdoor"]', 850000.00, 'VND', 'Phu Quoc', 1, 4.80, 12),
+(240, 240, 'Ảnh của Nguyễn Hữu Phúc', 'Nhận chụp chân dung, cặp đôi và kỷ niệm tại Ha Noi.', '["Portrait","Lifestyle","Outdoor"]', 500000.00, 'VND', 'Ha Noi', 1, 4.80, 12),
+(241, 241, 'Ảnh của Phạm Quốc Bảo', 'Nhận chụp chân dung, cặp đôi và kỷ niệm tại Da Nang.', '["Portrait","Lifestyle","Outdoor"]', 550000.00, 'VND', 'Da Nang', 1, 4.80, 12),
+(242, 242, 'Ảnh của Phạm Hải Anh', 'Nhận chụp chân dung, cặp đôi và kỷ niệm tại Ho Chi Minh City.', '["Portrait","Lifestyle","Outdoor"]', 600000.00, 'VND', 'Ho Chi Minh City', 1, 4.80, 12),
+(243, 243, 'Ảnh của Hoàng Hải Anh', 'Nhận chụp chân dung, cặp đôi và kỷ niệm tại Hue.', '["Portrait","Lifestyle","Outdoor"]', 650000.00, 'VND', 'Hue', 1, 4.80, 12),
+(244, 244, 'Ảnh của Hoàng Hữu Phúc', 'Nhận chụp chân dung, cặp đôi và kỷ niệm tại Da Lat.', '["Portrait","Lifestyle","Outdoor"]', 700000.00, 'VND', 'Da Lat', 1, 4.80, 12),
+(245, 245, 'Ảnh của Phan Hải Anh', 'Nhận chụp chân dung, cặp đôi và kỷ niệm tại Nha Trang.', '["Portrait","Lifestyle","Outdoor"]', 750000.00, 'VND', 'Nha Trang', 1, 4.80, 12),
+(246, 246, 'Ảnh của Võ Quốc Bảo', 'Nhận chụp chân dung, cặp đôi và kỷ niệm tại Hoi An.', '["Portrait","Lifestyle","Outdoor"]', 800000.00, 'VND', 'Hoi An', 1, 4.80, 12),
+(247, 247, 'Ảnh của Đặng Quốc Bảo', 'Nhận chụp chân dung, cặp đôi và kỷ niệm tại Can Tho.', '["Portrait","Lifestyle","Outdoor"]', 850000.00, 'VND', 'Can Tho', 1, 4.80, 12),
+(248, 248, 'Ảnh của Đặng Hải Anh', 'Nhận chụp chân dung, cặp đôi và kỷ niệm tại Sa Pa.', '["Portrait","Lifestyle","Outdoor"]', 500000.00, 'VND', 'Sa Pa', 1, 4.80, 12),
+(249, 249, 'Ảnh của Đỗ Quốc Bảo', 'Nhận chụp chân dung, cặp đôi và kỷ niệm tại Phu Quoc.', '["Portrait","Lifestyle","Outdoor"]', 550000.00, 'VND', 'Phu Quoc', 1, 4.80, 12),
+(250, 250, 'Ảnh của Hồ Quốc Bảo', 'Nhận chụp chân dung, cặp đôi và kỷ niệm tại Ha Noi.', '["Portrait","Lifestyle","Outdoor"]', 600000.00, 'VND', 'Ha Noi', 1, 4.80, 12)
+ON DUPLICATE KEY UPDATE
+    user_id = VALUES(user_id),
+    title = VALUES(title),
+    description = VALUES(description);
 
 SET FOREIGN_KEY_CHECKS = 1;

@@ -1,15 +1,15 @@
 package com.instagallery.database.tables
 
+import com.instagallery.database.wallClockDateTime
 import com.instagallery.models.common.BookingStatus
 import org.jetbrains.exposed.dao.id.LongIdTable
 import org.jetbrains.exposed.sql.ReferenceOption
 import org.jetbrains.exposed.sql.javatime.CurrentTimestamp
-import org.jetbrains.exposed.sql.javatime.datetime
 import org.jetbrains.exposed.sql.javatime.timestamp
 
 object BookingsTable : LongIdTable("bookings") {
-    val clientId = reference("client_id", UsersTable, onDelete = ReferenceOption.CASCADE).index()
-    val photographerId = reference("photographer_id", UsersTable, onDelete = ReferenceOption.CASCADE).index()
+    val clientId = reference("client_id", UsersTable, onDelete = ReferenceOption.RESTRICT).index()
+    val photographerId = reference("photographer_id", UsersTable, onDelete = ReferenceOption.RESTRICT).index()
     val serviceId = reference("service_id", PhotographerServicesTable, onDelete = ReferenceOption.SET_NULL).nullable().index()
     val packageName = varchar("package_name", 120).nullable()
     val packageSnapshot = text("package_snapshot").nullable()
@@ -20,7 +20,7 @@ object BookingsTable : LongIdTable("bookings") {
         AvailabilitySchedulesTable,
         onDelete = ReferenceOption.SET_NULL,
     ).nullable().index()
-    val bookingDate = datetime("booking_date").index()
+    val bookingDate = wallClockDateTime("booking_date").index()
     val durationHours = decimal("duration_hours", 4, 1).nullable()
     val locationBooking = varchar("location_booking", 255).nullable()
     val addressDetail = varchar("address_detail", 255).nullable()

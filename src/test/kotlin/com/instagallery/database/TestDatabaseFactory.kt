@@ -36,7 +36,7 @@ object TestDatabaseFactory {
                 UsersTable, UserSessionsTable, PortfoliosTable,
                 PostsTable, FiltersTable, PostMediaTable, MediaTagsTable, PostMediaTagsTable,
                 FollowersTable, LikesTable, CommentsTable, CommentLikesTable, SavedPostsTable,
-                PhotographerServicesTable, AvailabilitySchedulesTable, BookingsTable, RatingsTable, ConversationsTable, ConversationMembersTable, MessagesTable,
+                PhotographerServicesTable, AvailabilitySchedulesTable, BookingsTable, BookingStatusEventsTable, RatingsTable, ConversationsTable, ConversationMembersTable, MessagesTable,
                 NotificationsTable, DeviceTokensTable, ActivityLogsTable, ReportsTable, SearchHistoriesTable, PasswordResetTokensTable,
                 FollowRequestsTable, BlockedUsersTable, MutedUsersTable, AlbumsTable, AlbumMediaTable, PostTaggedUsersTable, CommentDislikesTable
             )

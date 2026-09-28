@@ -33,14 +33,14 @@ src/
 - `tables/`: khai báo schema Exposed cho từng bảng.
 
 ### `database/tables/`
-Tổng hợp 36 bảng Exposed DSL:
+Tổng hợp 37 bảng Exposed DSL:
 - `UsersTable`: user, role, type, OAuth, 2FA, privacy, counter.
 - `UserSessionsTable`: refresh token theo thiết bị.
 - `PostsTable`, `PostSharesTable`: caption, visibility, comment visibility, counter, chia sẻ bài viết.
 - `PostMediaTable`, `MediaTagsTable`, `PostMediaTagsTable`, `PostTaggedUsersTable`: media, hashtag và gắn thẻ người dùng.
 - `FollowersTable`, `FollowRequestsTable`, `BlockedUsersTable`, `MutedUsersTable`: social graph.
 - `CommentsTable`, `CommentLikesTable`, `CommentDislikesTable`, `CommentReactionsTable`, `LikesTable`, `SavedPostsTable`: tương tác xã hội.
-- `PortfoliosTable`, `PhotographerServicesTable`, `BookingsTable`, `RatingsTable`, `AvailabilitySchedulesTable`: nghiệp vụ nhiếp ảnh gia.
+- `PortfoliosTable`, `PhotographerServicesTable`, `BookingsTable`, `BookingStatusEventsTable`, `RatingsTable`, `AvailabilitySchedulesTable`: nghiệp vụ nhiếp ảnh gia.
 - `ConversationsTable`, `ConversationMembersTable`, `MessagesTable`: chat realtime.
 - `NotificationsTable`, `DeviceTokensTable`, `ActivityLogsTable`, `ReportsTable`, `SearchHistoriesTable`: thông báo đẩy FCM, vận hành và moderation.
 - `AlbumsTable`, `AlbumMediaTable`, `BannedWordsTable`, `PasswordResetTokensTable`: tính năng mở rộng.

@@ -34,12 +34,22 @@ D:\Android\SDK\platform-tools\adb.exe -s emulator-5554 reverse tcp:8080 tcp:8080
 
 ### Điều kiện:
 - Dịch vụ MySQL cục bộ (`MySQL80`) đang chạy trên cổng 3306 (mặc định đã chạy sẵn trên máy).
-- Kiểm tra trạng thái MySQL bằng PowerShell:
-  ```powershell
-  Get-Service MySQL80
-  # Nếu Stopped, bật lại bằng:
-  Start-Service MySQL80
-  ```
+- **Cách kiểm tra và bật MySQL:**
+  - 👉 **Nếu dùng Terminal CMD (Command Prompt):**
+    ```cmd
+    # Kiểm tra trạng thái:
+    sc query MySQL80
+    # Nếu trạng thái là STOPPED, bật lại bằng:
+    net start MySQL80
+    ```
+    *(Lưu ý: Lệnh `Get-Service` là của PowerShell. Nếu gõ trong CMD sẽ bị lỗi `'Get-Service' is not recognized`).*
+  - 👉 **Nếu dùng Terminal PowerShell:**
+    ```powershell
+    # Kiểm tra trạng thái:
+    Get-Service MySQL80
+    # Nếu Stopped, bật lại bằng:
+    Start-Service MySQL80
+    ```
 
 
 ### 2.1 Cấu hình JAVA_HOME (Bắt buộc nếu bị lỗi `JAVA_HOME is set to an invalid directory`):
@@ -109,16 +119,38 @@ $env:EXPOSE_DEBUG_RESET_TOKEN = "true"
 
 > **Cách dừng server:** Nhấn `Ctrl + C` trên terminal.
 
-### 2.4 Xử lý khi cổng 8080 bị kẹt (Port 8080 already in use):
-Dự án đã có sẵn script giải phóng cổng nhanh:
-```powershell
-.\kill_port.bat
-```
-Hoặc thao tác bằng lệnh thủ công:
-```powershell
-netstat -ano | findstr :8080
-taskkill /PID <PID_tim_thay> /F
-```
+### 2.4 Khắc phục lỗi thường gặp khi chạy Local:
+
+#### 🔴 Lỗi 1: Trùng cổng 8080 (`Address already in use: bind` / `Task :run FAILED (exit value 1)`)
+- **Dấu hiệu:** Chạy `gradlew.bat run` bị dừng với thông báo:
+  ```text
+  Exception in thread "main" java.net.BindException: Address already in use: bind
+  ...
+  Execution failed for task ':run'.
+  > Process '...java.exe' finished with non-zero exit value 1
+  ```
+- **Nguyên nhân:** Có một tiến trình `java.exe` cũ của backend chưa tắt hẳn và đang chiếm giữ cổng 8080.
+- **Cách sửa nhanh:**
+  - **Trên CMD (nhanh nhất):**
+    ```cmd
+    kill_port.bat
+    ```
+    Hoặc lệnh một dòng tự động tìm và tắt PID:
+    ```cmd
+    for /f "tokens=5" %a in ('netstat -aon ^| findstr :8080') do taskkill /f /pid %a
+    ```
+  - **Trên PowerShell:**
+    ```powershell
+    .\kill_port.bat
+    # Hoặc:
+    Stop-Process -Id (Get-NetTCPConnection -LocalPort 8080).OwningProcess -Force
+    ```
+
+#### 🔴 Lỗi 2: `'Get-Service' is not recognized as an internal or external command`
+- **Nguyên nhân:** Bạn đang gõ lệnh `Get-Service` trong cửa sổ **Command Prompt (CMD)**.
+- **Cách sửa:**
+  - Trong CMD: dùng lệnh `sc query MySQL80` (hoặc `net start MySQL80`).
+  - Nếu muốn dùng `Get-Service`: chuyển terminal sang tab **PowerShell**.
 
 ---
 
@@ -155,15 +187,15 @@ POST http://localhost:8080/api/v1/auth/login
 **Body JSON:**
 ```json
 {
-  "usernameOrEmail": "ngocpb04@gmail.com",
-  "password": "ngocpb04123!"
+  "usernameOrEmail": "phamphuongthao@gmail.com",
+  "password": "phamphuongthao123!"
 }
 ```
 
 **Lưu ý:**
 - Điểm tiếp nhận API hỗ trợ tìm kiếm tài khoản đăng nhập trực tiếp qua Email hoặc Username.
 - Tài khoản Admin: `admin@instagallery.com` / `Admin@123`
-- Tài khoản Photographer Thảo: `thaopham02@gmail.com` / `thaopham02123!`
+- Các tài khoản demo khác: mật khẩu là tên đăng nhập cộng `123!`. Ví dụ nhiếp ảnh gia Phạm Phương Thảo: `phamphuongthao@gmail.com` / `phamphuongthao123!`
 
 ## 6. Quy trình Đăng ký tài khoản mới (Register account)
 
@@ -177,32 +209,44 @@ POST http://localhost:8080/api/v1/auth/register
 **Body JSON:**
 ```json
 {
-  "email": "ngocpb04@gmail.com",
-  "username": "ngocpham",
-  "password": "ngocpb04123!",
-  "fullName": "Ngoc Pham"
+  "email": "phamngoc.demo@gmail.com",
+  "username": "phamngocdemo",
+  "password": "phamngocdemo123!",
+  "fullName": "Phạm Ngọc",
+  "userType": "CLIENT"
 }
 ```
 
 ## 7. Khởi tạo dữ liệu mẫu (Database Seeding)
 
 ### Cách 1: Nạp vào MySQL cục bộ (Local MySQL Server 8.0)
-Chạy lệnh trực tiếp trong Terminal Antigravity (PowerShell):
+
+Chạy sau khi backend đã khởi động một lần để Exposed tạo bảng. User local là `root`, password `123456789`, database `instagallery`. Bộ demo có 250 user (id 1–250). Admin dùng `Admin@123`. User khác dùng tên đăng nhập cộng `123!`.
+
+Giữ đúng thứ tự file trong `docs_backend\dulieu_database`:
+
 ```powershell
-# Nạp bộ dữ liệu đầy đủ (159 users, 248 bài viết, chat, bookings, tags):
-& "C:\Program Files\MySQL\MySQL Server 8.0\bin\mysql.exe" --default-character-set=utf8mb4 -u root -p123456789 instagallery -e "source d:/InstaGallery/instagallery-backend/docs/dulieu_database/demo_fill_user_ids_1_100_seed.sql;"
-& "C:\Program Files\MySQL\MySQL Server 8.0\bin\mysql.exe" --default-character-set=utf8mb4 -u root -p123456789 instagallery -e "source d:/InstaGallery/instagallery-backend/docs/dulieu_database/mobile_search_booking_seed.sql;"
-& "C:\Program Files\MySQL\MySQL Server 8.0\bin\mysql.exe" --default-character-set=utf8mb4 -u root -p123456789 instagallery -e "source d:/InstaGallery/instagallery-backend/docs/dulieu_database/app_demo_full_seed.sql;"
-& "C:\Program Files\MySQL\MySQL Server 8.0\bin\mysql.exe" --default-character-set=utf8mb4 -u root -p123456789 instagallery -e "source d:/InstaGallery/instagallery-backend/docs/dulieu_database/demo_more_posts_comments_seed.sql;"
-& "C:\Program Files\MySQL\MySQL Server 8.0\bin\mysql.exe" --default-character-set=utf8mb4 -u root -p123456789 instagallery -e "source d:/InstaGallery/instagallery-backend/docs/dulieu_database/demo_july_2026_new_posts_seed.sql;"
-& "C:\Program Files\MySQL\MySQL Server 8.0\bin\mysql.exe" --default-character-set=utf8mb4 -u root -p123456789 instagallery -e "source d:/InstaGallery/instagallery-backend/docs/dulieu_database/update_services.sql;"
-& "C:\Program Files\MySQL\MySQL Server 8.0\bin\mysql.exe" --default-character-set=utf8mb4 -u root -p123456789 instagallery -e "source d:/InstaGallery/instagallery-backend/docs/dulieu_database/seed_user_150.sql;"
+$mysql = "C:\Program Files\MySQL\MySQL Server 8.0\bin\mysql.exe"
+$files = @(
+  "docs_backend\dulieu_database\demo_fill_user_ids_1_100_seed.sql",
+  "docs_backend\dulieu_database\mobile_search_booking_seed.sql",
+  "docs_backend\dulieu_database\demo_more_posts_comments_seed.sql",
+  "docs_backend\dulieu_database\demo_july_2026_new_posts_seed.sql",
+  "docs_backend\dulieu_database\seed_posts_user_ngoc_thao.sql",
+  "docs_backend\dulieu_database\seed_user_150.sql",
+  "docs_backend\dulieu_database\app_demo_full_seed.sql",
+  "docs_backend\dulieu_database\update_services.sql"
+)
+foreach ($file in $files) {
+  cmd /c "`"$mysql`" --default-character-set=utf8mb4 -uroot -p123456789 instagallery < $file"
+}
 ```
 
+`database_seed.sql` ở thư mục gốc chỉ là bộ mẫu nhỏ, không thay bộ 8 file trên.
+
 ### Cách 2: Nạp vào Docker MySQL
-```powershell
-Get-Content database_seed.sql | docker exec -i instagallery-backend-mysql-1 mysql -uig_user -p123456789 instagallery
-```
+
+Chỉ dùng khi backend chạy trong Docker. User trong container là `ig_user`, không phải `root` của MySQL cài trên máy.
 
 ---
 

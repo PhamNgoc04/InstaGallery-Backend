@@ -3,7 +3,41 @@ SET NAMES utf8mb4;
 SET CHARACTER SET utf8mb4;
 SET FOREIGN_KEY_CHECKS = 0;
 
--- 1) Tạo 15 bài viết cho user 150 (bocbatho1909)
+-- User 150 must exist before posts and followers.
+-- Password: caonhatnam123!
+INSERT INTO users (
+    id, username, email, password_hash, full_name, profile_picture_url, bio,
+    location, role, user_type, is_active, is_verified, provider, is_private,
+    follower_count, following_count, post_count
+) VALUES (
+    150, 'caonhatnam', 'caonhatnam@gmail.com', '$2a$10$7FMMc/M/w1Wwf8NPPobO8eMnt.4k/IdtISXW5RsQlVyC0R.ii5Jd2',
+    'Cao Nhật Nam', 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1',
+    'Lưu lại hoàng hôn, phố cổ và những buổi chụp chân dung ngoài trời.',
+    'Ha Noi', 'USER', 'PHOTOGRAPHER', 1, 1, 'LOCAL', 0, 0, 0, 0
+)
+ON DUPLICATE KEY UPDATE
+    username = VALUES(username),
+    email = VALUES(email),
+    password_hash = VALUES(password_hash),
+    full_name = VALUES(full_name),
+    bio = VALUES(bio),
+    user_type = VALUES(user_type);
+
+INSERT INTO portfolios (
+    id, user_id, title, description, specialties, hourly_rate, currency,
+    service_area, is_available, rating_avg, review_count
+) VALUES (
+    150, 150, 'Phố Và Hoàng Hôn',
+    'Chụp đường phố, hoàng hôn và chân dung ngoài trời tại Hà Nội.',
+    '["Street","Portrait","Landscape"]', 550000.00, 'VND', 'Ha Noi', 1, 4.70, 0
+)
+ON DUPLICATE KEY UPDATE
+    user_id = VALUES(user_id),
+    title = VALUES(title),
+    description = VALUES(description),
+    specialties = VALUES(specialties);
+
+-- 1) Tạo 15 bài viết cho Cao Nhật Nam (user 150)
 INSERT INTO posts (
     id, user_id, caption, location, visibility, comment_visibility,
     like_count, comment_count, share_count, created_at, updated_at
@@ -140,4 +174,25 @@ LEFT JOIN (
 SET
     u.follower_count = COALESCE(fc.total_followers, 0),
     u.following_count = COALESCE(fgc.total_following, 0),
-    u.post_count = COALESCE(pc.total_posts, 0);
+    u.post_count = COALESCE(pc.total_posts, 0)
+WHERE u.id = 150;
+
+INSERT IGNORE INTO post_shares (user_id, post_id, created_at)
+SELECT ranked.user_id, ranked.post_id, ranked.created_at
+FROM (
+    SELECT
+        p.id AS post_id,
+        u.id AS user_id,
+        p.created_at,
+        ROW_NUMBER() OVER (PARTITION BY p.id ORDER BY u.id) AS rn
+    FROM posts p
+    JOIN users u ON u.id <> p.user_id
+    WHERE p.id BETWEEN 1201 AND 1215
+) ranked
+WHERE ranked.rn <= 8;
+
+UPDATE posts p
+SET p.share_count = (
+    SELECT COUNT(*) FROM post_shares s WHERE s.post_id = p.id
+)
+WHERE p.id BETWEEN 1201 AND 1215;

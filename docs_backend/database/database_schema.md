@@ -1,6 +1,6 @@
 # 🗄️ InstaGallery — Tổng Hợp Cấu Trúc Database
 
-> **Công nghệ**: MySQL · **ORM**: Jetbrains Exposed · **Tổng số bảng**: 36
+> **Công nghệ**: MySQL · **ORM**: Jetbrains Exposed · **Tổng số bảng**: 37
 >
 > Cập nhật lần cuối: 2026-09-28
 
@@ -16,7 +16,7 @@
 | 4 | [👥 Quan hệ người dùng](#-quan-hệ-người-dùng) | `followers`, `follow_requests`, `blocked_users`, `muted_users` |
 | 5 | [💌 Nhắn tin](#-nhắn-tin) | `conversations`, `conversation_members`, `messages` |
 | 6 | [📁 Album](#-album) | `albums`, `album_media` |
-| 7 | [📷 Dịch vụ nhiếp ảnh & Đặt lịch](#-dịch-vụ-nhiếp-ảnh--đặt-lịch) | `portfolios`, `photographer_services`, `availability_schedules`, `bookings`, `ratings` |
+| 7 | [📷 Dịch vụ nhiếp ảnh & Đặt lịch](#-dịch-vụ-nhiếp-ảnh--đặt-lịch) | `portfolios`, `photographer_services`, `availability_schedules`, `bookings`, `booking_status_events`, `ratings` |
 | 8 | [🔔 Thông báo & Thiết bị](#-thông-báo--thiết-bị) | `notifications`, `device_tokens` |
 | 9 | [🔍 Tìm kiếm](#-tìm-kiếm) | `search_histories` |
 | 10 | [🛡️ Kiểm duyệt & Audit](#️-kiểm-duyệt--audit) | `reports`, `banned_words`, `activity_logs` |
@@ -103,7 +103,7 @@ erDiagram
 | `user_type` | ENUM | DEFAULT `CLIENT` | `CLIENT` / `PHOTOGRAPHER` |
 | `role` | ENUM | DEFAULT `USER` | `USER` / `ADMIN` |
 | `provider` | ENUM | DEFAULT `LOCAL` | `LOCAL` / `GOOGLE` / `FACEBOOK` |
-| `provider_id` | VARCHAR(255) | NULLABLE, UNIQUE | ID từ OAuth provider |
+| `provider_id` | VARCHAR(255) | NULLABLE | ID từ OAuth provider. Unique cùng `provider`, tên index `uk_provider_account` |
 | `is_two_factor_enabled` | BOOLEAN | DEFAULT `false` | Bật 2FA |
 | `two_factor_secret` | VARCHAR(255) | NULLABLE | Secret key 2FA |
 | `is_private` | BOOLEAN | DEFAULT `false` | Tài khoản riêng tư |
@@ -116,7 +116,7 @@ erDiagram
 | `updated_at` | TIMESTAMP | DEFAULT NOW | Thời điểm cập nhật |
 | `deleted_at` | TIMESTAMP | NULLABLE | Soft delete |
 
-**Indexes:** `username`, `email`
+**Indexes:** `username`, `email`, `uk_provider_account(provider, provider_id)`
 
 ---
 
@@ -142,7 +142,7 @@ erDiagram
 |-----|-------------|-----------|-------|
 | `id` | BIGINT | PK | ID token |
 | `user_id` | BIGINT | FK → `users` | Chủ sở hữu |
-| `token` | VARCHAR(255) | UNIQUE INDEX | UUID / chuỗi hashed |
+| `token` | VARCHAR(255) | UNIQUE INDEX | HMAC-SHA256 (hex) của mã đặt lại mật khẩu 6 số |
 | `expired_at` | DATETIME | NOT NULL | Thời gian hết hạn |
 | `created_at` | TIMESTAMP | DEFAULT NOW | Thời điểm tạo |
 
@@ -569,8 +569,8 @@ erDiagram
 | Cột | Kiểu dữ liệu | Ràng buộc | Mô tả |
 |-----|-------------|-----------|-------|
 | `id` | BIGINT | PK | ID booking |
-| `client_id` | BIGINT | FK → `users` CASCADE, INDEX | Khách hàng |
-| `photographer_id` | BIGINT | FK → `users` CASCADE, INDEX | Nhiếp ảnh gia |
+| `client_id` | BIGINT | FK → `users` RESTRICT, INDEX | Khách hàng. Không xóa cứng user khi còn booking |
+| `photographer_id` | BIGINT | FK → `users` RESTRICT, INDEX | Nhiếp ảnh gia. Không xóa cứng user khi còn booking |
 | `service_id` | BIGINT | FK → `photographer_services` SET NULL, NULLABLE | Gói chụp, nếu có |
 | `availability_id` | BIGINT | FK → `availability_schedules` SET NULL, NULLABLE, INDEX | Khung giờ đã khớp lúc giữ chỗ |
 | `booking_date` | DATETIME | NOT NULL, INDEX | Ngày giờ chụp. Gửi `yyyy-MM-ddTHH:mm:ss`, không gắn `Z` |
@@ -586,7 +586,22 @@ erDiagram
 
 **Composite Index:** `idx_photographer_date(photographer_id, booking_date)`
 
-Giữ chỗ nằm trong một transaction: khóa portfolio, khớp khung giờ (`SPECIFIC_DATE` thắng `RECURRING`), khóa các booking đang chặn, rồi mới insert. Lịch rảnh trống hoặc không có portfolio trả `BOOKING_OUTSIDE_AVAILABILITY`. Trùng giờ trả `BOOKING_SLOT_UNAVAILABLE`. Hủy booking thì khung giờ được đặt lại. `client_id` khác `photographer_id` được kiểm ở service.
+Giữ chỗ nằm trong một transaction: khóa portfolio, khớp khung giờ (`SPECIFIC_DATE` thắng `RECURRING`), khóa các booking đang chặn, rồi mới insert. Lịch rảnh trống hoặc không có portfolio trả `BOOKING_OUTSIDE_AVAILABILITY`. Trùng giờ trả `BOOKING_SLOT_UNAVAILABLE`. Hủy booking thì khung giờ được đặt lại. `client_id` khác `photographer_id` được kiểm ở service. `booking_date` lưu đúng giờ tường khách gửi, không cộng múi giờ khi đọc lại.
+
+---
+
+### `booking_status_events`
+> Lịch sử đổi trạng thái của một booking.
+
+| Cột | Kiểu dữ liệu | Ràng buộc | Mô tả |
+|-----|-------------|-----------|-------|
+| `id` | BIGINT | PK | ID sự kiện |
+| `booking_id` | BIGINT | FK → `bookings` CASCADE, INDEX | Booking |
+| `from_status` | VARCHAR(20) | NULLABLE | Trạng thái trước. Lần tạo đơn để null |
+| `to_status` | VARCHAR(20) | NOT NULL | Trạng thái sau |
+| `actor_user_id` | BIGINT | FK → `users` RESTRICT, NULLABLE, INDEX | Người đổi. Admin hệ thống có thể để null |
+| `reason` | TEXT | NULLABLE | Lý do |
+| `created_at` | TIMESTAMP | DEFAULT NOW, INDEX | Thời điểm ghi |
 
 ---
 
@@ -597,8 +612,8 @@ Giữ chỗ nằm trong một transaction: khóa portfolio, khớp khung giờ (
 |-----|-------------|-----------|-------|
 | `id` | BIGINT | PK | ID đánh giá |
 | `booking_id` | BIGINT | FK → `bookings` CASCADE, UNIQUE INDEX | Booking được đánh giá |
-| `rater_id` | BIGINT | FK → `users` CASCADE, INDEX | Người đánh giá |
-| `ratee_id` | BIGINT | FK → `users` CASCADE, INDEX | Người được đánh giá |
+| `rater_id` | BIGINT | FK → `users` RESTRICT, INDEX | Người đánh giá |
+| `ratee_id` | BIGINT | FK → `users` RESTRICT, INDEX | Người được đánh giá |
 | `rating_value` | SMALLINT | NOT NULL, INDEX | Điểm: 1–5 |
 | `comment` | TEXT | NULLABLE | Nhận xét |
 | `status` | VARCHAR(20) | DEFAULT `APPROVED`, INDEX | `APPROVED` / `PENDING` / `HIDDEN` |

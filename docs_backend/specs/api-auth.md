@@ -1,5 +1,7 @@
 # API Định Nghĩa: Đăng Nhập & Đăng Ký (Authentication)
 
+Envelope thực tế là `{ "status": "SUCCESS"|"ERROR", "data", "message", "error": { "code", "message" } }`. Body đăng ký dùng `fullName` và `userType`. Đăng nhập nhận `usernameOrEmail` hoặc `email`, và `password`. Access token 15 phút. Refresh token trả thô một lần, server lưu HMAC-SHA256. Admin demo: `admin@instagallery.com` / `Admin@123`. User demo: tên đăng nhập + `123!`.
+
 ## 1. Đăng Ký Tài Khoản (Register)
 - **Cụm:** `Auth`
 - **Endpoint:** `POST /api/v1/auth/register`
@@ -9,11 +11,11 @@
 **Request Body (JSON):**
 ```json
 {
-  "email": "ngocpb04@gmai.com",
-  "username": "ngocpham",
-  "password": "Password123!",
-  "full_name": "John Doe",
-  "user_type": "CLIENT" // Lấy từ Enum UserType
+  "email": "phamngoc@gmail.com",
+  "username": "phamngoc",
+  "password": "phamngoc123!",
+  "fullName": "Phạm Ngọc",
+  "userType": "CLIENT"
 }
 ```
 
@@ -24,8 +26,8 @@
   "message": "Đăng ký thành công",
   "data": {
     "user_id": 1,
-    "email": "ngocpb04@gmai.com",
-    "username": "ngocpham",
+    "email": "phamngoc@gmail.com",
+    "username": "phamngoc",
     "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
   }
 }
@@ -48,8 +50,8 @@
 **Request Body (JSON):**
 ```json
 {
-  "email": "ngocpb04@gmai.com",
-  "password": "Password123!"
+  "usernameOrEmail": "phamngoc@gmail.com",
+  "password": "phamngoc123!"
 }
 ```
 
@@ -60,8 +62,8 @@
   "message": "Đăng nhập thành công",
   "data": {
     "user_id": 1,
-    "email": "ngocpb04@gmai.com",
-    "username": "ngocpham",
+    "email": "phamngoc@gmail.com",
+    "username": "phamngoc",
     "role": "USER",
     "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
   }

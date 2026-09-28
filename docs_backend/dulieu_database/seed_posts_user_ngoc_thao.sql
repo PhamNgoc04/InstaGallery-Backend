@@ -7,7 +7,7 @@ SET FOREIGN_KEY_CHECKS = 0;
 -- SEED POSTS FOR NGOCPB04 (ID 4) & THAOPHAM (ID 2)
 -- =========================================================================
 
--- 1) BÀI VIẾT CHO USER 4 (ngocpb04@gmail.com) - 8 bài
+-- 1) Bài viết cho Phạm Ngọc, user 4 (phamngoc@gmail.com) - 8 bài
 INSERT INTO posts (
     id, user_id, caption, location, visibility, comment_visibility,
     like_count, comment_count, share_count, created_at, updated_at
@@ -27,7 +27,7 @@ ON DUPLICATE KEY UPDATE
     comment_count = VALUES(comment_count),
     share_count = VALUES(share_count);
 
--- 2) BÀI VIẾT CHO USER 2 (thaopham02@gmail.com) - 8 bài
+-- 2) Bài viết cho Phạm Phương Thảo, user 2 (phamphuongthao@gmail.com) - 8 bài
 INSERT INTO posts (
     id, user_id, caption, location, visibility, comment_visibility,
     like_count, comment_count, share_count, created_at, updated_at

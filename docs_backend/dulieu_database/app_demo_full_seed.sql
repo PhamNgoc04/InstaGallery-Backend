@@ -4,8 +4,8 @@ SET CHARACTER SET utf8mb4;
 
 -- Full demo seed for app-like data.
 -- Keep existing data. All generated demo IDs use 1001+.
--- Recommended import from CMD to preserve Vietnamese text:
--- cmd /c "type docs_backend\app_demo_full_seed.sql | docker exec -i instagallery-backend-mysql-1 mysql --default-character-set=utf8mb4 -uig_user -p123456789 instagallery"
+-- Run after demo_fill, mobile_search_booking, demo_more_posts, july, ngoc thao, and user 150.
+-- Local MySQL: database instagallery, charset utf8mb4. Schema comes from the backend, not from this file.
 
 SET FOREIGN_KEY_CHECKS = 1;
 
@@ -232,6 +232,11 @@ SELECT
 FROM pairs
 WHERE rn <= 220;
 
+INSERT IGNORE INTO comment_reactions (user_id, comment_id, reaction, created_at)
+SELECT user_id, comment_id, 'LIKE', created_at
+FROM comment_likes
+WHERE id BETWEEN 1001 AND 1220;
+
 INSERT IGNORE INTO saved_posts (id, user_id, post_id, saved_at)
 WITH demo_users AS (
     SELECT id FROM users WHERE id BETWEEN 1 AND 65 OR id BETWEEN 129 AND 140
@@ -423,12 +428,42 @@ SELECT
     DATE_SUB('2026-07-03 08:00:00', INTERVAL MOD(n, 20) DAY) AS updated_at
 FROM booking_seed;
 
-INSERT IGNORE INTO ratings (id, booking_id, rater_id, ratee_id, rating_value, comment, created_at)
+INSERT IGNORE INTO booking_status_events (
+    id, booking_id, from_status, to_status, actor_user_id, reason, created_at
+)
+SELECT
+    1000 + ROW_NUMBER() OVER (ORDER BY id),
+    id,
+    NULL,
+    'PENDING',
+    client_id,
+    NULL,
+    created_at
+FROM bookings
+WHERE id BETWEEN 1001 AND 1064;
+
+INSERT IGNORE INTO booking_status_events (
+    id, booking_id, from_status, to_status, actor_user_id, reason, created_at
+)
+SELECT
+    2000 + ROW_NUMBER() OVER (ORDER BY id),
+    id,
+    'PENDING',
+    status,
+    photographer_id,
+    cancellation_reason,
+    updated_at
+FROM bookings
+WHERE id BETWEEN 1001 AND 1064
+  AND status <> 'PENDING';
+
+INSERT IGNORE INTO ratings (id, booking_id, rater_id, ratee_id, rating_value, comment, status, created_at)
 WITH completed_bookings AS (
     SELECT
         id AS booking_id,
         client_id,
         photographer_id,
+        status AS booking_status,
         ROW_NUMBER() OVER (ORDER BY id) AS rn
     FROM bookings
     WHERE id BETWEEN 1001 AND 1064
@@ -450,6 +485,7 @@ SELECT
         'Làm việc chuyên nghiệp, gửi ảnh preview rất nhanh.',
         'Concept phù hợp yêu cầu, màu ảnh nhẹ và sang.'
     ) AS comment,
+    CASE WHEN booking_status = 'CANCELLED' THEN 'HIDDEN' ELSE 'APPROVED' END AS status,
     DATE_ADD('2026-06-01 12:00:00', INTERVAL rn DAY) AS created_at
 FROM completed_bookings
 WHERE rn <= 30;
@@ -498,6 +534,18 @@ UNION ALL
 SELECT conversation_id, 141 + MOD(n, 6), 'MEMBER', NULL, 0, '2026-07-01 09:30:00', NULL
 FROM conv_seed
 WHERE n > 14;
+
+UPDATE conversations c
+JOIN (
+    SELECT conversation_id, MIN(user_id) AS low_id, MAX(user_id) AS high_id
+    FROM conversation_members
+    GROUP BY conversation_id
+    HAVING COUNT(*) = 2
+) pair ON pair.conversation_id = c.id
+SET c.direct_pair_key = CONCAT(pair.low_id, ':', pair.high_id)
+WHERE c.type = 'DIRECT'
+  AND c.direct_pair_key IS NULL
+  AND c.id BETWEEN 1001 AND 1014;
 
 INSERT IGNORE INTO messages (
     id, conversation_id, sender_id, content, message_type, media_url, reply_to_id, is_deleted, created_at
@@ -663,15 +711,17 @@ SELECT
     DATE_SUB('2026-07-03 12:00:00', INTERVAL MOD(n, 8) DAY) AS updated_at
 FROM seq;
 
+-- Stored value is HMAC-SHA256 of a 6-digit reset code, same as AuthService.
+-- Raw codes, in id order: 100001, 100002, 100003, 100004, 100005, 100006, 100007, 100008.
 INSERT IGNORE INTO password_reset_tokens (id, user_id, token, expired_at, created_at) VALUES
-(1001, 6, 'demo-reset-token-userdemo06', '2026-07-04 08:00:00', '2026-07-03 08:00:00'),
-(1002, 10, 'demo-reset-token-userdemo10', '2026-07-04 08:10:00', '2026-07-03 08:10:00'),
-(1003, 20, 'demo-reset-token-userdemo20', '2026-07-04 08:20:00', '2026-07-03 08:20:00'),
-(1004, 30, 'demo-reset-token-userdemo30', '2026-07-04 08:30:00', '2026-07-03 08:30:00'),
-(1005, 66, 'demo-reset-token-photodemo66', '2026-07-04 08:40:00', '2026-07-03 08:40:00'),
-(1006, 70, 'demo-reset-token-photodemo70', '2026-07-04 08:50:00', '2026-07-03 08:50:00'),
-(1007, 101, 'demo-reset-token-photo-tranquang', '2026-07-04 09:00:00', '2026-07-03 09:00:00'),
-(1008, 141, 'demo-reset-token-photohung', '2026-07-04 09:10:00', '2026-07-03 09:10:00');
+(1001, 6, '6c0aecff965820a70a84969a8f822181afc6135c6998ddb3940fdd2458c85fc6', '2027-01-01 08:00:00', '2026-07-03 08:00:00'),
+(1002, 10, '7eb2b9dcbefc0e6528e096c35379afd1944b29ef88cb240088a9ed9bb2ea9ee9', '2027-01-01 08:10:00', '2026-07-03 08:10:00'),
+(1003, 20, 'de072e8807fdc4f8e287769859a2270a43e6c0653ce5bc2eee14af171a6640ef', '2027-01-01 08:20:00', '2026-07-03 08:20:00'),
+(1004, 30, '47a89c74cd0794418c4eab84537d7e4dab36078e17c27ca860455bd2c9791ba3', '2027-01-01 08:30:00', '2026-07-03 08:30:00'),
+(1005, 66, 'f8fd00d9a504cd8dd7249008359780ecf9aa482104646a64f5b27b9eca663ec2', '2027-01-01 08:40:00', '2026-07-03 08:40:00'),
+(1006, 70, 'b48b85ee843815170cd6bd804c11ea4be7650c638bd1124dcbbe296fc4cdc43f', '2027-01-01 08:50:00', '2026-07-03 08:50:00'),
+(1007, 101, 'b5524627cafac49583240cf90464d843242e53e13da942522cd05877b4d07f34', '2027-01-01 09:00:00', '2026-07-03 09:00:00'),
+(1008, 141, '52247b57d6e4efe848c9ffe615b9c4c3f2917107d7006eda80a76a2eb1016f5f', '2027-01-01 09:10:00', '2026-07-03 09:10:00');
 
 INSERT IGNORE INTO activity_logs (
     id, user_id, action, target_type, target_id, ip_address, user_agent, metadata, created_at
@@ -700,7 +750,28 @@ SELECT
     DATE_SUB('2026-07-03 12:00:00', INTERVAL n HOUR) AS created_at
 FROM seq;
 
--- 9) Counter refresh with GREATEST so existing large demo counters are not reduced.
+-- 9) Real share rows, capped at 12 per post, then share_count matches post_shares.
+INSERT IGNORE INTO post_shares (user_id, post_id, created_at)
+SELECT ranked.user_id, ranked.post_id, ranked.created_at
+FROM (
+    SELECT
+        p.id AS post_id,
+        u.id AS user_id,
+        p.created_at,
+        ROW_NUMBER() OVER (PARTITION BY p.id ORDER BY u.id) AS rn,
+        LEAST(GREATEST(p.share_count, 1), 12) AS share_cap
+    FROM posts p
+    JOIN users u ON u.id <> p.user_id
+    WHERE p.deleted_at IS NULL
+) ranked
+WHERE ranked.rn <= ranked.share_cap;
+
+UPDATE posts p
+SET p.share_count = (
+    SELECT COUNT(*) FROM post_shares s WHERE s.post_id = p.id
+);
+
+-- Counter refresh with GREATEST so existing large demo counters are not reduced.
 UPDATE posts p
 LEFT JOIN (
     SELECT post_id, COUNT(*) AS total_likes
@@ -715,8 +786,7 @@ LEFT JOIN (
 ) cc ON cc.post_id = p.id
 SET
     p.like_count = GREATEST(p.like_count, COALESCE(lc.total_likes, 0)),
-    p.comment_count = GREATEST(p.comment_count, COALESCE(cc.total_comments, 0)),
-    p.share_count = GREATEST(p.share_count, 10 + MOD(p.id, 90))
+    p.comment_count = GREATEST(p.comment_count, COALESCE(cc.total_comments, 0))
 WHERE p.id BETWEEN 201 AND 264;
 
 UPDATE comments c

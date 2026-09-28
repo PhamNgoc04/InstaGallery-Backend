@@ -4,16 +4,16 @@
 
 ## 1. Nguồn schema chuẩn
 
-Schema mới nhất được mô tả tại `docs/database/database_schema.md`. Script SQL thủ công nằm ở `database/migrations/V001__booking_availability_id.sql` và `database/migrations/V002__chat_shares_constraints.sql`.
+Schema mới nhất được mô tả tại `docs_backend/database/database_schema.md`. Script SQL `database/migrations/V001__booking_availability_id.sql` và `V002__chat_shares_constraints.sql` chỉ dùng cho database cũ. Database tạo mới bởi Exposed đã có các cột đó.
 
 Quy mô hiện tại:
 
-- `36` bảng dữ liệu.
+- `37` bảng dữ liệu, gồm `booking_status_events`.
 - MySQL 8.x.
 - ORM: JetBrains Exposed.
 - Schema được tạo lúc khởi động khi không chạy production. Không còn route HTTP `/init-db`, `/reset-db`, `/migrate-db`.
 
-## 2. Danh sách 36 bảng hiện tại
+## 2. Danh sách 37 bảng hiện tại
 
 ### Auth & Identity
 
@@ -64,6 +64,7 @@ Quy mô hiện tại:
 - photographer_services
 - availability_schedules
 - bookings
+- booking_status_events
 - ratings
 
 ### Thông báo, thiết bị, tìm kiếm, kiểm duyệt

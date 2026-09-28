@@ -2,6 +2,8 @@
 
 *(Module dành cho tính năng khách hàng `CLIENT` đặt lịch chụp với nhiếp ảnh gia `PHOTOGRAPHER`)*
 
+Envelope thực tế dùng `status` `SUCCESS` hoặc `ERROR`. `booking_date` gửi `yyyy-MM-ddTHH:mm:ss`, không gắn `Z`. Mỗi lần đổi trạng thái ghi một dòng `booking_status_events`.
+
 ## 1. Tạo Đơn Đặt Lịch (Create Booking Request)
 - **Cụm:** `Bookings`
 - **Endpoint:** `POST /api/v1/bookings`

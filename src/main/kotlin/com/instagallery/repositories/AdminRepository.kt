@@ -361,10 +361,20 @@ class AdminRepository {
     }
 
     suspend fun updateBookingStatus(bookingId: Long, status: BookingStatus): Boolean = dbQuery {
-        BookingsTable.update({ BookingsTable.id eq bookingId }) {
+        val current = BookingsTable
+            .selectAll()
+            .where { BookingsTable.id eq bookingId }
+            .singleOrNull()
+            ?: return@dbQuery false
+        val fromStatus = current[BookingsTable.status]
+        val updated = BookingsTable.update({ BookingsTable.id eq bookingId }) {
             it[BookingsTable.status] = status
             it[updatedAt] = Instant.now()
         } > 0
+        if (updated) {
+            BookingStatusHistory.record(bookingId, fromStatus, status, actorUserId = null, reason = null)
+        }
+        updated
     }
 
     suspend fun listRatings(page: Int, limit: Int, search: String?, status: String?): AdminRatingsResponse = dbQuery {

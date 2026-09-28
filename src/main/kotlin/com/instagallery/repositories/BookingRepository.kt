@@ -76,7 +76,7 @@ class BookingRepository {
             }
             .forUpdate()
             .any { row ->
-                val existingStart = BookingScheduleRules.storedBookingStart(row[BookingsTable.bookingDate])
+                val existingStart = row[BookingsTable.bookingDate]
                 val existingMinutes = row[BookingsTable.durationHours]
                     ?.toDouble()
                     ?.let { (it * 60).roundToInt() }
@@ -110,6 +110,14 @@ class BookingRepository {
             it[status] = BookingStatus.PENDING
         }.value
 
+        BookingStatusHistory.record(
+            bookingId = bookingId,
+            fromStatus = null,
+            toStatus = BookingStatus.PENDING,
+            actorUserId = data.clientId,
+            reason = null,
+        )
+
         BookingReservation.Created(bookingId)
     }
 
@@ -140,11 +148,25 @@ class BookingRepository {
             ?.toBookingDto(viewerId = userId)
     }
 
-    suspend fun updateBookingStatus(bookingId: Long, newStatus: BookingStatus, reason: String?): Boolean = dbQuery {
+    suspend fun updateBookingStatus(
+        bookingId: Long,
+        newStatus: BookingStatus,
+        reason: String?,
+        actorUserId: Long? = null,
+    ): Boolean = dbQuery {
+        val current = BookingsTable
+            .selectAll()
+            .where { BookingsTable.id eq bookingId }
+            .singleOrNull()
+            ?: return@dbQuery false
+        val fromStatus = current[BookingsTable.status]
         val rows = BookingsTable.update({ BookingsTable.id eq bookingId }) {
             it[status] = newStatus
-            reason?.let { r -> it[cancellationReason] = r }
+            reason?.let { cancellation -> it[cancellationReason] = cancellation }
             it[updatedAt] = Instant.now()
+        }
+        if (rows > 0) {
+            BookingStatusHistory.record(bookingId, fromStatus, newStatus, actorUserId, reason)
         }
         rows > 0
     }
@@ -207,7 +229,7 @@ class BookingRepository {
                 ?.let { raw -> runCatching { bookingJson.decodeFromString<BookingPackageSnapshotDto>(raw) }.getOrNull() },
             shootingType = this[BookingsTable.shootingType],
             sceneType = this[BookingsTable.sceneType],
-            bookingDate = BookingScheduleRules.storedBookingStart(this[BookingsTable.bookingDate]).toString(),
+            bookingDate = this[BookingsTable.bookingDate].toString(),
             status = this[BookingsTable.status],
             price = this[BookingsTable.price]?.toDouble(),
             currency = this[BookingsTable.currency],

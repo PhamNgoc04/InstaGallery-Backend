@@ -51,11 +51,11 @@ fun Route.mediaRoutes() {
                     ?: return@put call.respond(HttpStatusCode.BadRequest, ApiResponse.error("INVALID_FILE", "Tên file không hợp lệ."))
                 val extension = fileName.substringAfterLast('.', "").lowercase(Locale.US)
                 if (extension !in ALLOWED_UPLOAD_EXTENSIONS) {
-                    return@put call.respond(HttpStatusCode.BadRequest, ApiResponse.error("INVALID_EXTENSION", "Chỉ hỗ trợ file ảnh và video phổ biến."))
+                    return@put call.respond(HttpStatusCode.BadRequest, ApiResponse.error("INVALID_EXTENSION", "Chỉ hỗ trợ file hình ảnh (jpg, jpeg, png, webp)."))
                 }
                 val contentLength = call.request.headers[HttpHeaders.ContentLength]?.toLongOrNull()
                 if (contentLength != null && contentLength > MAX_LOCAL_UPLOAD_BYTES) {
-                    return@put call.respond(HttpStatusCode.PayloadTooLarge, ApiResponse.error("FILE_TOO_LARGE", "File vượt quá 50MB."))
+                    return@put call.respond(HttpStatusCode.PayloadTooLarge, ApiResponse.error("FILE_TOO_LARGE", "File hình ảnh vượt quá dung lượng tối đa 15MB."))
                 }
                 if (!LocalUploadGrantStore.consume(userId, folder, fileName)) {
                     return@put call.respond(HttpStatusCode.Forbidden, ApiResponse.error("UPLOAD_NOT_GRANTED", "URL upload không hợp lệ hoặc đã hết hạn."))
@@ -76,7 +76,7 @@ fun Route.mediaRoutes() {
                 }
                 if (written < 0) {
                     tempFile.delete()
-                    return@put call.respond(HttpStatusCode.PayloadTooLarge, ApiResponse.error("FILE_TOO_LARGE", "File vượt quá 50MB."))
+                    return@put call.respond(HttpStatusCode.PayloadTooLarge, ApiResponse.error("FILE_TOO_LARGE", "File hình ảnh vượt quá dung lượng tối đa 15MB."))
                 }
                 if (written == 0L) {
                     tempFile.delete()
@@ -177,7 +177,7 @@ private fun InputStream.copyLimited(output: OutputStream, maxBytes: Long): Long 
 }
 
 private val SAFE_PATH_SEGMENT_REGEX = Regex("[A-Za-z0-9._-]+")
-private val ALLOWED_UPLOAD_EXTENSIONS = setOf("jpg", "jpeg", "png", "mp4", "mov")
-private const val MAX_LOCAL_UPLOAD_BYTES = 50L * 1024 * 1024
+private val ALLOWED_UPLOAD_EXTENSIONS = setOf("jpg", "jpeg", "png", "webp")
+private const val MAX_LOCAL_UPLOAD_BYTES = 15L * 1024 * 1024
 private const val ENV_LOCAL_MEDIA_UPLOAD_DIR = "LOCAL_MEDIA_UPLOAD_DIR"
 private const val DEFAULT_LOCAL_MEDIA_UPLOAD_DIR = "uploads"

@@ -66,6 +66,7 @@ object DatabaseFactory {
                 PostSharesTable,
                 SavedPostsTable,
                 BookingsTable,
+                BookingStatusEventsTable,
                 RatingsTable,
                 ConversationsTable,
                 ConversationMembersTable,

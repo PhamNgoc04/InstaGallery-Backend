@@ -4,7 +4,7 @@ Tài liệu này bao gồm toàn bộ các route HTTP và WebSocket hiện có t
 
 ## 1. Thông Số Tổng Quan (Metrics)
 
-- **Tổng số bảng cơ sở dữ liệu (MySQL Table count):** **36**
+- **Tổng số bảng cơ sở dữ liệu (MySQL Table count):** **37**
 - **Tổng số REST endpoints (`/api/v1`):** **139**
 - **Route hệ thống ngoài `/api/v1`:** **2** (`GET /` và `GET /health`). Không còn route debug database.
 - **WebSocket endpoints:** **1**
@@ -92,10 +92,10 @@ Cấu trúc quản lý định dạng file tải lên và quản trị Album cá
 
 | Phương thức | Endpoint | Access | Mô tả |
 | :--- | :--- | :---: | :--- |
-| PUT| `/media/local-upload/{folder}/{fileName}`| Authenticated | Upload file local. Cần JWT và đúng tên file vừa cấp từ presigned URL. Tối đa 50MB. Chỉ `jpg`, `jpeg`, `png`, `mp4`, `mov` |
+| PUT| `/media/local-upload/{folder}/{fileName}`| Authenticated | Upload file ảnh local. Cần JWT và đúng tên file vừa cấp từ presigned URL. Tối đa 15MB. Chỉ hỗ trợ hình ảnh: `jpg`, `jpeg`, `png`, `webp` |
 | GET| `/media/local-files/{folder}/{fileName}`| Public | Đọc file đã upload. Tên folder và file chỉ gồm ký tự an toàn |
-| POST | `/media/presigned-url` | Authenticated | Cấp URL upload local có hạn 15 phút |
-| POST | `/posts/{postId}/media`| Authenticated | Bổ sung hình ảnh hoặc video vào bài đăng có sẵn |
+| POST | `/media/presigned-url` | Authenticated | Cấp URL upload ảnh local có hạn 15 phút |
+| POST | `/posts/{postId}/media`| Authenticated | Bổ sung hình ảnh vào bài đăng có sẵn (tối đa 10 ảnh) |
 | DELETE | `/posts/media/{mediaId}`| Authenticated | Gỡ hình ảnh ra khỏi bài đăng |
 | PUT| `/posts/{postId}/media/reorder`| Authenticated | Sắp xếp lại thứ tự ảnh hiển thị (Carousel) |
 | POST | `/albums` | Authenticated | Tạo nhóm Album tuyển tập ảnh cá nhân mới |
@@ -195,7 +195,7 @@ Dành riêng cho công cụ quản trị hệ thống của bộ phận Admin.
 | GET | `/admin/ratings` | Admin | Xem toàn bộ đánh giá xuất hiện trên ứng dụng |
 | PUT| `/admin/ratings/{ratingId}/status`| Admin | Ẩn tạm thời hoặc khôi phục hiển thị đánh giá |
 | DELETE| `/admin/ratings/{ratingId}`| Admin | Xóa hẳn đánh giá khỏi hệ thống |
-| GET | `/admin/media` | Admin | Quản trị danh sách file hình ảnh/video hệ thống |
+| GET | `/admin/media` | Admin | Quản trị danh sách file hình ảnh hệ thống |
 | DELETE| `/admin/media/{mediaId}`| Admin | Xóa tệp khỏi máy chủ |
 | GET | `/admin/notifications`| Admin | Quản lý thông báo đã phát từ quản trị |
 | POST | `/admin/notifications`| Admin | Định dạng nội dung phát đi thông báo chung hệ thống |

@@ -25,8 +25,8 @@ class MediaService : KoinComponent {
     // Local-dev presigned-style URLs. Production can swap this for S3/MinIO later.
     suspend fun generatePresignedUrl(userId: Long, request: PresignedUrlRequest): PresignedUrlResponse {
         val extension = request.fileName.substringAfterLast('.', "").lowercase(Locale.US)
-        if (extension !in listOf("jpg", "jpeg", "png", "mp4", "mov")) {
-            throw ValidationException("INVALID_EXTENSION", "Chỉ hỗ trợ file ảnh và video phổ biến.")
+        if (extension !in listOf("jpg", "jpeg", "png", "webp")) {
+            throw ValidationException("INVALID_EXTENSION", "Chỉ hỗ trợ file hình ảnh (jpg, jpeg, png, webp).")
         }
 
         val folder = (request.folder ?: DEFAULT_MEDIA_FOLDER)
@@ -53,7 +53,7 @@ class MediaService : KoinComponent {
 
         val currentCount = mediaRepository.getMediaCountForPost(postId)
         if (currentCount >= 10) {
-            throw ValidationException("MEDIA_LIMIT_EXCEEDED", "Một bài viết chỉ tối đa 10 media (chuẩn Instagram).")
+            throw ValidationException("MEDIA_LIMIT_EXCEEDED", "Một bài viết chỉ tối đa 10 hình ảnh (chuẩn Instagram).")
         }
 
         return mediaRepository.addMediaToPost(postId, request)
@@ -72,7 +72,7 @@ class MediaService : KoinComponent {
 
         val currentCount = mediaRepository.getMediaCountForPost(postId)
         if (currentCount <= 1) {
-            throw ValidationException("CANT_DELETE_LAST_MEDIA", "Bài viết phải có ít nhất 1 hình ảnh hoặc video.")
+            throw ValidationException("CANT_DELETE_LAST_MEDIA", "Bài viết phải có ít nhất 1 hình ảnh.")
         }
 
         return mediaRepository.deleteMedia(mediaId)

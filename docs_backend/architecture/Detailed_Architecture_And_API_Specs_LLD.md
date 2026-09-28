@@ -7,20 +7,21 @@ Tài liệu này bao gồm chi tiết kỹ thuật hệ thống backend ở mứ
 Hệ thống được thiết kế theo kiến trúc Layered Modular Monolith (Route -> Service -> Repository), sử dụng Ktor Framework làm cổng giao tiếp chính.
 
 - **Phiên bản Ktor:** 3.0.2
-- **Tổng số bảng cơ sở dữ liệu (MySQL Tables):** **36**
+- **Tổng số bảng cơ sở dữ liệu (MySQL Tables):** **37**
 - **Tổng số API Endpoints chính thức:** 139 REST `/api/v1`
 - **Kết nối thông tin thời gian thực:** 1 WebSocket chat channel
 - **Bảo mật:** JWT Authentication (quản lý phân quyền qua đối tượng JWT Principal)
 
 ## 2. Phân Tích Thực Thể Bảng Mở Rộng (New Schema Context)
 
-Theo cập nhật mã nguồn thực tế mới nhất, hệ thống đã chuẩn hóa toàn bộ 36 bảng cơ sở dữ liệu với các bảng mở rộng quan trọng:
+Theo cập nhật mã nguồn thực tế mới nhất, hệ thống đã chuẩn hóa toàn bộ 37 bảng cơ sở dữ liệu với các bảng mở rộng quan trọng:
 
 1. **`post_tagged_users`**: Quản lý việc gắn thẻ (tag) người dùng vào bài viết (`POST /api/v1/posts/{id}/tags`), gỡ thẻ (`DELETE /api/v1/posts/{id}/tags/{taggedUserId}`) và xem danh sách bài viết được gắn thẻ (`GET /api/v1/users/me/tagged-posts`).
 2. **`comment_reactions`**: Bảng đang dùng cho like và dislike bình luận. Mỗi user một dòng trên một comment. `comment_likes` và `comment_dislikes` chỉ để backfill lúc khởi động.
 3. **`post_shares`**: Khóa chính `(user_id, post_id)`. `POST /api/v1/posts/{id}/share` lần hai không tăng `posts.share_count`. `GET /api/v1/posts/{id}/shares` đọc bộ đếm đó.
 4. **`device_tokens`**: Quản lý lưu trữ Firebase Cloud Messaging (FCM) tokens cho từng người dùng (`POST /api/v1/devices/fcm-token`), hỗ trợ đẩy thông báo (push notification) trên Android.
 5. **`photographer_services`**: Danh sách gói dịch vụ chụp ảnh cụ thể của từng Photographer (`/api/v1/photographer/services`), lưu trữ giá cả, danh mục chụp và các chi tiết hậu cần đi kèm.
+6. **`booking_status_events`**: Mỗi lần tạo hoặc đổi trạng thái booking ghi một dòng. `client_id` và `photographer_id` trên `bookings` là `ON DELETE RESTRICT`.
 
 ## 3. Bản Đồ Modules Mã Nguồn (Directory Structure Schema)
 

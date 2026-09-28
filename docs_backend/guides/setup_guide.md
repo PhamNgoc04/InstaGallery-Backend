@@ -99,7 +99,7 @@ SHOW DATABASES;
 EXIT;
 ```
 
-> ⚠️ Lần đầu chạy ứng dụng, Ktor sẽ **tự động tạo toàn bộ 30 bảng** thông qua Exposed `SchemaUtils.create(...)`. Bạn **không cần** chạy SQL tạo bảng thủ công.
+> Lần đầu chạy ứng dụng ở môi trường không phải production, Ktor tự tạo 37 bảng qua Exposed `SchemaUtils.createMissingTablesAndColumns`. Không cần chạy SQL tạo bảng thủ công. Máy local đang dùng user `root` / `123456789`. User `ig_user` chỉ có trong Docker Compose.
 
 ---
 
@@ -303,7 +303,7 @@ docker-compose down
 
 > **Chạy sau khi server đã khởi động lần đầu** để các bảng được tạo tự động.
 
-File seed: `database_seed.sql` — chứa 3 users mẫu, posts, albums, comments.
+File `database_seed.sql` ở thư mục gốc chỉ có vài user mẫu. Bộ demo đủ để làm app nằm ở `docs_backend/dulieu_database`, nạp theo thứ tự trong `guides/run_backend_guide.md`. Bộ đó có user id 1–250.
 
 ### Cách 1: Dùng MySQL command line
 
@@ -329,12 +329,11 @@ USE instagallery;
 
 | Username | Email | Password | Role |
 |----------|-------|----------|------|
-| `superadmin` | admin@instagallery.com | `Admin@123` | ADMIN |
-| `thaopham` | thaopham02@gmail.com | `Admin@123` | USER / PHOTOGRAPHER |
-| `hienpham` | hienpham89@gmail.com | `Admin@123` | USER |
+| `danganhthu` | admin@instagallery.com | `Admin@123` | ADMIN |
+| `phamphuongthao` | phamphuongthao@gmail.com | `phamphuongthao123!` | USER / PHOTOGRAPHER |
+| `phamngoc` | phamngoc@gmail.com | `phamngoc123!` | USER / CLIENT |
 
-> 💡 Password hash trong seed file: `$2a$10$8.UnVuG9HHgffUDAlk8qfOuVGkqRzgVymGe07xd00DMxs.TsphxXK`  
-> Đây là bcrypt hash của `Admin@123`.
+Chỉ admin dùng `Admin@123`. Mọi tài khoản demo khác dùng tên đăng nhập cộng `123!`.
 
 ---
 

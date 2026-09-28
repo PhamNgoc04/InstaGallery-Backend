@@ -134,7 +134,7 @@ class BookingService : KoinComponent {
             reason = request.cancellationReason,
         )
 
-        bookingRepo.updateBookingStatus(bookingId, request.status, request.cancellationReason)
+        bookingRepo.updateBookingStatus(bookingId, request.status, request.cancellationReason, userId)
         val recipientId = if (userId == clientId) photoId else clientId
         notificationService.notifyBookingStatusChanged(
             recipientUserId = recipientId,
@@ -170,7 +170,7 @@ class BookingService : KoinComponent {
             reason = "Khach hang tu huy",
         )
 
-        bookingRepo.updateBookingStatus(bookingId, BookingStatus.CANCELLED, "Khach hang tu huy")
+        bookingRepo.updateBookingStatus(bookingId, BookingStatus.CANCELLED, "Khach hang tu huy", userId)
         notificationService.notifyBookingStatusChanged(
             recipientUserId = bookingRow[BookingsTable.photographerId].value,
             actorUserId = userId,

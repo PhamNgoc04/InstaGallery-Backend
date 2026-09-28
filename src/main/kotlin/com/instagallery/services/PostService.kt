@@ -24,7 +24,7 @@ class PostService : KoinComponent {
             throw ValidationException("EMPTY_MEDIA", "A post must have at least one media item.")
         }
         if (request.media.size > 10) {
-            throw ValidationException("MEDIA_LIMIT_EXCEEDED", "Chỉ được đăng tối đa 10 ảnh hoặc video trong một bài viết (chuẩn Instagram).")
+            throw ValidationException("MEDIA_LIMIT_EXCEEDED", "Chỉ được đăng tối đa 10 hình ảnh trong một bài viết (chuẩn Instagram).")
         }
 
         // Action

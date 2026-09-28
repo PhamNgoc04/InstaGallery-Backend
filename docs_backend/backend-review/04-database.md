@@ -92,7 +92,7 @@ Chứa:
 Project có script SQL thủ công `database/migrations/V001__booking_availability_id.sql` và `V002__chat_shares_constraints.sql`. Chưa gắn Flyway hay Liquibase.
 
 Cơ chế hiện tại trong `DatabaseFactory`:
-- Khi chạy môi trường dev/test (`KTOR_ENV != "production"`), ứng dụng tự động gọi `SchemaUtils.createMissingTablesAndColumns(...)` cho toàn bộ **36 bảng** cơ sở dữ liệu. Bước này thêm bảng và cột thiếu, không đáng tin khi thêm unique index lên bảng đã có dữ liệu trùng.
+- Khi chạy môi trường dev/test (`KTOR_ENV != "production"`), ứng dụng tự động gọi `SchemaUtils.createMissingTablesAndColumns(...)` cho toàn bộ **37 bảng** cơ sở dữ liệu, gồm `booking_status_events`. Bước này thêm bảng và cột thiếu, không đáng tin khi thêm unique index lên bảng đã có dữ liệu trùng.
 - Đồng bộ bộ đếm bình luận cây (`CommentTreeVisibility.syncAllPostCommentCounts()`) và backfill dữ liệu phản ứng bình luận (`backfillCommentReactions()`).
 - Khi `KTOR_ENV=production`, server tuyệt đối không tự ý can thiệp hoặc sửa đổi schema để tránh rủi ro dữ liệu.
 - Các route HTTP phá database (`/init-db`, `/reset-db`, `/fix-user-id`, `/migrate-db`) đã được gỡ bỏ hoàn toàn khỏi hệ thống.

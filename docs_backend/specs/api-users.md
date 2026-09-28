@@ -15,9 +15,9 @@
   "message": "Lấy thông tin người dùng thành công",
   "data": {
     "id": 1,
-    "username": "ngocpham",
-    "email": "ngocpb04@gmai.com",
-    "full_name": "Ngoc Pham",
+    "username": "phamngoc",
+    "email": "phamngoc@gmail.com",
+    "fullName": "Phạm Ngọc",
     "profile_picture_url": "https://s3.aws.com/ig/avas/123.jpg",
     "bio": "",
     "website": "",

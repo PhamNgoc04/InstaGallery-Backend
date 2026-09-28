@@ -1,6 +1,7 @@
 package com.instagallery.repositories
 
 import com.instagallery.database.tables.AvailabilitySchedulesTable
+import com.instagallery.database.tables.BookingStatusEventsTable
 import com.instagallery.database.tables.BookingsTable
 import com.instagallery.database.tables.PhotographerServicesTable
 import com.instagallery.database.tables.PortfoliosTable
@@ -36,6 +37,7 @@ class BookingReserveTest {
                 PhotographerServicesTable,
                 AvailabilitySchedulesTable,
                 BookingsTable,
+                BookingStatusEventsTable,
             )
         }
 

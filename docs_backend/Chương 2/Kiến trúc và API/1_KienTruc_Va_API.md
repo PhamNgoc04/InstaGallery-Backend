@@ -24,7 +24,7 @@ graph TD
     end
 
     subgraph Data["Tầng dữ liệu"]
-        MySQL[("MySQL 8.x\n36 bảng")]
+        MySQL[("MySQL 8.x\n37 bảng")]
         Redis[("Redis 7\nCache + Session")]
         Storage["Cloud Storage\nMedia files"]
     end

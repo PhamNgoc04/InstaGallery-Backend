@@ -12,7 +12,7 @@
 |---|---|
 | **A** | [Kiến Trúc Tổng Quan](#a-kiến-trúc-tổng-quan) |
 | **B** | [ERD & Quan Hệ Giữa Các Bảng](#b-erd--quan-hệ-giữa-các-bảng) |
-| **C** | [SQL Schema Hoàn Chỉnh (36 bảng)](#c-sql-schema-hoàn-chỉnh) |
+| **C** | [SQL Schema Hoàn Chỉnh (37 bảng)](#c-sql-schema-hoàn-chỉnh) |
 | **D** | [Phân Tích Chuẩn Hóa & Denormalization](#d-phân-tích-chuẩn-hóa) |
 | **E** | [API Endpoints Toàn Bộ (139 REST + 2 system + 1 WebSocket)](#e-api-endpoints-toàn-bộ) |
 | **F** | [Chi Tiết Logic Từng Module API](#f-chi-tiết-logic-từng-module) |
@@ -29,7 +29,7 @@
 
 | Chỉ số | Giá trị |
 |---|---|
-| Tổng số bảng | **36** |
+| Tổng số bảng | **37** |
 | Tổng API endpoints | **139 REST `/api/v1` + 2 system HTTP + 1 WebSocket** |
 | API Modules | **17 route modules** (Auth, Users, Posts, Interactions, Media, Albums, Explore, Search, Chat, Notifications, Portfolios, Photographer Services, Bookings, Ratings, Reports, Devices, Admin) |
 | Hệ quản trị | MySQL 8.x, utf8mb4, InnoDB |
@@ -53,7 +53,7 @@ graph TB
         Search["Search Module"]
     end
     subgraph "💾 Data Layer"
-        DB[(MySQL 8.x<br/>36 bảng)]
+        DB[(MySQL 8.x<br/>37 bảng)]
         Redis[(Redis 7.x<br/>Cache + Session)]
         S3[Firebase Storage<br/>Ảnh + Video]
     end

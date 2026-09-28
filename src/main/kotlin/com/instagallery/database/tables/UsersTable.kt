@@ -24,7 +24,7 @@ object UsersTable : LongIdTable("users") {
     
     // OAuth & Auth Extensions
     val provider = enumerationByName("provider", 20, com.instagallery.models.common.AuthProvider::class).default(com.instagallery.models.common.AuthProvider.LOCAL)
-    val providerId = varchar("provider_id", 255).nullable().uniqueIndex()
+    val providerId = varchar("provider_id", 255).nullable()
     
     // 2FA Configuration
     val isTwoFactorEnabled = bool("is_two_factor_enabled").default(false)

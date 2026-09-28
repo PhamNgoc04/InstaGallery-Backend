@@ -124,7 +124,7 @@ Không bao giờ push thẳng code lên `main` nếu chưa vượt qua Unit Test
 
 > **CONTEXT = Bạn phải cho AI nhìn thấy "Chiến Trường" trước khi ra lệnh nổ súng.**
 
-**Vấn Đề Ở Backend:** Có quá nhiều bảng cơ sở dữ liệu (ví dụ đồ án hiện có 36 bảng). AI không thể đoán được bảng `users` nối với bảng `posts` kiểu gì nếu không có Context.
+**Vấn Đề Ở Backend:** Có quá nhiều bảng cơ sở dữ liệu (ví dụ đồ án hiện có 37 bảng). AI không thể đoán được bảng `users` nối với bảng `posts` kiểu gì nếu không có Context.
 
 ## Chiến Lược Tiêm Ngữ Cảnh Chuyên Sâu (Context Injection):
 

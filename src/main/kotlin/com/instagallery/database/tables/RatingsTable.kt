@@ -8,8 +8,8 @@ import org.jetbrains.exposed.sql.javatime.timestamp
 
 object RatingsTable : LongIdTable("ratings") {
     val bookingId = reference("booking_id", BookingsTable, onDelete = ReferenceOption.CASCADE).uniqueIndex()
-    val raterId = reference("rater_id", UsersTable, onDelete = ReferenceOption.CASCADE).index()
-    val rateeId = reference("ratee_id", UsersTable, onDelete = ReferenceOption.CASCADE).index()
+    val raterId = reference("rater_id", UsersTable, onDelete = ReferenceOption.RESTRICT).index()
+    val rateeId = reference("ratee_id", UsersTable, onDelete = ReferenceOption.RESTRICT).index()
     val ratingValue = short("rating_value").index()
     val comment = text("comment").nullable()
     val status = enumerationByName("status", 20, RatingVisibility::class).default(RatingVisibility.APPROVED).index()
