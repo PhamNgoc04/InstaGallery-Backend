@@ -9,6 +9,8 @@ enum class PostVisibility { PUBLIC, PRIVATE, FRIENDS_ONLY }
 enum class CommentVisibility { ALLOW_ALL, FOLLOWERS_ONLY, NO_ONE }
 enum class MediaType { IMAGE, VIDEO }
 enum class BookingStatus { PENDING, CONFIRMED, IN_PROGRESS, COMPLETED, CANCELLED, REJECTED }
+enum class RatingVisibility { APPROVED, PENDING, HIDDEN }
+enum class CommentReactionKind { LIKE, DISLIKE }
 enum class ConversationType { DIRECT, GROUP }
 enum class ConversationRole { MEMBER, ADMIN }
 enum class MessageType { TEXT, IMAGE, VIDEO, FILE, SYSTEM }
@@ -20,7 +22,7 @@ enum class NotificationType {
 }
 enum class NotificationTargetType { POST, COMMENT, USER, BOOKING, CONVERSATION }
 
-enum class ActivityTargetType { POST, USER, COMMENT, BOOKING, MEDIA, SESSION }
+enum class ActivityTargetType { POST, USER, COMMENT, BOOKING, MEDIA, SESSION, ALBUM }
 
 enum class ReportTargetType { POST, COMMENT, USER, BOOKING, MESSAGE, RATING }
 enum class ReportStatus { PENDING, REVIEWING, RESOLVED, DISMISSED }

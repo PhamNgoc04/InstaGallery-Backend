@@ -39,19 +39,20 @@ class UserIntegrationTest {
     fun `Integration Test - Authenticated GET me flow`() = testApplication {
         // Setup Isolated App and Database for this specific test
         val uniqueDbName = UUID.randomUUID().toString()
-        Database.connect(
+        val database = Database.connect(
             url = "jdbc:h2:mem:$uniqueDbName;DB_CLOSE_DELAY=-1;IGNORECASE=TRUE",
             driver = "org.h2.Driver"
         )
 
-        transaction {
+        transaction(database) {
             SchemaUtils.create(
                 UsersTable, UserSessionsTable, PortfoliosTable, ActivityLogsTable,
                 ReportsTable, SearchHistoriesTable, FiltersTable,
                 FollowersTable, LikesTable, CommentsTable, CommentLikesTable, SavedPostsTable,
                 PhotographerServicesTable, BookingsTable, RatingsTable, ConversationsTable, ConversationMembersTable,
                 MessagesTable, NotificationsTable, PasswordResetTokensTable, PostsTable,
-                PostMediaTable, MediaTagsTable, PostMediaTagsTable // Add all tables required by all repositories since Koin injects everything
+                PostMediaTable, MediaTagsTable, PostMediaTagsTable, FollowRequestsTable, BlockedUsersTable,
+                MutedUsersTable, AlbumsTable, AlbumMediaTable, PostTaggedUsersTable, CommentDislikesTable // Add all tables required by all repositories since Koin injects everything
             )
         }
 

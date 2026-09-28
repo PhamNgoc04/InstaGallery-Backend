@@ -2,12 +2,37 @@ package com.instagallery.models.common
 
 import kotlinx.serialization.Serializable
 
+data class UserAccount(
+    val id: Long,
+    val username: String,
+    val email: String,
+    val passwordHash: String,
+    val fullName: String,
+    val profilePictureUrl: String?,
+    val role: Role,
+    val userType: UserType,
+    val isActive: Boolean,
+    val isVerified: Boolean,
+    val isPrivate: Boolean = false,
+) {
+    fun toPublicDto(): UserDto = UserDto(
+        id = id,
+        username = username,
+        email = email,
+        fullName = fullName,
+        profilePictureUrl = profilePictureUrl,
+        role = role,
+        userType = userType,
+        isActive = isActive,
+        isVerified = isVerified,
+    )
+}
+
 @Serializable
 data class UserDto(
     val id: Long,
     val username: String,
     val email: String,
-    val passwordHash: String,
     val fullName: String,
     val profilePictureUrl: String?,
     val role: Role,

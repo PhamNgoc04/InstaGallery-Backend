@@ -15,6 +15,7 @@ import com.instagallery.plugins.AuthException
 import com.instagallery.plugins.ValidationException
 import com.instagallery.repositories.BookingCreateData
 import com.instagallery.repositories.BookingRepository
+import com.instagallery.repositories.BookingReservation
 import com.instagallery.repositories.PhotographerServiceRepository
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -55,15 +56,8 @@ class BookingService : KoinComponent {
         val durationMinutes = resolveDurationMinutes(request, selectedService)
         val durationHours = durationMinutes / 60.0
 
-        if (!bookingRepo.isWithinAvailability(request.photographerId, parsedDate, durationMinutes)) {
-            throw ValidationException("BOOKING_OUTSIDE_AVAILABILITY", "Khung gio nay nam ngoai lich lam viec cua nhiep anh gia.")
-        }
-
-        if (bookingRepo.hasScheduleConflict(request.photographerId, parsedDate, durationMinutes)) {
-            throw ValidationException("BOOKING_SLOT_UNAVAILABLE", "Khung gio nay da co lich dat khac.")
-        }
-
-        val newId = bookingRepo.createBooking(
+        val newId = when (
+            val reserved = bookingRepo.reserveBooking(
             BookingCreateData(
                 clientId = clientId,
                 photographerId = request.photographerId,
@@ -83,8 +77,20 @@ class BookingService : KoinComponent {
                 referenceImages = request.referenceImages.mapNotNull(::normalizeText),
                 price = selectedService?.price ?: request.price,
                 currency = (selectedService?.currency ?: request.currency).uppercase(),
+                durationMinutes = durationMinutes,
             ),
         )
+        ) {
+            is BookingReservation.Created -> reserved.bookingId
+            BookingReservation.NoWorkingHours ->
+                throw ValidationException("BOOKING_OUTSIDE_AVAILABILITY", "Nhiep anh gia chua mo lich lam viec.")
+            BookingReservation.PhotographerClosed ->
+                throw ValidationException("BOOKING_OUTSIDE_AVAILABILITY", "Nhiep anh gia dang tam ngung nhan lich.")
+            BookingReservation.OutsideHours ->
+                throw ValidationException("BOOKING_OUTSIDE_AVAILABILITY", "Khung gio nay nam ngoai lich lam viec cua nhiep anh gia.")
+            BookingReservation.SlotTaken ->
+                throw ValidationException("BOOKING_SLOT_UNAVAILABLE", "Khung gio nay da co lich dat khac.")
+        }
 
         notificationService.notifyBookingCreated(request.photographerId, clientId, newId)
 

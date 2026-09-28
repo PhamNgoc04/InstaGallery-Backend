@@ -2,6 +2,7 @@ package com.instagallery.routes
 
 import com.instagallery.models.common.ApiResponse
 import com.instagallery.models.request.WsMessageRequest
+import com.instagallery.repositories.UserRepository
 import com.instagallery.services.ChatService
 import com.instagallery.utils.ConnectionManager
 import com.instagallery.utils.JwtManager
@@ -68,10 +69,10 @@ fun Route.chatRoutes() {
             put("/conversations/{id}/read") {
                 val principal = call.principal<JWTPrincipal>()
                 val userId = principal?.payload?.getClaim("userId")?.asLong()
-                    ?: return@put call.respond(HttpStatusCode.Unauthorized, ApiResponse.error("UNAUTHORIZED", "Token khÃ´ng há»£p lá»‡."))
+                    ?: return@put call.respond(HttpStatusCode.Unauthorized, ApiResponse.error("UNAUTHORIZED", "Token không hợp lệ."))
 
                 val conversationId = call.parameters["id"]?.toLongOrNull()
-                    ?: return@put call.respond(HttpStatusCode.BadRequest, ApiResponse.error("INVALID_ID", "ID há»™i thoáº¡i khÃ´ng há»£p lá»‡."))
+                    ?: return@put call.respond(HttpStatusCode.BadRequest, ApiResponse.error("INVALID_ID", "ID hội thoại không hợp lệ."))
 
                 val unreadCount = chatService.markConversationRead(userId, conversationId)
                 call.respond(HttpStatusCode.OK, ApiResponse.success(data = mapOf("unreadCount" to unreadCount)))
@@ -110,31 +111,27 @@ fun Route.chatRoutes() {
         }
     }
 
-    // --- WEBSOCKET API Phát Trực Tiếp ---
-    // Note: Ktor websocket routes exist outside standard authenticated feature scopes
-    // Manual token verification via query parameter is typical for WS.
     webSocket("/api/v1/ws/chat") {
         val token = call.request.queryParameters["token"]
-        
-        if (token == null) {
+        if (token.isNullOrBlank()) {
             close(CloseReason(CloseReason.Codes.VIOLATED_POLICY, "Thiếu Token"))
             return@webSocket
         }
-        
-        // Manual verification since @authenticate doesn't map perfectly wrapper-wise to raw WS.
-        val decodedJwt = try { com.auth0.jwt.JWT.decode(token) } catch (e: Exception) { null }
-        if (decodedJwt == null) {
+
+        val jwtManager = call.application.getKoin().get<JwtManager>()
+        val userRepository = call.application.getKoin().get<UserRepository>()
+        val decodedJwt = jwtManager.verifyTokenSync(token)
+        val userId = decodedJwt?.getClaim("userId")?.asLong()
+        val user = userId?.let { userRepository.getUserById(it) }
+        if (decodedJwt == null || userId == null || user == null || !user.isActive) {
             close(CloseReason(CloseReason.Codes.VIOLATED_POLICY, "Token không hợp lệ hoặc hết hạn"))
             return@webSocket
         }
 
-        val userId = decodedJwt.getClaim("userId").asLong()
-        
-        // 1. Connection Established
-        ConnectionManager.addSession(userId, this)
+        val previous = ConnectionManager.replaceSession(userId, this)
+        previous?.close(CloseReason(CloseReason.Codes.NORMAL, "Replaced by a new connection"))
 
         try {
-            // 2. Tắng nghe khung dữ liệu Push từ Client lên Server
             incoming.consumeEach { frame ->
                 if (frame is Frame.Text) {
                     val text = frame.readText()
@@ -159,7 +156,7 @@ fun Route.chatRoutes() {
             }
         } finally {
             // 3. User disconnects
-            ConnectionManager.removeSession(userId)
+            ConnectionManager.removeSession(userId, this)
         }
     }
 }

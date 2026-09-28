@@ -36,6 +36,8 @@ class PostServiceTest : KoinTest {
             modules(
                 module {
                     single { postRepository }
+                    single { mockk<com.instagallery.services.NotificationService>(relaxed = true) }
+                    single { mockk<com.instagallery.repositories.UserRepository>(relaxed = true) }
                 }
             )
         }

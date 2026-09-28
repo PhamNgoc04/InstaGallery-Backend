@@ -5,7 +5,7 @@ import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier
 import com.google.api.client.http.javanet.NetHttpTransport
 import com.google.api.client.json.gson.GsonFactory
 import com.instagallery.models.common.AuthProvider
-import com.instagallery.models.common.UserDto
+import com.instagallery.models.common.UserAccount
 import com.instagallery.models.request.GoogleLoginRequest
 import com.instagallery.models.request.LoginRequest
 import com.instagallery.models.request.RegisterRequest
@@ -23,10 +23,14 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
+import com.instagallery.utils.RequiredConfig
+import java.nio.charset.StandardCharsets
 import java.security.SecureRandom
 import java.text.Normalizer
 import java.util.Locale
 import java.util.UUID
+import javax.crypto.Mac
+import javax.crypto.spec.SecretKeySpec
 
 class AuthService : KoinComponent {
     private val userRepository: UserRepository by inject()
@@ -66,7 +70,7 @@ class AuthService : KoinComponent {
         val refreshToken = java.util.UUID.randomUUID().toString()
         val expiredAt = java.time.LocalDateTime.now().plusDays(30)
         
-        sessionRepository.createSession(newUser.id, deviceInfo, ipAddress, refreshToken, expiredAt)
+        sessionRepository.createSession(newUser.id, deviceInfo, ipAddress, hashRefreshToken(refreshToken), expiredAt)
 
         return RegisterResponse(
             userId = newUser.id,
@@ -183,7 +187,7 @@ class AuthService : KoinComponent {
     }
 
     private suspend fun createLoginResponse(
-        user: UserDto,
+        user: UserAccount,
         deviceInfo: String?,
         ipAddress: String?,
     ): LoginResponse {
@@ -191,7 +195,7 @@ class AuthService : KoinComponent {
         val refreshToken = UUID.randomUUID().toString()
         val expiredAt = java.time.LocalDateTime.now().plusDays(30)
 
-        sessionRepository.createSession(user.id, deviceInfo, ipAddress, refreshToken, expiredAt)
+        sessionRepository.createSession(user.id, deviceInfo, ipAddress, hashRefreshToken(refreshToken), expiredAt)
 
         return LoginResponse(
             userId = user.id,
@@ -255,12 +259,12 @@ class AuthService : KoinComponent {
     }
 
     suspend fun refreshToken(oldRefreshToken: String, deviceInfo: String? = null, ipAddress: String? = null): com.instagallery.models.response.TokenRefreshResponse {
-        val sessionRow = sessionRepository.getSessionByRefreshToken(oldRefreshToken)
+        val sessionRow = sessionRepository.getSessionByRefreshToken(hashRefreshToken(oldRefreshToken))
             ?: throw AuthException("INVALID_TOKEN", "Refresh token is invalid or expired.")
 
         val expiredAt = sessionRow[com.instagallery.database.tables.UserSessionsTable.expiredAt]
         if (expiredAt.isBefore(java.time.Instant.now())) {
-            sessionRepository.deleteSessionByToken(oldRefreshToken)
+            sessionRepository.deleteSessionByToken(hashRefreshToken(oldRefreshToken))
             throw AuthException("TOKEN_EXPIRED", "Refresh token has expired. Please login again.")
         }
 
@@ -273,13 +277,13 @@ class AuthService : KoinComponent {
         }
 
         // Tạo vòng lặp Session mới: Thu hồi Token cũ, cấp cái mới
-        sessionRepository.deleteSessionByToken(oldRefreshToken)
+        sessionRepository.deleteSessionByToken(hashRefreshToken(oldRefreshToken))
         
         val newAccessToken = jwtManager.generateToken(user)
         val newRefreshToken = java.util.UUID.randomUUID().toString()
         val newExpiredAt = java.time.LocalDateTime.now().plusDays(30)
         
-        sessionRepository.createSession(userId, deviceInfo, ipAddress, newRefreshToken, newExpiredAt)
+        sessionRepository.createSession(userId, deviceInfo, ipAddress, hashRefreshToken(newRefreshToken), newExpiredAt)
 
         return com.instagallery.models.response.TokenRefreshResponse(
             token = newAccessToken,
@@ -289,14 +293,14 @@ class AuthService : KoinComponent {
     }
 
     suspend fun logout(refreshToken: String) {
-        sessionRepository.deleteSessionByToken(refreshToken)
+        sessionRepository.deleteSessionByToken(hashRefreshToken(refreshToken))
     }
 
     suspend fun getMySessions(userId: Long, currentToken: String?): com.instagallery.models.response.UserSessionsResponse {
         val sessions = sessionRepository.getSessionsByUserId(userId)
         val dtoList = sessions.map { row ->
             val refToken = row[com.instagallery.database.tables.UserSessionsTable.refreshToken]
-            val isCurrent = currentToken != null && currentToken == refToken
+            val isCurrent = currentToken != null && hashRefreshToken(currentToken) == refToken
             com.instagallery.models.response.SessionDto(
                 id = row[com.instagallery.database.tables.UserSessionsTable.id].value,
                 deviceInfo = row[com.instagallery.database.tables.UserSessionsTable.deviceInfo],
@@ -341,9 +345,7 @@ class AuthService : KoinComponent {
         val expiredAt = java.time.LocalDateTime.now().plusMinutes(15)
 
         passwordResetRepository.deleteTokensByUserId(user.id)
-        passwordResetRepository.saveToken(user.id, token, expiredAt)
-
-        println("[PASSWORD RESET] To: ${user.email} | Reset Code: $token | Expires: $expiredAt")
+        passwordResetRepository.saveToken(user.id, hashResetCode(token), expiredAt)
 
         return ForgotPasswordStartResponse(
             debugResetToken = token.takeIf { shouldExposeDebugResetToken() }
@@ -351,7 +353,7 @@ class AuthService : KoinComponent {
     }
 
     suspend fun resetPassword(request: com.instagallery.models.request.ResetPasswordRequest) {
-        val tokenRow = passwordResetRepository.getToken(request.resetToken)
+        val tokenRow = passwordResetRepository.getToken(hashResetCode(request.resetToken))
             ?: throw AuthException("INVALID_TOKEN", "Đường dẫn quá hạn hoặc không hợp lệ.")
 
         val expiredAt = tokenRow[com.instagallery.database.tables.PasswordResetTokensTable.expiredAt]
@@ -378,6 +380,18 @@ class AuthService : KoinComponent {
 
     private fun generateResetCode(): String =
         secureRandom.nextInt(1_000_000).toString().padStart(6, '0')
+
+    private fun hashResetCode(rawCode: String): String = hmacSha256(rawCode)
+
+    private fun hashRefreshToken(rawToken: String): String = hmacSha256(rawToken)
+
+    private fun hmacSha256(rawValue: String): String {
+        val mac = Mac.getInstance("HmacSHA256")
+        val key = SecretKeySpec(RequiredConfig.jwtSecret(config).toByteArray(StandardCharsets.UTF_8), "HmacSHA256")
+        mac.init(key)
+        return mac.doFinal(rawValue.toByteArray(StandardCharsets.UTF_8))
+            .joinToString("") { byte -> "%02x".format(byte) }
+    }
 
     private fun shouldExposeDebugResetToken(): Boolean {
         val configured = config.propertyOrNull("auth.exposeDebugResetToken")

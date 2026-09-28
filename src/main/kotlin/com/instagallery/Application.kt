@@ -23,7 +23,6 @@ fun Application.module() {
     configureSecurity()         // JWT
     configureCORS()
     configureDatabase()         // MySQL + Exposed
-    configureRateLimiting()
     configureStatusPages()      // Error handling
     configureSockets()          // WebSockets
     configureRouting()          // All routes

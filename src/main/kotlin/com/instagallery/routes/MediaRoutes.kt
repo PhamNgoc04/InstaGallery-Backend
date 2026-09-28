@@ -5,6 +5,7 @@ import com.instagallery.models.request.AddPostMediaRequest
 import com.instagallery.models.request.PresignedUrlRequest
 import com.instagallery.models.request.ReorderMediaRequest
 import com.instagallery.services.MediaService
+import com.instagallery.utils.LocalUploadGrantStore
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
@@ -14,8 +15,11 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import org.koin.ktor.ext.getKoin
 import java.io.File
+import java.io.InputStream
+import java.io.OutputStream
 import java.nio.file.Files
 import java.nio.file.StandardCopyOption
+import java.util.Locale
 import java.util.UUID
 
 fun Route.mediaRoutes() {
@@ -23,44 +27,70 @@ fun Route.mediaRoutes() {
     val localMediaRoot = configuredLocalMediaRoot()
 
     route("/api/v1") {
-        put("/media/local-upload/{folder}/{fileName}") {
-            val folder = call.parameters["folder"]?.takeIf { it.isSafePathSegment() }
-                ?: return@put call.respond(HttpStatusCode.BadRequest, ApiResponse.error("INVALID_FOLDER", "Folder khÃ´ng há»£p lá»‡."))
-            val fileName = call.parameters["fileName"]?.takeIf { it.isSafePathSegment() }
-                ?: return@put call.respond(HttpStatusCode.BadRequest, ApiResponse.error("INVALID_FILE", "TÃªn file khÃ´ng há»£p lá»‡."))
-
-            val targetDirectory = File(localMediaRoot, folder).apply { mkdirs() }
-            val targetFile = File(targetDirectory, fileName)
-            val tempFile = File(targetDirectory, "$fileName.tmp-${UUID.randomUUID()}")
-            call.receiveStream().use { input ->
-                tempFile.outputStream().use { output ->
-                    input.copyTo(output)
-                }
-            }
-            Files.move(
-                tempFile.toPath(),
-                targetFile.toPath(),
-                StandardCopyOption.REPLACE_EXISTING,
-            )
-
-            call.respond(HttpStatusCode.OK, ApiResponse.success(data = null, message = "Upload local media thÃ nh cÃ´ng."))
-        }
-
         get("/media/local-files/{folder}/{fileName}") {
             val folder = call.parameters["folder"]?.takeIf { it.isSafePathSegment() }
-                ?: return@get call.respond(HttpStatusCode.BadRequest, ApiResponse.error("INVALID_FOLDER", "Folder khÃ´ng há»£p lá»‡."))
+                ?: return@get call.respond(HttpStatusCode.BadRequest, ApiResponse.error("INVALID_FOLDER", "Folder không hợp lệ."))
             val fileName = call.parameters["fileName"]?.takeIf { it.isSafePathSegment() }
-                ?: return@get call.respond(HttpStatusCode.BadRequest, ApiResponse.error("INVALID_FILE", "TÃªn file khÃ´ng há»£p lá»‡."))
+                ?: return@get call.respond(HttpStatusCode.BadRequest, ApiResponse.error("INVALID_FILE", "Tên file không hợp lệ."))
 
             val targetFile = File(File(localMediaRoot, folder), fileName)
             if (!targetFile.exists()) {
-                return@get call.respond(HttpStatusCode.NotFound, ApiResponse.error("MEDIA_NOT_FOUND", "Media khÃ´ng tá»“n táº¡i."))
+                return@get call.respond(HttpStatusCode.NotFound, ApiResponse.error("MEDIA_NOT_FOUND", "Media không tồn tại."))
             }
 
             call.respondFile(targetFile)
         }
 
         authenticate("jwt") {
+            put("/media/local-upload/{folder}/{fileName}") {
+                val userId = call.principal<JWTPrincipal>()?.payload?.getClaim("userId")?.asLong()
+                    ?: return@put call.respond(HttpStatusCode.Unauthorized, ApiResponse.error("UNAUTHORIZED", "Token không hợp lệ."))
+                val folder = call.parameters["folder"]?.takeIf { it.isSafePathSegment() }
+                    ?: return@put call.respond(HttpStatusCode.BadRequest, ApiResponse.error("INVALID_FOLDER", "Folder không hợp lệ."))
+                val fileName = call.parameters["fileName"]?.takeIf { it.isSafePathSegment() }
+                    ?: return@put call.respond(HttpStatusCode.BadRequest, ApiResponse.error("INVALID_FILE", "Tên file không hợp lệ."))
+                val extension = fileName.substringAfterLast('.', "").lowercase(Locale.US)
+                if (extension !in ALLOWED_UPLOAD_EXTENSIONS) {
+                    return@put call.respond(HttpStatusCode.BadRequest, ApiResponse.error("INVALID_EXTENSION", "Chỉ hỗ trợ file ảnh và video phổ biến."))
+                }
+                val contentLength = call.request.headers[HttpHeaders.ContentLength]?.toLongOrNull()
+                if (contentLength != null && contentLength > MAX_LOCAL_UPLOAD_BYTES) {
+                    return@put call.respond(HttpStatusCode.PayloadTooLarge, ApiResponse.error("FILE_TOO_LARGE", "File vượt quá 50MB."))
+                }
+                if (!LocalUploadGrantStore.consume(userId, folder, fileName)) {
+                    return@put call.respond(HttpStatusCode.Forbidden, ApiResponse.error("UPLOAD_NOT_GRANTED", "URL upload không hợp lệ hoặc đã hết hạn."))
+                }
+
+                val targetDirectory = File(localMediaRoot, folder).apply { mkdirs() }
+                val targetFile = File(targetDirectory, fileName)
+                val tempFile = File(targetDirectory, "$fileName.tmp-${UUID.randomUUID()}")
+                val written = try {
+                    call.receiveStream().use { input ->
+                        tempFile.outputStream().use { output ->
+                            input.copyLimited(output, MAX_LOCAL_UPLOAD_BYTES)
+                        }
+                    }
+                } catch (exception: Exception) {
+                    tempFile.delete()
+                    throw exception
+                }
+                if (written < 0) {
+                    tempFile.delete()
+                    return@put call.respond(HttpStatusCode.PayloadTooLarge, ApiResponse.error("FILE_TOO_LARGE", "File vượt quá 50MB."))
+                }
+                if (written == 0L) {
+                    tempFile.delete()
+                    return@put call.respond(HttpStatusCode.BadRequest, ApiResponse.error("EMPTY_FILE", "File upload đang trống."))
+                }
+                Files.move(
+                    tempFile.toPath(),
+                    targetFile.toPath(),
+                    StandardCopyOption.REPLACE_EXISTING,
+                )
+
+                call.respond(HttpStatusCode.OK, ApiResponse.success(data = null, message = "Upload local media thành công."))
+            }
+
             // --- S3 Presigned URL (Mock) ---
             post("/media/presigned-url") {
                 val principal = call.principal<JWTPrincipal>()
@@ -133,6 +163,21 @@ private fun configuredLocalMediaRoot(): File {
     return File(configuredPath).absoluteFile.apply { mkdirs() }
 }
 
+private fun InputStream.copyLimited(output: OutputStream, maxBytes: Long): Long {
+    val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
+    var total = 0L
+    while (true) {
+        val read = read(buffer)
+        if (read < 0) break
+        total += read
+        if (total > maxBytes) return -1
+        output.write(buffer, 0, read)
+    }
+    return total
+}
+
 private val SAFE_PATH_SEGMENT_REGEX = Regex("[A-Za-z0-9._-]+")
+private val ALLOWED_UPLOAD_EXTENSIONS = setOf("jpg", "jpeg", "png", "mp4", "mov")
+private const val MAX_LOCAL_UPLOAD_BYTES = 50L * 1024 * 1024
 private const val ENV_LOCAL_MEDIA_UPLOAD_DIR = "LOCAL_MEDIA_UPLOAD_DIR"
 private const val DEFAULT_LOCAL_MEDIA_UPLOAD_DIR = "uploads"

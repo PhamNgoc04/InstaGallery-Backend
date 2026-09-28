@@ -8,12 +8,16 @@ import java.util.concurrent.ConcurrentHashMap
 object ConnectionManager {
     private val sessions = ConcurrentHashMap<Long, DefaultWebSocketSession>()
 
-    fun addSession(userId: Long, session: DefaultWebSocketSession) {
-        sessions[userId] = session
+    fun replaceSession(userId: Long, session: DefaultWebSocketSession): DefaultWebSocketSession? {
+        return sessions.put(userId, session)
     }
 
     fun removeSession(userId: Long) {
         sessions.remove(userId)
+    }
+
+    fun removeSession(userId: Long, session: DefaultWebSocketSession) {
+        sessions.remove(userId, session)
     }
 
     fun getSession(userId: Long): DefaultWebSocketSession? {

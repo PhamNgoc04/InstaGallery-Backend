@@ -10,4 +10,8 @@ object SearchHistoriesTable : LongIdTable("search_histories") {
     val queryText = varchar("query_text", 255)
     val resultCount = integer("result_count").nullable()
     val searchedAt = timestamp("searched_at").defaultExpression(CurrentTimestamp).index()
+
+    init {
+        uniqueIndex("uk_user_search_query", userId, queryText)
+    }
 }

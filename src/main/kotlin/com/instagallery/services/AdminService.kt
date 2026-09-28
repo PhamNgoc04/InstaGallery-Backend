@@ -1,4 +1,4 @@
-    package com.instagallery.services
+package com.instagallery.services
 
 import com.instagallery.models.common.AdminGrowthDto
 import com.instagallery.models.common.AdminStatsDto
@@ -20,6 +20,10 @@ import com.instagallery.plugins.ValidationException
 import com.instagallery.repositories.AdminRepository
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
+
+// Service Layer (services/): Bộ não của hệ thống. 
+// Nơi kiểm tra quyền hạn, kiểm tra lịch trùng, kiểm tra 
+// trạng thái booking, băm mật khẩu, kích hoạt push notification.
 
 class AdminService : KoinComponent {
     private val adminRepository: AdminRepository by inject()

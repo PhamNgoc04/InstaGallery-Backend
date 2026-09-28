@@ -1,7 +1,9 @@
 package com.instagallery.routes
 
 import com.instagallery.models.common.ApiResponse
+import com.instagallery.repositories.UserRepository
 import com.instagallery.services.SearchService
+import com.instagallery.utils.JwtManager
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
@@ -12,24 +14,21 @@ import org.koin.ktor.ext.getKoin
 
 fun Route.searchRoutes() {
     val searchService = application.getKoin().get<SearchService>()
+    val jwtManager = application.getKoin().get<JwtManager>()
+    val userRepository = application.getKoin().get<UserRepository>()
 
     route("/api/v1/search") {
-        
-        // --- 1. Global Search (Optional Auth) ---
-        // Sử dụng authenticate với "auth-jwt" optional (Nên tách riêng một config optional auth nếu cần)
-        // Trong trường hợp này để cho nhanh, Ktor hỗ trợ lấy header token thủ công nếu ko config optional route.
         get {
             val authHeader = call.request.headers["Authorization"]
             var userId: Long? = null
-            
-            // Nếu gửi Token hợp lệ, ta có cơ hội lấy được userId để push vào History
+
             if (authHeader != null && authHeader.startsWith("Bearer ")) {
-                val token = authHeader.removePrefix("Bearer ")
-                try {
-                    val decoded = com.auth0.jwt.JWT.decode(token)
-                    userId = decoded.getClaim("userId").asLong()
-                } catch (e: Exception) {
-                    // Invalid token, ignore
+                val token = authHeader.removePrefix("Bearer ").trim()
+                val decoded = jwtManager.verifyTokenSync(token)
+                val candidateId = decoded?.getClaim("userId")?.asLong()
+                val user = candidateId?.let { userRepository.getUserById(it) }
+                if (user != null && user.isActive) {
+                    userId = user.id
                 }
             }
 

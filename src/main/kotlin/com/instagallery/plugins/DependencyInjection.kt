@@ -54,6 +54,9 @@ val appModule = module {
     single { com.instagallery.services.ReportService() }
     single { com.instagallery.repositories.AdminRepository() }
     single { com.instagallery.services.AdminService() }
+    single { com.instagallery.repositories.ActivityLogRepository() }
+    single { com.instagallery.repositories.AlbumRepository() }
+    single { com.instagallery.services.AlbumService() }
 }
 
 fun Application.configureDependencyInjection() {

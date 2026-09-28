@@ -108,6 +108,30 @@ class NotificationService : KoinComponent {
         )
     }
 
+    suspend fun notifyFollowRequest(recipientUserId: Long, actorUserId: Long) {
+        createNotification(
+            recipientUserId = recipientUserId,
+            actorUserId = actorUserId,
+            type = NotificationType.NEW_FOLLOWER,
+            targetType = NotificationTargetType.USER,
+            targetId = actorUserId,
+            title = "Yêu cầu theo dõi",
+            body = "Người dùng này muốn theo dõi bạn.",
+            dedupe = true,
+        )
+    }
+
+    suspend fun notifyMentioned(recipientUserId: Long, actorUserId: Long, postId: Long) {
+        createNotification(
+            recipientUserId = recipientUserId,
+            actorUserId = actorUserId,
+            type = NotificationType.MENTION,
+            targetType = NotificationTargetType.POST,
+            targetId = postId,
+            dedupe = true,
+        )
+    }
+
     suspend fun notifyFollowedUserPosted(recipientUserId: Long, actorUserId: Long, postId: Long) {
         createNotification(
             recipientUserId = recipientUserId,

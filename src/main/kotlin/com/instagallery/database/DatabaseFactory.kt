@@ -1,23 +1,30 @@
 package com.instagallery.database
 
 import com.instagallery.repositories.CommentTreeVisibility
+import com.instagallery.utils.RequiredConfig
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
 import io.ktor.server.application.*
 import kotlinx.coroutines.Dispatchers
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.SchemaUtils
+import org.jetbrains.exposed.sql.and
+import org.jetbrains.exposed.sql.insert
+import org.jetbrains.exposed.sql.selectAll
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
+import org.jetbrains.exposed.sql.transactions.TransactionManager
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import org.jetbrains.exposed.sql.transactions.transaction
 import com.instagallery.database.tables.*
 
+// Database Layer (database/): Được cấu hình với connection pool HikariCP (10 connections), 
+// chạy cách ly trên thread pool Dispatchers.IO để không bao giờ làm nghẽn luồng xử lý IO của Netty.
+
 object DatabaseFactory {
     fun init(environment: ApplicationEnvironment) {
-        // Falling back gracefully for when the Android Studio Green Play Button is used
-        // which completely bypasses the application.conf file
-        val dbUrl = environment.config.propertyOrNull("database.url")?.getString() ?: "jdbc:mysql://localhost:3306/instagallery?useUnicode=true&characterEncoding=UTF-8&serverTimezone=UTC"
-        val dbUser = environment.config.propertyOrNull("database.user")?.getString() ?: "root"
-        val dbPassword = environment.config.propertyOrNull("database.password")?.getString() ?: "123456789"
+        val dbUrl = RequiredConfig.databaseUrl(environment.config)
+        val dbUser = RequiredConfig.databaseUser(environment.config)
+        val dbPassword = RequiredConfig.databasePassword(environment.config)
 
         val config = HikariConfig().apply {
             driverClassName = "com.mysql.cj.jdbc.Driver"
@@ -33,6 +40,10 @@ object DatabaseFactory {
         val dataSource = HikariDataSource(config)
         Database.connect(dataSource)
 
+        if (RequiredConfig.isProduction(environment.config)) {
+            return
+        }
+
         transaction {
             SchemaUtils.createMissingTablesAndColumns(
                 UsersTable,
@@ -46,10 +57,13 @@ object DatabaseFactory {
                 PostMediaTagsTable,
                 FollowersTable,
                 FollowRequestsTable,
+                PostTaggedUsersTable,
                 LikesTable,
                 CommentsTable,
                 CommentLikesTable,
                 CommentDislikesTable,
+                CommentReactionsTable,
+                PostSharesTable,
                 SavedPostsTable,
                 BookingsTable,
                 RatingsTable,
@@ -70,9 +84,43 @@ object DatabaseFactory {
                 PasswordResetTokensTable
             )
             CommentTreeVisibility.syncAllPostCommentCounts()
+            backfillCommentReactions()
+        }
+    }
+
+    private fun backfillCommentReactions() {
+        CommentLikesTable.selectAll().forEach { row ->
+            copyCommentReaction(
+                userId = row[CommentLikesTable.userId].value,
+                commentId = row[CommentLikesTable.commentId].value,
+                reaction = com.instagallery.models.common.CommentReactionKind.LIKE,
+            )
+        }
+        CommentDislikesTable.selectAll().forEach { row ->
+            copyCommentReaction(
+                userId = row[CommentDislikesTable.userId].value,
+                commentId = row[CommentDislikesTable.commentId].value,
+                reaction = com.instagallery.models.common.CommentReactionKind.DISLIKE,
+            )
+        }
+    }
+
+    private fun copyCommentReaction(
+        userId: Long,
+        commentId: Long,
+        reaction: com.instagallery.models.common.CommentReactionKind,
+    ) {
+        val existing = CommentReactionsTable.selectAll().where {
+            (CommentReactionsTable.userId eq userId) and (CommentReactionsTable.commentId eq commentId)
+        }.singleOrNull()
+        if (existing != null) return
+        CommentReactionsTable.insert {
+            it[CommentReactionsTable.userId] = userId
+            it[CommentReactionsTable.commentId] = commentId
+            it[CommentReactionsTable.reaction] = reaction
         }
     }
 
     suspend fun <T> dbQuery(block: suspend () -> T): T =
-        newSuspendedTransaction(Dispatchers.IO) { block() }
+        newSuspendedTransaction(Dispatchers.IO, TransactionManager.defaultDatabase) { block() }
 }

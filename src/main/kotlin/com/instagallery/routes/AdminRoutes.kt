@@ -18,6 +18,10 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import org.koin.ktor.ext.getKoin
 
+// Route Layer (routes/): Chỉ làm nhiệm vụ tiếp nhận HTTP request, 
+// parse body, trích xuất danh tính từ JWT Principal, và trả về dữ 
+// liệu chuẩn ApiResponse. Tuyệt đối không chứa logic nghiệp vụ.
+
 fun Route.adminRoutes() {
     val adminService = application.getKoin().get<AdminService>()
 

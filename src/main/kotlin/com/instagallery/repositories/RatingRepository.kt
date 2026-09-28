@@ -48,7 +48,7 @@ class RatingRepository {
 
         val query = RatingsTable.innerJoin(UsersTable, { RatingsTable.raterId }, { UsersTable.id })
             .selectAll()
-            .where { (RatingsTable.rateeId eq rateeId) and (RatingsTable.status eq "APPROVED") }
+            .where { (RatingsTable.rateeId eq rateeId) and (RatingsTable.status eq com.instagallery.models.common.RatingVisibility.APPROVED) }
 
         val totalRecords = query.count()
         val totalPages = Math.ceil(totalRecords.toDouble() / limit).toInt()
@@ -107,7 +107,7 @@ class RatingRepository {
 
     private suspend fun recalculatePortfolioScore(photographerId: Long) = dbQuery {
         val ratings = RatingsTable.selectAll()
-            .where { (RatingsTable.rateeId eq photographerId) and (RatingsTable.status eq "APPROVED") }
+            .where { (RatingsTable.rateeId eq photographerId) and (RatingsTable.status eq com.instagallery.models.common.RatingVisibility.APPROVED) }
             .map { it[RatingsTable.ratingValue] }
         val reviewCount = ratings.size
         

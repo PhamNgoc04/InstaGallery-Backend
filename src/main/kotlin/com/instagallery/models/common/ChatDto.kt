@@ -16,6 +16,12 @@ data class ConversationDto(
 )
 
 @Serializable
+data class DirectConversationResult(
+    val conversationId: Long,
+    val isNew: Boolean
+)
+
+@Serializable
 data class ConversationResponse(
     val conversations: List<ConversationDto>
 )

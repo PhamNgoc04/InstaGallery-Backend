@@ -14,6 +14,7 @@ object ConversationMembersTable : Table("conversation_members") {
     val isMuted = bool("is_muted").default(false)
     val joinedAt = timestamp("joined_at").defaultExpression(CurrentTimestamp)
     val lastReadAt = timestamp("last_read_at").nullable()
+    val hiddenAt = timestamp("hidden_at").nullable()
 
     override val primaryKey = PrimaryKey(conversationId, userId)
 }

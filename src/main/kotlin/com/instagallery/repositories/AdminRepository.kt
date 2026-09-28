@@ -371,7 +371,7 @@ class AdminRepository {
         val offset = ((page - 1) * limit).toLong()
         var condition: Op<Boolean> = Op.TRUE
         if (!status.isNullOrBlank()) {
-            condition = condition and (RatingsTable.status eq status)
+            condition = condition and (RatingsTable.status eq com.instagallery.models.common.RatingVisibility.valueOf(status))
         }
 
         val query = RatingsTable.selectAll().where { condition }
@@ -394,7 +394,7 @@ class AdminRepository {
         val ratingRow = RatingsTable.selectAll().where { RatingsTable.id eq ratingId }.singleOrNull()
             ?: return@dbQuery false
         val updated = RatingsTable.update({ RatingsTable.id eq ratingId }) {
-            it[RatingsTable.status] = "HIDDEN"
+            it[RatingsTable.status] = com.instagallery.models.common.RatingVisibility.HIDDEN
         } > 0
         if (updated) {
             recalculatePortfolioScore(ratingRow[RatingsTable.rateeId].value)
@@ -406,7 +406,7 @@ class AdminRepository {
         val ratingRow = RatingsTable.selectAll().where { RatingsTable.id eq ratingId }.singleOrNull()
             ?: return@dbQuery false
         val updated = RatingsTable.update({ RatingsTable.id eq ratingId }) {
-            it[RatingsTable.status] = status
+            it[RatingsTable.status] = com.instagallery.models.common.RatingVisibility.valueOf(status)
         } > 0
         if (updated) {
             recalculatePortfolioScore(ratingRow[RatingsTable.rateeId].value)
@@ -504,7 +504,7 @@ class AdminRepository {
 
     private fun recalculatePortfolioScore(photographerId: Long) {
         val ratings = RatingsTable.selectAll()
-            .where { (RatingsTable.rateeId eq photographerId) and (RatingsTable.status eq "APPROVED") }
+            .where { (RatingsTable.rateeId eq photographerId) and (RatingsTable.status eq com.instagallery.models.common.RatingVisibility.APPROVED) }
             .map { it[RatingsTable.ratingValue] }
         val reviewCount = ratings.size
         val averageScore = if (reviewCount > 0) {
@@ -593,7 +593,7 @@ class AdminRepository {
             packageName = this[BookingsTable.packageName],
             shootingType = this[BookingsTable.shootingType],
             sceneType = this[BookingsTable.sceneType],
-            bookingDate = this[BookingsTable.bookingDate].toString(),
+            bookingDate = com.instagallery.repositories.BookingScheduleRules.storedBookingStart(this[BookingsTable.bookingDate]).toString(),
             durationHours = this[BookingsTable.durationHours]?.toDouble(),
             locationBooking = this[BookingsTable.locationBooking],
             addressDetail = this[BookingsTable.addressDetail],
@@ -625,7 +625,7 @@ class AdminRepository {
             reviewerAvatarUrl = reviewer?.get(UsersTable.profilePictureUrl),
             ratingValue = this[RatingsTable.ratingValue].toInt(),
             comment = this[RatingsTable.comment],
-            status = this[RatingsTable.status],
+            status = this[RatingsTable.status].name,
             createdAt = this[RatingsTable.createdAt].toString()
         )
     }

@@ -2,15 +2,34 @@
   "info": {
     "_postman_id": "b3e2df14-995a-4ae8-b310-3975e971c1bb",
     "name": "InstaGallery Local Development",
-    "description": "Auto-regenerated from current Ktor source/docs on 2026-06-25. Includes 107 REST /api/v1 endpoints, 5 system HTTP routes, and 1 WebSocket entry.",
+    "description": "Local collection for http://localhost:8080. Register, login, refresh, and Google login save JWT_TOKEN and REFRESH_TOKEN. The server stores the refresh token as HMAC-SHA256 and returns the raw token once. Chat create returns conversationId and isNew. Booking time uses yyyy-MM-ddTHH:mm:ss. 2FA routes return 501. 139 REST /api/v1 requests, plus root, health, and the WebSocket entry.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [
     {
-      "name": "0. System / Setup",
+      "name": "0. System",
       "item": [
         {
-          "name": "GET /health - Health check",
+          "name": "GET / - Server root",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URL}}/",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": []
+            },
+            "description": "Plain text. Server is up."
+          },
+          "response": []
+        },
+        {
+          "name": "GET /health",
           "request": {
             "auth": {
               "type": "noauth"
@@ -26,91 +45,7 @@
                 "health"
               ]
             },
-            "description": "Health check\n\nAuth: none. Source count snapshot: 107 REST /api/v1 + 5 system + 1 WebSocket."
-          },
-          "response": []
-        },
-        {
-          "name": "GET /init-db - Create all 30 database tables. Local/dev only.",
-          "request": {
-            "auth": {
-              "type": "noauth"
-            },
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{BASE_URL}}/init-db",
-              "host": [
-                "{{BASE_URL}}"
-              ],
-              "path": [
-                "init-db"
-              ]
-            },
-            "description": "Create all 30 database tables. Local/dev only.\n\nAuth: none. Source count snapshot: 107 REST /api/v1 + 5 system + 1 WebSocket."
-          },
-          "response": []
-        },
-        {
-          "name": "GET /reset-db - Drop and recreate database. Destructive, local/dev only.",
-          "request": {
-            "auth": {
-              "type": "noauth"
-            },
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{BASE_URL}}/reset-db",
-              "host": [
-                "{{BASE_URL}}"
-              ],
-              "path": [
-                "reset-db"
-              ]
-            },
-            "description": "Drop and recreate database. Destructive, local/dev only.\n\nAuth: none. Source count snapshot: 107 REST /api/v1 + 5 system + 1 WebSocket."
-          },
-          "response": []
-        },
-        {
-          "name": "GET /fix-user-id - Local helper to repair user id. Local/dev only.",
-          "request": {
-            "auth": {
-              "type": "noauth"
-            },
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{BASE_URL}}/fix-user-id",
-              "host": [
-                "{{BASE_URL}}"
-              ],
-              "path": [
-                "fix-user-id"
-              ]
-            },
-            "description": "Local helper to repair user id. Local/dev only.\n\nAuth: none. Source count snapshot: 107 REST /api/v1 + 5 system + 1 WebSocket."
-          },
-          "response": []
-        },
-        {
-          "name": "GET /migrate-db - Create missing tables/columns. Local/dev only.",
-          "request": {
-            "auth": {
-              "type": "noauth"
-            },
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{BASE_URL}}/migrate-db",
-              "host": [
-                "{{BASE_URL}}"
-              ],
-              "path": [
-                "migrate-db"
-              ]
-            },
-            "description": "Create missing tables/columns. Local/dev only.\n\nAuth: none. Source count snapshot: 107 REST /api/v1 + 5 system + 1 WebSocket."
+            "description": "Plain text health. Does not check MySQL."
           },
           "response": []
         }
@@ -120,7 +55,7 @@
       "name": "1. Auth",
       "item": [
         {
-          "name": "POST /api/v1/auth/register - Register new user",
+          "name": "POST /api/v1/auth/register",
           "request": {
             "auth": {
               "type": "noauth"
@@ -145,7 +80,7 @@
                 "register"
               ]
             },
-            "description": "Register new user\n\nAuth: none. Source count snapshot: 107 REST /api/v1 + 5 system + 1 WebSocket.",
+            "description": "userType is CLIENT or PHOTOGRAPHER. Saves access and refresh tokens. Rate limit 5/minute.",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"email\": \"user@example.com\",\n  \"username\": \"demo_user\",\n  \"password\": \"demo123!\",\n  \"fullName\": \"Demo User\",\n  \"userType\": \"CLIENT\"\n}",
@@ -166,12 +101,15 @@
                   "const json = pm.response.json();",
                   "const data = json.data || {};",
                   "if (data.token) {",
-                  "  pm.collectionVariables.set(\"JWT_TOKEN\", data.token);",
-                  "  pm.environment.set(\"JWT_TOKEN\", data.token);",
+                  "  pm.collectionVariables.set('JWT_TOKEN', data.token);",
+                  "  pm.environment.set('JWT_TOKEN', data.token);",
                   "}",
                   "if (data.refreshToken) {",
-                  "  pm.collectionVariables.set(\"REFRESH_TOKEN\", data.refreshToken);",
-                  "  pm.environment.set(\"REFRESH_TOKEN\", data.refreshToken);",
+                  "  pm.collectionVariables.set('REFRESH_TOKEN', data.refreshToken);",
+                  "  pm.environment.set('REFRESH_TOKEN', data.refreshToken);",
+                  "}",
+                  "if (data.userId) {",
+                  "  pm.collectionVariables.set('USER_ID', String(data.userId));",
                   "}"
                 ]
               }
@@ -179,7 +117,7 @@
           ]
         },
         {
-          "name": "POST /api/v1/auth/login - Login and save JWT/refresh token",
+          "name": "POST /api/v1/auth/login",
           "request": {
             "auth": {
               "type": "noauth"
@@ -204,7 +142,7 @@
                 "login"
               ]
             },
-            "description": "Login and save JWT/refresh token\n\nAuth: none. Source count snapshot: 107 REST /api/v1 + 5 system + 1 WebSocket.",
+            "description": "Saves JWT_TOKEN and REFRESH_TOKEN from data.",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"usernameOrEmail\": \"user@example.com\",\n  \"password\": \"demo123!\"\n}",
@@ -225,12 +163,15 @@
                   "const json = pm.response.json();",
                   "const data = json.data || {};",
                   "if (data.token) {",
-                  "  pm.collectionVariables.set(\"JWT_TOKEN\", data.token);",
-                  "  pm.environment.set(\"JWT_TOKEN\", data.token);",
+                  "  pm.collectionVariables.set('JWT_TOKEN', data.token);",
+                  "  pm.environment.set('JWT_TOKEN', data.token);",
                   "}",
                   "if (data.refreshToken) {",
-                  "  pm.collectionVariables.set(\"REFRESH_TOKEN\", data.refreshToken);",
-                  "  pm.environment.set(\"REFRESH_TOKEN\", data.refreshToken);",
+                  "  pm.collectionVariables.set('REFRESH_TOKEN', data.refreshToken);",
+                  "  pm.environment.set('REFRESH_TOKEN', data.refreshToken);",
+                  "}",
+                  "if (data.userId) {",
+                  "  pm.collectionVariables.set('USER_ID', String(data.userId));",
                   "}"
                 ]
               }
@@ -238,7 +179,7 @@
           ]
         },
         {
-          "name": "POST /api/v1/auth/refresh - Refresh access token",
+          "name": "POST /api/v1/auth/refresh",
           "request": {
             "auth": {
               "type": "noauth"
@@ -263,7 +204,7 @@
                 "refresh"
               ]
             },
-            "description": "Refresh access token\n\nAuth: none. Source count snapshot: 107 REST /api/v1 + 5 system + 1 WebSocket.",
+            "description": "Rotates the refresh token. The previous raw token cannot be used again.",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"refreshToken\": \"{{REFRESH_TOKEN}}\"\n}",
@@ -284,12 +225,15 @@
                   "const json = pm.response.json();",
                   "const data = json.data || {};",
                   "if (data.token) {",
-                  "  pm.collectionVariables.set(\"JWT_TOKEN\", data.token);",
-                  "  pm.environment.set(\"JWT_TOKEN\", data.token);",
+                  "  pm.collectionVariables.set('JWT_TOKEN', data.token);",
+                  "  pm.environment.set('JWT_TOKEN', data.token);",
                   "}",
                   "if (data.refreshToken) {",
-                  "  pm.collectionVariables.set(\"REFRESH_TOKEN\", data.refreshToken);",
-                  "  pm.environment.set(\"REFRESH_TOKEN\", data.refreshToken);",
+                  "  pm.collectionVariables.set('REFRESH_TOKEN', data.refreshToken);",
+                  "  pm.environment.set('REFRESH_TOKEN', data.refreshToken);",
+                  "}",
+                  "if (data.userId) {",
+                  "  pm.collectionVariables.set('USER_ID', String(data.userId));",
                   "}"
                 ]
               }
@@ -297,7 +241,7 @@
           ]
         },
         {
-          "name": "POST /api/v1/auth/forgot-password - Request password reset",
+          "name": "POST /api/v1/auth/forgot-password",
           "request": {
             "auth": {
               "type": "noauth"
@@ -322,7 +266,7 @@
                 "forgot-password"
               ]
             },
-            "description": "Request password reset\n\nAuth: none. Source count snapshot: 107 REST /api/v1 + 5 system + 1 WebSocket.",
+            "description": "Reset code is hashed. debugResetToken is returned only when EXPOSE_DEBUG_RESET_TOKEN=true.",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"email\": \"user@example.com\"\n}",
@@ -336,7 +280,7 @@
           "response": []
         },
         {
-          "name": "POST /api/v1/auth/reset-password - Reset password",
+          "name": "POST /api/v1/auth/reset-password",
           "request": {
             "auth": {
               "type": "noauth"
@@ -361,10 +305,10 @@
                 "reset-password"
               ]
             },
-            "description": "Reset password\n\nAuth: none. Source count snapshot: 107 REST /api/v1 + 5 system + 1 WebSocket.",
+            "description": "POST /api/v1/auth/reset-password",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"resetToken\": \"reset-token-here\",\n  \"newPasswordHash\": \"newDemo123!\"\n}",
+              "raw": "{\n  \"resetToken\": \"123456\",\n  \"newPassword\": \"newDemo123!\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -375,7 +319,7 @@
           "response": []
         },
         {
-          "name": "POST /api/v1/auth/google - Google login placeholder",
+          "name": "POST /api/v1/auth/google",
           "request": {
             "auth": {
               "type": "noauth"
@@ -400,10 +344,10 @@
                 "google"
               ]
             },
-            "description": "Google login placeholder\n\nAuth: none. Source count snapshot: 107 REST /api/v1 + 5 system + 1 WebSocket.",
+            "description": "Send the Google ID token in idToken.",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"googleTokenId\": \"google-id-token-here\"\n}",
+              "raw": "{\n  \"idToken\": \"google-id-token\",\n  \"nonce\": null,\n  \"userType\": \"CLIENT\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -411,22 +355,39 @@
               }
             }
           },
-          "response": []
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "const data = json.data || {};",
+                  "if (data.token) {",
+                  "  pm.collectionVariables.set('JWT_TOKEN', data.token);",
+                  "  pm.environment.set('JWT_TOKEN', data.token);",
+                  "}",
+                  "if (data.refreshToken) {",
+                  "  pm.collectionVariables.set('REFRESH_TOKEN', data.refreshToken);",
+                  "  pm.environment.set('REFRESH_TOKEN', data.refreshToken);",
+                  "}",
+                  "if (data.userId) {",
+                  "  pm.collectionVariables.set('USER_ID', String(data.userId));",
+                  "}"
+                ]
+              }
+            }
+          ]
         },
         {
-          "name": "POST /api/v1/auth/2fa/verify-login - Verify 2FA login placeholder",
+          "name": "POST /api/v1/auth/2fa/verify-login",
           "request": {
             "auth": {
               "type": "noauth"
             },
             "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
+            "header": [],
             "url": {
               "raw": "{{BASE_URL}}/api/v1/auth/2fa/verify-login",
               "host": [
@@ -440,21 +401,12 @@
                 "verify-login"
               ]
             },
-            "description": "Verify 2FA login placeholder\n\nAuth: none. Source count snapshot: 107 REST /api/v1 + 5 system + 1 WebSocket.",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"userId\": 1,\n  \"otpCode\": \"123456\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
+            "description": "Returns 501 NOT_IMPLEMENTED."
           },
           "response": []
         },
         {
-          "name": "POST /api/v1/auth/logout - Logout current refresh token",
+          "name": "POST /api/v1/auth/logout",
           "request": {
             "auth": {
               "type": "bearer",
@@ -486,12 +438,12 @@
                 "logout"
               ]
             },
-            "description": "Logout current refresh token\n\nAuth: bearer. Source count snapshot: 107 REST /api/v1 + 5 system + 1 WebSocket."
+            "description": "Requires Bearer access token and the raw refresh token in X-Refresh-Token."
           },
           "response": []
         },
         {
-          "name": "PUT /api/v1/auth/change-password - Change password",
+          "name": "PUT /api/v1/auth/change-password",
           "request": {
             "auth": {
               "type": "bearer",
@@ -523,7 +475,7 @@
                 "change-password"
               ]
             },
-            "description": "Change password\n\nAuth: bearer. Source count snapshot: 107 REST /api/v1 + 5 system + 1 WebSocket.",
+            "description": "Revokes refresh sessions. Log in again.",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"oldPasswordHash\": \"demo123!\",\n  \"newPasswordHash\": \"newDemo123!\"\n}",
@@ -537,7 +489,7 @@
           "response": []
         },
         {
-          "name": "POST /api/v1/auth/2fa/setup - Setup 2FA placeholder",
+          "name": "POST /api/v1/auth/2fa/setup",
           "request": {
             "auth": {
               "type": "bearer",
@@ -564,12 +516,12 @@
                 "setup"
               ]
             },
-            "description": "Setup 2FA placeholder\n\nAuth: bearer. Source count snapshot: 107 REST /api/v1 + 5 system + 1 WebSocket."
+            "description": "Returns 501 NOT_IMPLEMENTED."
           },
           "response": []
         },
         {
-          "name": "POST /api/v1/auth/2fa/enable - Enable 2FA placeholder",
+          "name": "POST /api/v1/auth/2fa/enable",
           "request": {
             "auth": {
               "type": "bearer",
@@ -582,13 +534,7 @@
               ]
             },
             "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
+            "header": [],
             "url": {
               "raw": "{{BASE_URL}}/api/v1/auth/2fa/enable",
               "host": [
@@ -602,16 +548,7 @@
                 "enable"
               ]
             },
-            "description": "Enable 2FA placeholder\n\nAuth: bearer. Source count snapshot: 107 REST /api/v1 + 5 system + 1 WebSocket.",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"otpCode\": \"123456\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
+            "description": "Returns 501 NOT_IMPLEMENTED."
           },
           "response": []
         }
@@ -621,7 +558,7 @@
       "name": "2. Users",
       "item": [
         {
-          "name": "GET /api/v1/users/me - Get current profile",
+          "name": "GET /api/v1/users/me",
           "request": {
             "auth": {
               "type": "bearer",
@@ -647,12 +584,12 @@
                 "me"
               ]
             },
-            "description": "Get current profile\n\nAuth: bearer. Source count snapshot: 107 REST /api/v1 + 5 system + 1 WebSocket."
+            "description": "GET /api/v1/users/me"
           },
           "response": []
         },
         {
-          "name": "PUT /api/v1/users/me - Update current profile",
+          "name": "PUT /api/v1/users/me",
           "request": {
             "auth": {
               "type": "bearer",
@@ -684,10 +621,10 @@
                 "me"
               ]
             },
-            "description": "Update current profile\n\nAuth: bearer. Source count snapshot: 107 REST /api/v1 + 5 system + 1 WebSocket.",
+            "description": "PUT /api/v1/users/me",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"fullName\": \"Demo User\",\n  \"bio\": \"Hello InstaGallery\",\n  \"website\": \"https://example.com\",\n  \"location\": \"Ho Chi Minh City\"\n}",
+              "raw": "{\n  \"fullName\": \"Demo User\",\n  \"bio\": \"Hello InstaGallery\",\n  \"website\": \"https://example.com\",\n  \"gender\": \"female\",\n  \"phoneNumber\": \"0900000000\",\n  \"dateOfBirth\": \"2000-01-01\",\n  \"location\": \"Ho Chi Minh City\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -698,7 +635,7 @@
           "response": []
         },
         {
-          "name": "GET /api/v1/users/me/sessions - List current user sessions",
+          "name": "GET /api/v1/users/me/sessions",
           "request": {
             "auth": {
               "type": "bearer",
@@ -725,12 +662,12 @@
                 "sessions"
               ]
             },
-            "description": "List current user sessions\n\nAuth: bearer. Source count snapshot: 107 REST /api/v1 + 5 system + 1 WebSocket."
+            "description": "GET /api/v1/users/me/sessions"
           },
           "response": []
         },
         {
-          "name": "DELETE /api/v1/users/me/sessions/{id} - Revoke one session",
+          "name": "DELETE /api/v1/users/me/sessions/:id",
           "request": {
             "auth": {
               "type": "bearer",
@@ -764,12 +701,12 @@
                 }
               ]
             },
-            "description": "Revoke one session\n\nAuth: bearer. Source count snapshot: 107 REST /api/v1 + 5 system + 1 WebSocket."
+            "description": "DELETE /api/v1/users/me/sessions/:id"
           },
           "response": []
         },
         {
-          "name": "POST /api/v1/users/me/deactivate - Deactivate account",
+          "name": "POST /api/v1/users/me/deactivate",
           "request": {
             "auth": {
               "type": "bearer",
@@ -796,12 +733,12 @@
                 "deactivate"
               ]
             },
-            "description": "Deactivate account\n\nAuth: bearer. Source count snapshot: 107 REST /api/v1 + 5 system + 1 WebSocket."
+            "description": "POST /api/v1/users/me/deactivate"
           },
           "response": []
         },
         {
-          "name": "PUT /api/v1/users/me/avatar - Update avatar URL",
+          "name": "PUT /api/v1/users/me/avatar",
           "request": {
             "auth": {
               "type": "bearer",
@@ -814,13 +751,7 @@
               ]
             },
             "method": "PUT",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
+            "header": [],
             "url": {
               "raw": "{{BASE_URL}}/api/v1/users/me/avatar",
               "host": [
@@ -834,21 +765,12 @@
                 "avatar"
               ]
             },
-            "description": "Update avatar URL\n\nAuth: bearer. Source count snapshot: 107 REST /api/v1 + 5 system + 1 WebSocket.",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"profilePictureUrl\": \"https://example.com/avatar.jpg\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
+            "description": "Mock response. Does not store a file."
           },
           "response": []
         },
         {
-          "name": "PUT /api/v1/users/me/privacy - Update privacy",
+          "name": "PUT /api/v1/users/me/privacy",
           "request": {
             "auth": {
               "type": "bearer",
@@ -881,10 +803,10 @@
                 "privacy"
               ]
             },
-            "description": "Update privacy\n\nAuth: bearer. Source count snapshot: 107 REST /api/v1 + 5 system + 1 WebSocket.",
+            "description": "PUT /api/v1/users/me/privacy",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"isPrivate\": true\n}",
+              "raw": "{\n  \"isPrivate\": false\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -895,7 +817,7 @@
           "response": []
         },
         {
-          "name": "GET /api/v1/users/me/saved-posts - Current user saved posts",
+          "name": "GET /api/v1/users/me/saved-posts",
           "request": {
             "auth": {
               "type": "bearer",
@@ -910,7 +832,7 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{BASE_URL}}/api/v1/users/me/saved-posts",
+              "raw": "{{BASE_URL}}/api/v1/users/me/saved-posts?page=1&limit=20",
               "host": [
                 "{{BASE_URL}}"
               ],
@@ -920,14 +842,24 @@
                 "users",
                 "me",
                 "saved-posts"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
               ]
             },
-            "description": "Current user saved posts\n\nAuth: bearer. Source count snapshot: 107 REST /api/v1 + 5 system + 1 WebSocket."
+            "description": "GET /api/v1/users/me/saved-posts"
           },
           "response": []
         },
         {
-          "name": "GET /api/v1/users/me/liked-posts - Current user liked posts",
+          "name": "GET /api/v1/users/me/liked-posts",
           "request": {
             "auth": {
               "type": "bearer",
@@ -942,7 +874,7 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{BASE_URL}}/api/v1/users/me/liked-posts",
+              "raw": "{{BASE_URL}}/api/v1/users/me/liked-posts?page=1&limit=20",
               "host": [
                 "{{BASE_URL}}"
               ],
@@ -952,14 +884,24 @@
                 "users",
                 "me",
                 "liked-posts"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
               ]
             },
-            "description": "Current user liked posts\n\nAuth: bearer. Source count snapshot: 107 REST /api/v1 + 5 system + 1 WebSocket."
+            "description": "GET /api/v1/users/me/liked-posts"
           },
           "response": []
         },
         {
-          "name": "GET /api/v1/users/me/tagged-posts - Current user tagged posts",
+          "name": "GET /api/v1/users/me/tagged-posts",
           "request": {
             "auth": {
               "type": "bearer",
@@ -974,7 +916,7 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{BASE_URL}}/api/v1/users/me/tagged-posts",
+              "raw": "{{BASE_URL}}/api/v1/users/me/tagged-posts?page=1&limit=20",
               "host": [
                 "{{BASE_URL}}"
               ],
@@ -984,14 +926,24 @@
                 "users",
                 "me",
                 "tagged-posts"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
               ]
             },
-            "description": "Current user tagged posts\n\nAuth: bearer. Source count snapshot: 107 REST /api/v1 + 5 system + 1 WebSocket."
+            "description": "GET /api/v1/users/me/tagged-posts"
           },
           "response": []
         },
         {
-          "name": "GET /api/v1/users/me/activity-log - Current user activity log",
+          "name": "GET /api/v1/users/me/comments",
           "request": {
             "auth": {
               "type": "bearer",
@@ -1006,7 +958,49 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{BASE_URL}}/api/v1/users/me/activity-log",
+              "raw": "{{BASE_URL}}/api/v1/users/me/comments?page=1&limit=20",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "users",
+                "me",
+                "comments"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "GET /api/v1/users/me/comments"
+          },
+          "response": []
+        },
+        {
+          "name": "GET /api/v1/users/me/activity-log",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{JWT_TOKEN}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URL}}/api/v1/users/me/activity-log?page=1&limit=20",
               "host": [
                 "{{BASE_URL}}"
               ],
@@ -1016,14 +1010,24 @@
                 "users",
                 "me",
                 "activity-log"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
               ]
             },
-            "description": "Current user activity log\n\nAuth: bearer. Source count snapshot: 107 REST /api/v1 + 5 system + 1 WebSocket."
+            "description": "GET /api/v1/users/me/activity-log"
           },
           "response": []
         },
         {
-          "name": "GET /api/v1/users/me/blocked - Current user blocked list",
+          "name": "GET /api/v1/users/me/blocked",
           "request": {
             "auth": {
               "type": "bearer",
@@ -1050,50 +1054,12 @@
                 "blocked"
               ]
             },
-            "description": "Current user blocked list\n\nAuth: bearer. Source count snapshot: 107 REST /api/v1 + 5 system + 1 WebSocket."
+            "description": "GET /api/v1/users/me/blocked"
           },
           "response": []
         },
         {
-          "name": "POST /api/v1/users/{id}/follow - Follow/unfollow user",
-          "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{JWT_TOKEN}}",
-                  "type": "string"
-                }
-              ]
-            },
-            "method": "POST",
-            "header": [],
-            "url": {
-              "raw": "{{BASE_URL}}/api/v1/users/:id/follow",
-              "host": [
-                "{{BASE_URL}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "users",
-                ":id",
-                "follow"
-              ],
-              "variable": [
-                {
-                  "key": "id",
-                  "value": "1"
-                }
-              ]
-            },
-            "description": "Follow/unfollow user\n\nAuth: bearer. Source count snapshot: 107 REST /api/v1 + 5 system + 1 WebSocket."
-          },
-          "response": []
-        },
-        {
-          "name": "GET /api/v1/users/suggestions - User suggestions",
+          "name": "GET /api/v1/users/suggestions",
           "request": {
             "auth": {
               "type": "bearer",
@@ -1108,7 +1074,7 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{BASE_URL}}/api/v1/users/suggestions",
+              "raw": "{{BASE_URL}}/api/v1/users/suggestions?limit=10",
               "host": [
                 "{{BASE_URL}}"
               ],
@@ -1117,14 +1083,20 @@
                 "v1",
                 "users",
                 "suggestions"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
               ]
             },
-            "description": "User suggestions\n\nAuth: bearer. Source count snapshot: 107 REST /api/v1 + 5 system + 1 WebSocket."
+            "description": "GET /api/v1/users/suggestions"
           },
           "response": []
         },
         {
-          "name": "GET /api/v1/users/me/follow-requests - Follow requests",
+          "name": "GET /api/v1/users/me/follow-requests",
           "request": {
             "auth": {
               "type": "bearer",
@@ -1151,12 +1123,12 @@
                 "follow-requests"
               ]
             },
-            "description": "Follow requests\n\nAuth: bearer. Source count snapshot: 107 REST /api/v1 + 5 system + 1 WebSocket."
+            "description": "GET /api/v1/users/me/follow-requests"
           },
           "response": []
         },
         {
-          "name": "POST /api/v1/users/me/follow-requests/{followerId}/{action} - Accept/reject follow request",
+          "name": "POST /api/v1/users/me/follow-requests/:followerId/:action",
           "request": {
             "auth": {
               "type": "bearer",
@@ -1195,12 +1167,50 @@
                 }
               ]
             },
-            "description": "Accept/reject follow request\n\nAuth: bearer. Source count snapshot: 107 REST /api/v1 + 5 system + 1 WebSocket."
+            "description": "action is accept or reject."
           },
           "response": []
         },
         {
-          "name": "POST /api/v1/users/{id}/block - Block/unblock user",
+          "name": "POST /api/v1/users/:id/follow",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{JWT_TOKEN}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URL}}/api/v1/users/:id/follow",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "users",
+                ":id",
+                "follow"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "POST /api/v1/users/:id/follow"
+          },
+          "response": []
+        },
+        {
+          "name": "POST /api/v1/users/:id/block",
           "request": {
             "auth": {
               "type": "bearer",
@@ -1233,12 +1243,12 @@
                 }
               ]
             },
-            "description": "Block/unblock user\n\nAuth: bearer. Source count snapshot: 107 REST /api/v1 + 5 system + 1 WebSocket."
+            "description": "POST /api/v1/users/:id/block"
           },
           "response": []
         },
         {
-          "name": "POST /api/v1/users/{id}/mute - Mute/unmute user",
+          "name": "POST /api/v1/users/:id/mute",
           "request": {
             "auth": {
               "type": "bearer",
@@ -1271,12 +1281,12 @@
                 }
               ]
             },
-            "description": "Mute/unmute user\n\nAuth: bearer. Source count snapshot: 107 REST /api/v1 + 5 system + 1 WebSocket."
+            "description": "POST /api/v1/users/:id/mute"
           },
           "response": []
         },
         {
-          "name": "GET /api/v1/users/{id} - Public user profile",
+          "name": "GET /api/v1/users/:id",
           "request": {
             "auth": {
               "type": "noauth"
@@ -1301,12 +1311,12 @@
                 }
               ]
             },
-            "description": "Public user profile\n\nAuth: none. Source count snapshot: 107 REST /api/v1 + 5 system + 1 WebSocket."
+            "description": "Public profile."
           },
           "response": []
         },
         {
-          "name": "GET /api/v1/users/{id}/followers - Public followers",
+          "name": "GET /api/v1/users/:id/followers",
           "request": {
             "auth": {
               "type": "noauth"
@@ -1314,7 +1324,7 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{BASE_URL}}/api/v1/users/:id/followers",
+              "raw": "{{BASE_URL}}/api/v1/users/:id/followers?page=1&limit=20",
               "host": [
                 "{{BASE_URL}}"
               ],
@@ -1325,6 +1335,16 @@
                 ":id",
                 "followers"
               ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ],
               "variable": [
                 {
                   "key": "id",
@@ -1332,12 +1352,12 @@
                 }
               ]
             },
-            "description": "Public followers\n\nAuth: none. Source count snapshot: 107 REST /api/v1 + 5 system + 1 WebSocket."
+            "description": "GET /api/v1/users/:id/followers"
           },
           "response": []
         },
         {
-          "name": "GET /api/v1/users/{id}/following - Public following",
+          "name": "GET /api/v1/users/:id/following",
           "request": {
             "auth": {
               "type": "noauth"
@@ -1345,7 +1365,7 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{BASE_URL}}/api/v1/users/:id/following",
+              "raw": "{{BASE_URL}}/api/v1/users/:id/following?page=1&limit=20",
               "host": [
                 "{{BASE_URL}}"
               ],
@@ -1356,6 +1376,16 @@
                 ":id",
                 "following"
               ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ],
               "variable": [
                 {
                   "key": "id",
@@ -1363,7 +1393,7 @@
                 }
               ]
             },
-            "description": "Public following\n\nAuth: none. Source count snapshot: 107 REST /api/v1 + 5 system + 1 WebSocket."
+            "description": "GET /api/v1/users/:id/following"
           },
           "response": []
         }
@@ -1373,7 +1403,7 @@
       "name": "3. Posts",
       "item": [
         {
-          "name": "POST /api/v1/posts - Create post",
+          "name": "POST /api/v1/posts",
           "request": {
             "auth": {
               "type": "bearer",
@@ -1404,10 +1434,10 @@
                 "posts"
               ]
             },
-            "description": "Create post\n\nAuth: bearer. Source count snapshot: 107 REST /api/v1 + 5 system + 1 WebSocket.",
+            "description": "One JSON object. An array body is rejected.",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"caption\": \"Hello InstaGallery\",\n  \"location\": \"Ho Chi Minh City\",\n  \"visibility\": \"PUBLIC\",\n  \"media\": [\n    {\n      \"mediaFileUrl\": \"https://example.com/photo.jpg\",\n      \"mediaType\": \"IMAGE\"\n    }\n  ],\n  \"tags\": [\n    \"demo\"\n  ]\n}",
+              "raw": "{\n  \"caption\": \"Flow check\",\n  \"location\": \"Hanoi\",\n  \"visibility\": \"PUBLIC\",\n  \"media\": [\n    {\n      \"mediaFileUrl\": \"https://example.com/flow.jpg\",\n      \"mediaType\": \"IMAGE\"\n    }\n  ],\n  \"tags\": [\n    \"portrait\"\n  ]\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1418,7 +1448,7 @@
           "response": []
         },
         {
-          "name": "GET /api/v1/posts/feed - Home feed",
+          "name": "GET /api/v1/posts/feed",
           "request": {
             "auth": {
               "type": "bearer",
@@ -1433,7 +1463,7 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{BASE_URL}}/api/v1/posts/feed",
+              "raw": "{{BASE_URL}}/api/v1/posts/feed?page=1&limit=10",
               "host": [
                 "{{BASE_URL}}"
               ],
@@ -1442,14 +1472,24 @@
                 "v1",
                 "posts",
                 "feed"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
               ]
             },
-            "description": "Home feed\n\nAuth: bearer. Source count snapshot: 107 REST /api/v1 + 5 system + 1 WebSocket."
+            "description": "GET /api/v1/posts/feed"
           },
           "response": []
         },
         {
-          "name": "GET /api/v1/posts/{id} - Post detail",
+          "name": "GET /api/v1/posts/:id",
           "request": {
             "auth": {
               "type": "bearer",
@@ -1481,12 +1521,12 @@
                 }
               ]
             },
-            "description": "Post detail\n\nAuth: bearer. Source count snapshot: 107 REST /api/v1 + 5 system + 1 WebSocket."
+            "description": "GET /api/v1/posts/:id"
           },
           "response": []
         },
         {
-          "name": "PUT /api/v1/posts/{id} - Update post",
+          "name": "PUT /api/v1/posts/:id",
           "request": {
             "auth": {
               "type": "bearer",
@@ -1524,10 +1564,10 @@
                 }
               ]
             },
-            "description": "Update post\n\nAuth: bearer. Source count snapshot: 107 REST /api/v1 + 5 system + 1 WebSocket.",
+            "description": "PUT /api/v1/posts/:id",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"caption\": \"Updated caption\",\n  \"location\": \"Ho Chi Minh City\",\n  \"visibility\": \"PUBLIC\"\n}",
+              "raw": "{\n  \"caption\": \"Updated caption\",\n  \"location\": \"Hanoi\",\n  \"visibility\": \"PUBLIC\",\n  \"tags\": [\n    \"portrait\"\n  ]\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1538,7 +1578,7 @@
           "response": []
         },
         {
-          "name": "DELETE /api/v1/posts/{id} - Delete post",
+          "name": "DELETE /api/v1/posts/:id",
           "request": {
             "auth": {
               "type": "bearer",
@@ -1570,12 +1610,12 @@
                 }
               ]
             },
-            "description": "Delete post\n\nAuth: bearer. Source count snapshot: 107 REST /api/v1 + 5 system + 1 WebSocket."
+            "description": "DELETE /api/v1/posts/:id"
           },
           "response": []
         },
         {
-          "name": "GET /api/v1/posts/users/{userId}/posts - Posts by user",
+          "name": "GET /api/v1/posts/users/:userId/posts",
           "request": {
             "auth": {
               "type": "bearer",
@@ -1590,7 +1630,7 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{BASE_URL}}/api/v1/posts/users/:userId/posts",
+              "raw": "{{BASE_URL}}/api/v1/posts/users/:userId/posts?page=1&limit=20",
               "host": [
                 "{{BASE_URL}}"
               ],
@@ -1602,6 +1642,16 @@
                 ":userId",
                 "posts"
               ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ],
               "variable": [
                 {
                   "key": "userId",
@@ -1609,12 +1659,12 @@
                 }
               ]
             },
-            "description": "Posts by user\n\nAuth: bearer. Source count snapshot: 107 REST /api/v1 + 5 system + 1 WebSocket."
+            "description": "GET /api/v1/posts/users/:userId/posts"
           },
           "response": []
         },
         {
-          "name": "POST /api/v1/posts/{id}/tags - Tag user in post",
+          "name": "POST /api/v1/posts/:id/tags",
           "request": {
             "auth": {
               "type": "bearer",
@@ -1653,7 +1703,7 @@
                 }
               ]
             },
-            "description": "Tag user in post\n\nAuth: bearer. Source count snapshot: 107 REST /api/v1 + 5 system + 1 WebSocket.",
+            "description": "POST /api/v1/posts/:id/tags",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"taggedUserId\": 2\n}",
@@ -1667,7 +1717,7 @@
           "response": []
         },
         {
-          "name": "DELETE /api/v1/posts/{id}/tags/{taggedUserId} - Remove tagged user",
+          "name": "DELETE /api/v1/posts/:id/tags/:taggedUserId",
           "request": {
             "auth": {
               "type": "bearer",
@@ -1701,16 +1751,16 @@
                 },
                 {
                   "key": "taggedUserId",
-                  "value": "demo"
+                  "value": "2"
                 }
               ]
             },
-            "description": "Remove tagged user\n\nAuth: bearer. Source count snapshot: 107 REST /api/v1 + 5 system + 1 WebSocket."
+            "description": "DELETE /api/v1/posts/:id/tags/:taggedUserId"
           },
           "response": []
         },
         {
-          "name": "PUT /api/v1/posts/{id}/comment-settings - Update comment visibility",
+          "name": "PUT /api/v1/posts/:id/comment-settings",
           "request": {
             "auth": {
               "type": "bearer",
@@ -1749,10 +1799,10 @@
                 }
               ]
             },
-            "description": "Update comment visibility\n\nAuth: bearer. Source count snapshot: 107 REST /api/v1 + 5 system + 1 WebSocket.",
+            "description": "commentSetting is ALL, FOLLOWING, or NONE.",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"commentVisibility\": \"ALLOW_ALL\"\n}",
+              "raw": "{\n  \"commentSetting\": \"ALL\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1768,7 +1818,7 @@
       "name": "4. Interactions",
       "item": [
         {
-          "name": "POST /api/v1/posts/{id}/like - Like/unlike post",
+          "name": "POST /api/v1/posts/:id/like",
           "request": {
             "auth": {
               "type": "bearer",
@@ -1801,12 +1851,12 @@
                 }
               ]
             },
-            "description": "Like/unlike post\n\nAuth: bearer. Source count snapshot: 107 REST /api/v1 + 5 system + 1 WebSocket."
+            "description": "POST /api/v1/posts/:id/like"
           },
           "response": []
         },
         {
-          "name": "GET /api/v1/posts/{id}/likes - Post likes",
+          "name": "GET /api/v1/posts/:id/likes",
           "request": {
             "auth": {
               "type": "bearer",
@@ -1821,7 +1871,7 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{BASE_URL}}/api/v1/posts/:id/likes",
+              "raw": "{{BASE_URL}}/api/v1/posts/:id/likes?page=1&limit=20",
               "host": [
                 "{{BASE_URL}}"
               ],
@@ -1832,6 +1882,16 @@
                 ":id",
                 "likes"
               ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ],
               "variable": [
                 {
                   "key": "id",
@@ -1839,12 +1899,12 @@
                 }
               ]
             },
-            "description": "Post likes\n\nAuth: bearer. Source count snapshot: 107 REST /api/v1 + 5 system + 1 WebSocket."
+            "description": "GET /api/v1/posts/:id/likes"
           },
           "response": []
         },
         {
-          "name": "POST /api/v1/posts/{id}/save - Save/unsave post",
+          "name": "POST /api/v1/posts/:id/save",
           "request": {
             "auth": {
               "type": "bearer",
@@ -1877,12 +1937,12 @@
                 }
               ]
             },
-            "description": "Save/unsave post\n\nAuth: bearer. Source count snapshot: 107 REST /api/v1 + 5 system + 1 WebSocket."
+            "description": "POST /api/v1/posts/:id/save"
           },
           "response": []
         },
         {
-          "name": "POST /api/v1/posts/{id}/comments - Create comment",
+          "name": "POST /api/v1/posts/:id/comments",
           "request": {
             "auth": {
               "type": "bearer",
@@ -1921,10 +1981,10 @@
                 }
               ]
             },
-            "description": "Create comment\n\nAuth: bearer. Source count snapshot: 107 REST /api/v1 + 5 system + 1 WebSocket.",
+            "description": "POST /api/v1/posts/:id/comments",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"content\": \"Nice post!\"\n}",
+              "raw": "{\n  \"content\": \"Xin chao\",\n  \"parentId\": null\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1935,7 +1995,7 @@
           "response": []
         },
         {
-          "name": "GET /api/v1/posts/{id}/comments - Post comments",
+          "name": "GET /api/v1/posts/:id/comments",
           "request": {
             "auth": {
               "type": "bearer",
@@ -1950,7 +2010,7 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{BASE_URL}}/api/v1/posts/:id/comments",
+              "raw": "{{BASE_URL}}/api/v1/posts/:id/comments?page=1&limit=20",
               "host": [
                 "{{BASE_URL}}"
               ],
@@ -1961,6 +2021,16 @@
                 ":id",
                 "comments"
               ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ],
               "variable": [
                 {
                   "key": "id",
@@ -1968,12 +2038,12 @@
                 }
               ]
             },
-            "description": "Post comments\n\nAuth: bearer. Source count snapshot: 107 REST /api/v1 + 5 system + 1 WebSocket."
+            "description": "GET /api/v1/posts/:id/comments"
           },
           "response": []
         },
         {
-          "name": "POST /api/v1/posts/{id}/share - Share post counter",
+          "name": "POST /api/v1/posts/:id/share",
           "request": {
             "auth": {
               "type": "bearer",
@@ -2006,12 +2076,12 @@
                 }
               ]
             },
-            "description": "Share post counter\n\nAuth: bearer. Source count snapshot: 107 REST /api/v1 + 5 system + 1 WebSocket."
+            "description": "Second share by the same user does not increase shareCount."
           },
           "response": []
         },
         {
-          "name": "GET /api/v1/posts/{id}/shares - Post share count",
+          "name": "GET /api/v1/posts/:id/shares",
           "request": {
             "auth": {
               "type": "bearer",
@@ -2044,12 +2114,12 @@
                 }
               ]
             },
-            "description": "Post share count\n\nAuth: bearer. Source count snapshot: 107 REST /api/v1 + 5 system + 1 WebSocket."
+            "description": "GET /api/v1/posts/:id/shares"
           },
           "response": []
         },
         {
-          "name": "PUT /api/v1/comments/{commentId} - Update comment",
+          "name": "PUT /api/v1/comments/:commentId",
           "request": {
             "auth": {
               "type": "bearer",
@@ -2087,10 +2157,10 @@
                 }
               ]
             },
-            "description": "Update comment\n\nAuth: bearer. Source count snapshot: 107 REST /api/v1 + 5 system + 1 WebSocket.",
+            "description": "PUT /api/v1/comments/:commentId",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"content\": \"Updated comment\"\n}",
+              "raw": "{\n  \"content\": \"Da sua binh luan\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -2101,7 +2171,7 @@
           "response": []
         },
         {
-          "name": "DELETE /api/v1/comments/{commentId} - Delete comment",
+          "name": "DELETE /api/v1/comments/:commentId",
           "request": {
             "auth": {
               "type": "bearer",
@@ -2133,12 +2203,12 @@
                 }
               ]
             },
-            "description": "Delete comment\n\nAuth: bearer. Source count snapshot: 107 REST /api/v1 + 5 system + 1 WebSocket."
+            "description": "DELETE /api/v1/comments/:commentId"
           },
           "response": []
         },
         {
-          "name": "POST /api/v1/comments/{commentId}/like - Like/unlike comment",
+          "name": "POST /api/v1/comments/:commentId/like",
           "request": {
             "auth": {
               "type": "bearer",
@@ -2171,7 +2241,45 @@
                 }
               ]
             },
-            "description": "Like/unlike comment\n\nAuth: bearer. Source count snapshot: 107 REST /api/v1 + 5 system + 1 WebSocket."
+            "description": "One comment_reactions row. Like again removes it. Like while disliked switches to LIKE."
+          },
+          "response": []
+        },
+        {
+          "name": "POST /api/v1/comments/:commentId/dislike",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{JWT_TOKEN}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URL}}/api/v1/comments/:commentId/dislike",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "comments",
+                ":commentId",
+                "dislike"
+              ],
+              "variable": [
+                {
+                  "key": "commentId",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Switches the same row to DISLIKE, or removes it if already disliked."
           },
           "response": []
         }
@@ -2181,7 +2289,7 @@
       "name": "5. Media",
       "item": [
         {
-          "name": "POST /api/v1/media/presigned-url - Create presigned upload URL",
+          "name": "POST /api/v1/media/presigned-url",
           "request": {
             "auth": {
               "type": "bearer",
@@ -2213,10 +2321,10 @@
                 "presigned-url"
               ]
             },
-            "description": "Create presigned upload URL\n\nAuth: bearer. Source count snapshot: 107 REST /api/v1 + 5 system + 1 WebSocket.",
+            "description": "POST /api/v1/media/presigned-url",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"fileName\": \"photo.jpg\",\n  \"contentType\": \"image/jpeg\",\n  \"folder\": \"posts\"\n}",
+              "raw": "{\n  \"fileName\": \"flow.jpg\",\n  \"contentType\": \"image/jpeg\",\n  \"folder\": \"posts\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -2227,7 +2335,86 @@
           "response": []
         },
         {
-          "name": "POST /api/v1/posts/{postId}/media - Add media to post",
+          "name": "PUT /api/v1/media/local-upload/:folder/:fileName",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{JWT_TOKEN}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URL}}/api/v1/media/local-upload/:folder/:fileName",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "media",
+                "local-upload",
+                ":folder",
+                ":fileName"
+              ],
+              "variable": [
+                {
+                  "key": "folder",
+                  "value": "posts"
+                },
+                {
+                  "key": "fileName",
+                  "value": "flow.jpg"
+                }
+              ]
+            },
+            "description": "Binary upload of the file named by the presigned URL. Send the file as the body, with Authorization Bearer."
+          },
+          "response": []
+        },
+        {
+          "name": "GET /api/v1/media/local-files/:folder/:fileName",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URL}}/api/v1/media/local-files/:folder/:fileName",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "media",
+                "local-files",
+                ":folder",
+                ":fileName"
+              ],
+              "variable": [
+                {
+                  "key": "folder",
+                  "value": "posts"
+                },
+                {
+                  "key": "fileName",
+                  "value": "flow.jpg"
+                }
+              ]
+            },
+            "description": "GET /api/v1/media/local-files/:folder/:fileName"
+          },
+          "response": []
+        },
+        {
+          "name": "POST /api/v1/posts/:postId/media",
           "request": {
             "auth": {
               "type": "bearer",
@@ -2266,10 +2453,10 @@
                 }
               ]
             },
-            "description": "Add media to post\n\nAuth: bearer. Source count snapshot: 107 REST /api/v1 + 5 system + 1 WebSocket.",
+            "description": "POST /api/v1/posts/:postId/media",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"mediaFileUrl\": \"https://example.com/photo.jpg\",\n  \"thumbnailUrl\": \"https://example.com/thumb.jpg\",\n  \"mediaType\": \"IMAGE\",\n  \"width\": 1080,\n  \"height\": 1080\n}",
+              "raw": "{\n  \"mediaFileUrl\": \"https://example.com/extra.jpg\",\n  \"mediaType\": \"IMAGE\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -2280,45 +2467,7 @@
           "response": []
         },
         {
-          "name": "DELETE /api/v1/posts/media/{mediaId} - Delete post media",
-          "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{JWT_TOKEN}}",
-                  "type": "string"
-                }
-              ]
-            },
-            "method": "DELETE",
-            "header": [],
-            "url": {
-              "raw": "{{BASE_URL}}/api/v1/posts/media/:mediaId",
-              "host": [
-                "{{BASE_URL}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "posts",
-                "media",
-                ":mediaId"
-              ],
-              "variable": [
-                {
-                  "key": "mediaId",
-                  "value": "1"
-                }
-              ]
-            },
-            "description": "Delete post media\n\nAuth: bearer. Source count snapshot: 107 REST /api/v1 + 5 system + 1 WebSocket."
-          },
-          "response": []
-        },
-        {
-          "name": "PUT /api/v1/posts/{postId}/media/reorder - Reorder post media",
+          "name": "PUT /api/v1/posts/:postId/media/reorder",
           "request": {
             "auth": {
               "type": "bearer",
@@ -2358,16 +2507,54 @@
                 }
               ]
             },
-            "description": "Reorder post media\n\nAuth: bearer. Source count snapshot: 107 REST /api/v1 + 5 system + 1 WebSocket.",
+            "description": "PUT /api/v1/posts/:postId/media/reorder",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"mediaIds\": [\n    1,\n    2,\n    3\n  ]\n}",
+              "raw": "{\n  \"mediaIds\": [\n    1,\n    2\n  ]\n}",
               "options": {
                 "raw": {
                   "language": "json"
                 }
               }
             }
+          },
+          "response": []
+        },
+        {
+          "name": "DELETE /api/v1/posts/media/:mediaId",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{JWT_TOKEN}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URL}}/api/v1/posts/media/:mediaId",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "posts",
+                "media",
+                ":mediaId"
+              ],
+              "variable": [
+                {
+                  "key": "mediaId",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "DELETE /api/v1/posts/media/:mediaId"
           },
           "response": []
         }
@@ -2377,7 +2564,7 @@
       "name": "6. Albums",
       "item": [
         {
-          "name": "POST /api/v1/albums - Create album",
+          "name": "POST /api/v1/albums",
           "request": {
             "auth": {
               "type": "bearer",
@@ -2408,10 +2595,10 @@
                 "albums"
               ]
             },
-            "description": "Create album\n\nAuth: bearer. Source count snapshot: 107 REST /api/v1 + 5 system + 1 WebSocket.",
+            "description": "Album media points at posts, not individual photos.",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"title\": \"My Album\",\n  \"description\": \"Demo album\",\n  \"isPrivate\": false\n}",
+              "raw": "{\n  \"title\": \"Ky yeu\",\n  \"description\": \"Album demo\",\n  \"coverImageUrl\": null,\n  \"isPrivate\": false\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -2422,7 +2609,7 @@
           "response": []
         },
         {
-          "name": "GET /api/v1/albums - List albums",
+          "name": "GET /api/v1/albums",
           "request": {
             "auth": {
               "type": "bearer",
@@ -2437,7 +2624,7 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{BASE_URL}}/api/v1/albums",
+              "raw": "{{BASE_URL}}/api/v1/albums?userId=1",
               "host": [
                 "{{BASE_URL}}"
               ],
@@ -2445,14 +2632,21 @@
                 "api",
                 "v1",
                 "albums"
+              ],
+              "query": [
+                {
+                  "key": "userId",
+                  "value": "1",
+                  "description": "Optional owner. Defaults to the caller."
+                }
               ]
             },
-            "description": "List albums\n\nAuth: bearer. Source count snapshot: 107 REST /api/v1 + 5 system + 1 WebSocket."
+            "description": "GET /api/v1/albums"
           },
           "response": []
         },
         {
-          "name": "GET /api/v1/albums/{id} - Album detail",
+          "name": "GET /api/v1/albums/:id",
           "request": {
             "auth": {
               "type": "bearer",
@@ -2484,12 +2678,12 @@
                 }
               ]
             },
-            "description": "Album detail\n\nAuth: bearer. Source count snapshot: 107 REST /api/v1 + 5 system + 1 WebSocket."
+            "description": "GET /api/v1/albums/:id"
           },
           "response": []
         },
         {
-          "name": "PUT /api/v1/albums/{id} - Update album",
+          "name": "PUT /api/v1/albums/:id",
           "request": {
             "auth": {
               "type": "bearer",
@@ -2527,10 +2721,10 @@
                 }
               ]
             },
-            "description": "Update album\n\nAuth: bearer. Source count snapshot: 107 REST /api/v1 + 5 system + 1 WebSocket.",
+            "description": "PUT /api/v1/albums/:id",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"title\": \"Updated Album\",\n  \"description\": \"Updated description\",\n  \"coverImageUrl\": \"https://example.com/cover.jpg\"\n}",
+              "raw": "{\n  \"title\": \"Ky yeu 2026\",\n  \"description\": \"Updated\",\n  \"isPrivate\": false\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -2541,7 +2735,7 @@
           "response": []
         },
         {
-          "name": "DELETE /api/v1/albums/{id} - Delete album",
+          "name": "DELETE /api/v1/albums/:id",
           "request": {
             "auth": {
               "type": "bearer",
@@ -2573,12 +2767,12 @@
                 }
               ]
             },
-            "description": "Delete album\n\nAuth: bearer. Source count snapshot: 107 REST /api/v1 + 5 system + 1 WebSocket."
+            "description": "DELETE /api/v1/albums/:id"
           },
           "response": []
         },
         {
-          "name": "POST /api/v1/albums/{id}/media - Add media/post to album",
+          "name": "POST /api/v1/albums/:id/media",
           "request": {
             "auth": {
               "type": "bearer",
@@ -2617,10 +2811,10 @@
                 }
               ]
             },
-            "description": "Add media/post to album\n\nAuth: bearer. Source count snapshot: 107 REST /api/v1 + 5 system + 1 WebSocket.",
+            "description": "POST /api/v1/albums/:id/media",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"postId\": 1\n}",
+              "raw": "{\n  \"postIds\": [\n    1\n  ]\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -2631,7 +2825,7 @@
           "response": []
         },
         {
-          "name": "DELETE /api/v1/albums/{id}/media/{mediaId} - Remove media/post from album",
+          "name": "DELETE /api/v1/albums/:id/media/:mediaId",
           "request": {
             "auth": {
               "type": "bearer",
@@ -2669,7 +2863,7 @@
                 }
               ]
             },
-            "description": "Remove media/post from album\n\nAuth: bearer. Source count snapshot: 107 REST /api/v1 + 5 system + 1 WebSocket."
+            "description": "DELETE /api/v1/albums/:id/media/:mediaId"
           },
           "response": []
         }
@@ -2679,7 +2873,7 @@
       "name": "7. Explore",
       "item": [
         {
-          "name": "GET /api/v1/explore/trending - Trending explore tags/posts",
+          "name": "GET /api/v1/explore",
           "request": {
             "auth": {
               "type": "noauth"
@@ -2687,7 +2881,45 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{BASE_URL}}/api/v1/explore/trending",
+              "raw": "{{BASE_URL}}/api/v1/explore?page=1&limit=20",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "explore"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                },
+                {
+                  "key": "tag",
+                  "value": "",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "GET /api/v1/explore"
+          },
+          "response": []
+        },
+        {
+          "name": "GET /api/v1/explore/trending",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URL}}/api/v1/explore/trending?limit=10",
               "host": [
                 "{{BASE_URL}}"
               ],
@@ -2696,37 +2928,20 @@
                 "v1",
                 "explore",
                 "trending"
-              ]
-            },
-            "description": "Trending explore tags/posts\n\nAuth: none. Source count snapshot: 107 REST /api/v1 + 5 system + 1 WebSocket."
-          },
-          "response": []
-        },
-        {
-          "name": "GET /api/v1/explore - Explore feed",
-          "request": {
-            "auth": {
-              "type": "noauth"
-            },
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{BASE_URL}}/api/v1/explore",
-              "host": [
-                "{{BASE_URL}}"
               ],
-              "path": [
-                "api",
-                "v1",
-                "explore"
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
               ]
             },
-            "description": "Explore feed\n\nAuth: none. Source count snapshot: 107 REST /api/v1 + 5 system + 1 WebSocket."
+            "description": "GET /api/v1/explore/trending"
           },
           "response": []
         },
         {
-          "name": "GET /api/v1/explore/hashtags/{tag} - Explore by hashtag",
+          "name": "GET /api/v1/explore/hashtags/:tag",
           "request": {
             "auth": {
               "type": "noauth"
@@ -2734,7 +2949,7 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{BASE_URL}}/api/v1/explore/hashtags/:tag",
+              "raw": "{{BASE_URL}}/api/v1/explore/hashtags/:tag?page=1&limit=20",
               "host": [
                 "{{BASE_URL}}"
               ],
@@ -2745,14 +2960,24 @@
                 "hashtags",
                 ":tag"
               ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ],
               "variable": [
                 {
                   "key": "tag",
-                  "value": "demo"
+                  "value": "portrait"
                 }
               ]
             },
-            "description": "Explore by hashtag\n\nAuth: none. Source count snapshot: 107 REST /api/v1 + 5 system + 1 WebSocket."
+            "description": "GET /api/v1/explore/hashtags/:tag"
           },
           "response": []
         }
@@ -2762,15 +2987,22 @@
       "name": "8. Search",
       "item": [
         {
-          "name": "GET /api/v1/search - Global search",
+          "name": "GET /api/v1/search",
           "request": {
             "auth": {
-              "type": "noauth"
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{JWT_TOKEN}}",
+                  "type": "string"
+                }
+              ]
             },
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{BASE_URL}}/api/v1/search",
+              "raw": "{{BASE_URL}}/api/v1/search?q=portrait&type=ALL&limit=20",
               "host": [
                 "{{BASE_URL}}"
               ],
@@ -2778,14 +3010,28 @@
                 "api",
                 "v1",
                 "search"
+              ],
+              "query": [
+                {
+                  "key": "q",
+                  "value": "portrait"
+                },
+                {
+                  "key": "type",
+                  "value": "ALL"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
               ]
             },
-            "description": "Global search\n\nAuth: optional. Source count snapshot: 107 REST /api/v1 + 5 system + 1 WebSocket."
+            "description": "Public. A valid Bearer token saves search history. Same user and query updates one row."
           },
           "response": []
         },
         {
-          "name": "GET /api/v1/search/history - Search history",
+          "name": "GET /api/v1/search/history",
           "request": {
             "auth": {
               "type": "bearer",
@@ -2811,12 +3057,12 @@
                 "history"
               ]
             },
-            "description": "Search history\n\nAuth: bearer. Source count snapshot: 107 REST /api/v1 + 5 system + 1 WebSocket."
+            "description": "GET /api/v1/search/history"
           },
           "response": []
         },
         {
-          "name": "DELETE /api/v1/search/history - Clear search history",
+          "name": "DELETE /api/v1/search/history",
           "request": {
             "auth": {
               "type": "bearer",
@@ -2842,12 +3088,12 @@
                 "history"
               ]
             },
-            "description": "Clear search history\n\nAuth: bearer. Source count snapshot: 107 REST /api/v1 + 5 system + 1 WebSocket."
+            "description": "DELETE /api/v1/search/history"
           },
           "response": []
         },
         {
-          "name": "GET /api/v1/search/trending - Trending search terms",
+          "name": "GET /api/v1/search/trending",
           "request": {
             "auth": {
               "type": "noauth"
@@ -2855,7 +3101,7 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{BASE_URL}}/api/v1/search/trending",
+              "raw": "{{BASE_URL}}/api/v1/search/trending?limit=10",
               "host": [
                 "{{BASE_URL}}"
               ],
@@ -2864,9 +3110,15 @@
                 "v1",
                 "search",
                 "trending"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
               ]
             },
-            "description": "Trending search terms\n\nAuth: none. Source count snapshot: 107 REST /api/v1 + 5 system + 1 WebSocket."
+            "description": "GET /api/v1/search/trending"
           },
           "response": []
         }
@@ -2876,7 +3128,7 @@
       "name": "9. Chat",
       "item": [
         {
-          "name": "POST /api/v1/chat/conversations - Create/get conversation",
+          "name": "POST /api/v1/chat/conversations",
           "request": {
             "auth": {
               "type": "bearer",
@@ -2908,7 +3160,7 @@
                 "conversations"
               ]
             },
-            "description": "Create/get conversation\n\nAuth: bearer. Source count snapshot: 107 REST /api/v1 + 5 system + 1 WebSocket.",
+            "description": "Returns conversationId and isNew. One DIRECT thread per user pair.",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"targetUserId\": 2\n}",
@@ -2922,7 +3174,7 @@
           "response": []
         },
         {
-          "name": "GET /api/v1/chat/conversations - List conversations",
+          "name": "GET /api/v1/chat/conversations",
           "request": {
             "auth": {
               "type": "bearer",
@@ -2948,12 +3200,12 @@
                 "conversations"
               ]
             },
-            "description": "List conversations\n\nAuth: bearer. Source count snapshot: 107 REST /api/v1 + 5 system + 1 WebSocket."
+            "description": "Skips conversations hidden by the caller."
           },
           "response": []
         },
         {
-          "name": "GET /api/v1/chat/conversations/{id}/messages - Conversation messages",
+          "name": "GET /api/v1/chat/conversations/:id/messages",
           "request": {
             "auth": {
               "type": "bearer",
@@ -2968,7 +3220,7 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{BASE_URL}}/api/v1/chat/conversations/:id/messages",
+              "raw": "{{BASE_URL}}/api/v1/chat/conversations/:id/messages?page=1&limit=50",
               "host": [
                 "{{BASE_URL}}"
               ],
@@ -2980,6 +3232,16 @@
                 ":id",
                 "messages"
               ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "50"
+                }
+              ],
               "variable": [
                 {
                   "key": "id",
@@ -2987,12 +3249,51 @@
                 }
               ]
             },
-            "description": "Conversation messages\n\nAuth: bearer. Source count snapshot: 107 REST /api/v1 + 5 system + 1 WebSocket."
+            "description": "Clears hidden_at for the caller."
           },
           "response": []
         },
         {
-          "name": "POST /api/v1/chat/conversations/{id}/messages - Send message over REST",
+          "name": "PUT /api/v1/chat/conversations/:id/read",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{JWT_TOKEN}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URL}}/api/v1/chat/conversations/:id/read",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "chat",
+                "conversations",
+                ":id",
+                "read"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "PUT /api/v1/chat/conversations/:id/read"
+          },
+          "response": []
+        },
+        {
+          "name": "POST /api/v1/chat/conversations/:id/messages",
           "request": {
             "auth": {
               "type": "bearer",
@@ -3032,10 +3333,10 @@
                 }
               ]
             },
-            "description": "Send message over REST\n\nAuth: bearer. Source count snapshot: 107 REST /api/v1 + 5 system + 1 WebSocket.",
+            "description": "POST /api/v1/chat/conversations/:id/messages",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"content\": \"Hello!\",\n  \"messageType\": \"TEXT\"\n}",
+              "raw": "{\n  \"content\": \"Xin chao\",\n  \"messageType\": \"TEXT\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -3046,7 +3347,7 @@
           "response": []
         },
         {
-          "name": "DELETE /api/v1/chat/conversations/{id} - Hide/delete conversation",
+          "name": "DELETE /api/v1/chat/conversations/:id",
           "request": {
             "auth": {
               "type": "bearer",
@@ -3079,12 +3380,12 @@
                 }
               ]
             },
-            "description": "Hide/delete conversation\n\nAuth: bearer. Source count snapshot: 107 REST /api/v1 + 5 system + 1 WebSocket."
+            "description": "Sets hidden_at. Does not delete the membership row."
           },
           "response": []
         },
         {
-          "name": "WS /api/v1/ws/chat?token={{JWT_TOKEN}} - Realtime chat WebSocket",
+          "name": "WS /api/v1/ws/chat",
           "request": {
             "auth": {
               "type": "noauth"
@@ -3092,7 +3393,7 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{WS_BASE_URL}}/api/v1/ws/chat?token=:{JWT_TOKEN}",
+              "raw": "{{WS_BASE_URL}}/api/v1/ws/chat?token=%7B%7BJWT_TOKEN%7D%7D",
               "host": [
                 "{{WS_BASE_URL}}"
               ],
@@ -3105,11 +3406,11 @@
               "query": [
                 {
                   "key": "token",
-                  "value": ":{JWT_TOKEN}"
+                  "value": "{{JWT_TOKEN}}"
                 }
               ]
             },
-            "description": "Realtime chat WebSocket\n\nAuth: ws. Source count snapshot: 107 REST /api/v1 + 5 system + 1 WebSocket."
+            "description": "WebSocket at ws://localhost:8080/api/v1/ws/chat?token={{JWT_TOKEN}}. Open it as a WebSocket request in Postman. The token is verified with JwtManager."
           },
           "response": []
         }
@@ -3119,7 +3420,7 @@
       "name": "10. Notifications",
       "item": [
         {
-          "name": "GET /api/v1/notifications - List notifications",
+          "name": "GET /api/v1/notifications",
           "request": {
             "auth": {
               "type": "bearer",
@@ -3134,7 +3435,7 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{BASE_URL}}/api/v1/notifications",
+              "raw": "{{BASE_URL}}/api/v1/notifications?page=1&limit=20",
               "host": [
                 "{{BASE_URL}}"
               ],
@@ -3142,14 +3443,24 @@
                 "api",
                 "v1",
                 "notifications"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
               ]
             },
-            "description": "List notifications\n\nAuth: bearer. Source count snapshot: 107 REST /api/v1 + 5 system + 1 WebSocket."
+            "description": "GET /api/v1/notifications"
           },
           "response": []
         },
         {
-          "name": "GET /api/v1/notifications/unread-count - Unread notification count",
+          "name": "GET /api/v1/notifications/unread-count",
           "request": {
             "auth": {
               "type": "bearer",
@@ -3175,12 +3486,12 @@
                 "unread-count"
               ]
             },
-            "description": "Unread notification count\n\nAuth: bearer. Source count snapshot: 107 REST /api/v1 + 5 system + 1 WebSocket."
+            "description": "GET /api/v1/notifications/unread-count"
           },
           "response": []
         },
         {
-          "name": "PUT /api/v1/notifications/{id}/read - Mark notification read",
+          "name": "PUT /api/v1/notifications/:id/read",
           "request": {
             "auth": {
               "type": "bearer",
@@ -3213,12 +3524,12 @@
                 }
               ]
             },
-            "description": "Mark notification read\n\nAuth: bearer. Source count snapshot: 107 REST /api/v1 + 5 system + 1 WebSocket."
+            "description": "PUT /api/v1/notifications/:id/read"
           },
           "response": []
         },
         {
-          "name": "PUT /api/v1/notifications/read-all - Mark all notifications read",
+          "name": "PUT /api/v1/notifications/read-all",
           "request": {
             "auth": {
               "type": "bearer",
@@ -3244,12 +3555,12 @@
                 "read-all"
               ]
             },
-            "description": "Mark all notifications read\n\nAuth: bearer. Source count snapshot: 107 REST /api/v1 + 5 system + 1 WebSocket."
+            "description": "PUT /api/v1/notifications/read-all"
           },
           "response": []
         },
         {
-          "name": "DELETE /api/v1/notifications/{id} - Delete notification",
+          "name": "DELETE /api/v1/notifications/:id",
           "request": {
             "auth": {
               "type": "bearer",
@@ -3281,17 +3592,114 @@
                 }
               ]
             },
-            "description": "Delete notification\n\nAuth: bearer. Source count snapshot: 107 REST /api/v1 + 5 system + 1 WebSocket."
+            "description": "DELETE /api/v1/notifications/:id"
           },
           "response": []
         }
       ]
     },
     {
-      "name": "11. Portfolios",
+      "name": "11. Devices",
       "item": [
         {
-          "name": "GET /api/v1/portfolios - Discover photographers",
+          "name": "POST /api/v1/devices/fcm-token",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{JWT_TOKEN}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{BASE_URL}}/api/v1/devices/fcm-token",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "devices",
+                "fcm-token"
+              ]
+            },
+            "description": "Push delivery needs a Firebase service account. Without it, in-app notifications still save.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"fcm-device-token\",\n  \"platform\": \"ANDROID\",\n  \"deviceId\": \"emulator\",\n  \"appVersion\": \"1.0.0\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "DELETE /api/v1/devices/fcm-token",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{JWT_TOKEN}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{BASE_URL}}/api/v1/devices/fcm-token",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "devices",
+                "fcm-token"
+              ]
+            },
+            "description": "DELETE /api/v1/devices/fcm-token",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"fcm-device-token\",\n  \"platform\": \"ANDROID\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "12. Portfolios",
+      "item": [
+        {
+          "name": "GET /api/v1/portfolios",
           "request": {
             "auth": {
               "type": "noauth"
@@ -3299,7 +3707,7 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{BASE_URL}}/api/v1/portfolios",
+              "raw": "{{BASE_URL}}/api/v1/portfolios?page=1&limit=20",
               "host": [
                 "{{BASE_URL}}"
               ],
@@ -3307,14 +3715,34 @@
                 "api",
                 "v1",
                 "portfolios"
+              ],
+              "query": [
+                {
+                  "key": "location",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "specialty",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
               ]
             },
-            "description": "Discover photographers\n\nAuth: none. Source count snapshot: 107 REST /api/v1 + 5 system + 1 WebSocket."
+            "description": "GET /api/v1/portfolios"
           },
           "response": []
         },
         {
-          "name": "GET /api/v1/portfolios/users/{userId} - Public user portfolio",
+          "name": "GET /api/v1/portfolios/users/:userId",
           "request": {
             "auth": {
               "type": "noauth"
@@ -3340,12 +3768,44 @@
                 }
               ]
             },
-            "description": "Public user portfolio\n\nAuth: none. Source count snapshot: 107 REST /api/v1 + 5 system + 1 WebSocket."
+            "description": "GET /api/v1/portfolios/users/:userId"
           },
           "response": []
         },
         {
-          "name": "GET /api/v1/portfolios/me - My portfolio",
+          "name": "GET /api/v1/portfolios/users/:userId/availability",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URL}}/api/v1/portfolios/users/:userId/availability",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "portfolios",
+                "users",
+                ":userId",
+                "availability"
+              ],
+              "variable": [
+                {
+                  "key": "userId",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "GET /api/v1/portfolios/users/:userId/availability"
+          },
+          "response": []
+        },
+        {
+          "name": "GET /api/v1/portfolios/me",
           "request": {
             "auth": {
               "type": "bearer",
@@ -3371,12 +3831,12 @@
                 "me"
               ]
             },
-            "description": "My portfolio\n\nAuth: bearer. Source count snapshot: 107 REST /api/v1 + 5 system + 1 WebSocket."
+            "description": "GET /api/v1/portfolios/me"
           },
           "response": []
         },
         {
-          "name": "PUT /api/v1/portfolios/me - Update my portfolio",
+          "name": "PUT /api/v1/portfolios/me",
           "request": {
             "auth": {
               "type": "bearer",
@@ -3408,10 +3868,10 @@
                 "me"
               ]
             },
-            "description": "Update my portfolio\n\nAuth: bearer. Source count snapshot: 107 REST /api/v1 + 5 system + 1 WebSocket.",
+            "description": "Caller must be PHOTOGRAPHER.",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"bioProfessional\": \"Photographer bio\",\n  \"hourlyRate\": 500000,\n  \"specialties\": \"portrait,wedding\",\n  \"equipment\": \"Canon R6\",\n  \"location\": \"Ho Chi Minh City\"\n}",
+              "raw": "{\n  \"bioProfessional\": \"Studio\",\n  \"hourlyRate\": 150000,\n  \"specialties\": \"portrait\",\n  \"equipment\": \"camera\",\n  \"location\": \"Hanoi\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -3422,7 +3882,7 @@
           "response": []
         },
         {
-          "name": "POST /api/v1/portfolios/me/availability - Update my availability",
+          "name": "POST /api/v1/portfolios/me/availability",
           "request": {
             "auth": {
               "type": "bearer",
@@ -3455,10 +3915,10 @@
                 "availability"
               ]
             },
-            "description": "Update my availability\n\nAuth: bearer. Source count snapshot: 107 REST /api/v1 + 5 system + 1 WebSocket.",
+            "description": "JSON array. Empty schedule closes the photographer.",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"slots\": [\n    {\n      \"type\": \"RECURRING\",\n      \"dayOfWeek\": \"MONDAY\",\n      \"startTime\": \"09:00\",\n      \"endTime\": \"17:00\"\n    }\n  ]\n}",
+              "raw": "[\n  {\n    \"type\": \"SPECIFIC_DATE\",\n    \"specificDate\": \"2026-10-15\",\n    \"startTime\": \"09:00\",\n    \"endTime\": \"17:00\"\n  }\n]",
               "options": {
                 "raw": {
                   "language": "json"
@@ -3469,7 +3929,7 @@
           "response": []
         },
         {
-          "name": "GET /api/v1/portfolios/me/availability - Get my availability",
+          "name": "GET /api/v1/portfolios/me/availability",
           "request": {
             "auth": {
               "type": "bearer",
@@ -3496,17 +3956,313 @@
                 "availability"
               ]
             },
-            "description": "Get my availability\n\nAuth: bearer. Source count snapshot: 107 REST /api/v1 + 5 system + 1 WebSocket."
+            "description": "GET /api/v1/portfolios/me/availability"
           },
           "response": []
         }
       ]
     },
     {
-      "name": "12. Bookings",
+      "name": "13. Photographer services",
       "item": [
         {
-          "name": "POST /api/v1/bookings - Create booking",
+          "name": "GET /api/v1/users/:photographerId/services",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URL}}/api/v1/users/:photographerId/services",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "users",
+                ":photographerId",
+                "services"
+              ],
+              "variable": [
+                {
+                  "key": "photographerId",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "GET /api/v1/users/:photographerId/services"
+          },
+          "response": []
+        },
+        {
+          "name": "GET /api/v1/photographer/services",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{JWT_TOKEN}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URL}}/api/v1/photographer/services",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "photographer",
+                "services"
+              ]
+            },
+            "description": "GET /api/v1/photographer/services"
+          },
+          "response": []
+        },
+        {
+          "name": "POST /api/v1/photographer/services",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{JWT_TOKEN}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{BASE_URL}}/api/v1/photographer/services",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "photographer",
+                "services"
+              ]
+            },
+            "description": "POST /api/v1/photographer/services",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Portrait 1h\",\n  \"category\": \"PORTRAIT\",\n  \"price\": 1500000,\n  \"currency\": \"VND\",\n  \"durationMinutes\": 60,\n  \"photoCount\": 20,\n  \"description\": \"Outdoor portrait\",\n  \"includes\": [\n    \"editing\"\n  ],\n  \"isActive\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET /api/v1/photographer/services/:id",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{JWT_TOKEN}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URL}}/api/v1/photographer/services/:id",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "photographer",
+                "services",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "GET /api/v1/photographer/services/:id"
+          },
+          "response": []
+        },
+        {
+          "name": "PUT /api/v1/photographer/services/:id",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{JWT_TOKEN}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{BASE_URL}}/api/v1/photographer/services/:id",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "photographer",
+                "services",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "PUT /api/v1/photographer/services/:id",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Portrait 2h\",\n  \"category\": \"PORTRAIT\",\n  \"price\": 2500000,\n  \"currency\": \"VND\",\n  \"durationMinutes\": 120,\n  \"isActive\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "PUT /api/v1/photographer/services/:id/status",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{JWT_TOKEN}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{BASE_URL}}/api/v1/photographer/services/:id/status",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "photographer",
+                "services",
+                ":id",
+                "status"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "PUT /api/v1/photographer/services/:id/status",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"isActive\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "DELETE /api/v1/photographer/services/:id",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{JWT_TOKEN}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URL}}/api/v1/photographer/services/:id",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "photographer",
+                "services",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "DELETE /api/v1/photographer/services/:id"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "14. Bookings",
+      "item": [
+        {
+          "name": "POST /api/v1/bookings",
           "request": {
             "auth": {
               "type": "bearer",
@@ -3537,10 +4293,10 @@
                 "bookings"
               ]
             },
-            "description": "Create booking\n\nAuth: bearer. Source count snapshot: 107 REST /api/v1 + 5 system + 1 WebSocket.",
+            "description": "bookingDate is yyyy-MM-ddTHH:mm:ss. Overlap returns BOOKING_SLOT_UNAVAILABLE. Empty schedule returns BOOKING_OUTSIDE_AVAILABILITY.",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"photographerId\": 2,\n  \"bookingDate\": \"2026-07-01T09:00:00Z\",\n  \"durationHours\": 2,\n  \"locationBooking\": \"Ho Chi Minh City\",\n  \"details\": \"Portrait session\",\n  \"price\": 1000000,\n  \"currency\": \"VND\"\n}",
+              "raw": "{\n  \"photographerId\": 2,\n  \"bookingDate\": \"2026-10-15T10:00:00\",\n  \"durationHours\": 1,\n  \"locationBooking\": \"Hanoi\",\n  \"details\": \"Outdoor\",\n  \"price\": 1500000,\n  \"currency\": \"VND\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -3551,7 +4307,7 @@
           "response": []
         },
         {
-          "name": "GET /api/v1/bookings - List bookings",
+          "name": "GET /api/v1/bookings",
           "request": {
             "auth": {
               "type": "bearer",
@@ -3566,7 +4322,7 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{BASE_URL}}/api/v1/bookings",
+              "raw": "{{BASE_URL}}/api/v1/bookings?page=1&limit=10",
               "host": [
                 "{{BASE_URL}}"
               ],
@@ -3574,14 +4330,29 @@
                 "api",
                 "v1",
                 "bookings"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                },
+                {
+                  "key": "status",
+                  "value": "",
+                  "disabled": true
+                }
               ]
             },
-            "description": "List bookings\n\nAuth: bearer. Source count snapshot: 107 REST /api/v1 + 5 system + 1 WebSocket."
+            "description": "GET /api/v1/bookings"
           },
           "response": []
         },
         {
-          "name": "GET /api/v1/bookings/{id} - Booking detail",
+          "name": "GET /api/v1/bookings/:id",
           "request": {
             "auth": {
               "type": "bearer",
@@ -3613,12 +4384,12 @@
                 }
               ]
             },
-            "description": "Booking detail\n\nAuth: bearer. Source count snapshot: 107 REST /api/v1 + 5 system + 1 WebSocket."
+            "description": "GET /api/v1/bookings/:id"
           },
           "response": []
         },
         {
-          "name": "PUT /api/v1/bookings/{id}/status - Update booking status",
+          "name": "PUT /api/v1/bookings/:id/status",
           "request": {
             "auth": {
               "type": "bearer",
@@ -3657,7 +4428,7 @@
                 }
               ]
             },
-            "description": "Update booking status\n\nAuth: bearer. Source count snapshot: 107 REST /api/v1 + 5 system + 1 WebSocket.",
+            "description": "PENDING, CONFIRMED, IN_PROGRESS, COMPLETED, CANCELLED, REJECTED.",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"status\": \"CONFIRMED\",\n  \"cancellationReason\": null\n}",
@@ -3671,7 +4442,60 @@
           "response": []
         },
         {
-          "name": "DELETE /api/v1/bookings/{id} - Cancel/delete booking",
+          "name": "POST /api/v1/bookings/:id/review",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{JWT_TOKEN}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{BASE_URL}}/api/v1/bookings/:id/review",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "bookings",
+                ":id",
+                "review"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "POST /api/v1/bookings/:id/review",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"score\": 5,\n  \"comment\": \"Rat tot\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "DELETE /api/v1/bookings/:id",
           "request": {
             "auth": {
               "type": "bearer",
@@ -3703,17 +4527,17 @@
                 }
               ]
             },
-            "description": "Cancel/delete booking\n\nAuth: bearer. Source count snapshot: 107 REST /api/v1 + 5 system + 1 WebSocket."
+            "description": "Cancels the booking and frees the time slot."
           },
           "response": []
         }
       ]
     },
     {
-      "name": "13. Ratings",
+      "name": "15. Ratings",
       "item": [
         {
-          "name": "GET /api/v1/users/{photographerId}/ratings - Photographer ratings",
+          "name": "GET /api/v1/users/:photographerId/ratings",
           "request": {
             "auth": {
               "type": "noauth"
@@ -3721,7 +4545,7 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{BASE_URL}}/api/v1/users/:photographerId/ratings",
+              "raw": "{{BASE_URL}}/api/v1/users/:photographerId/ratings?page=1&limit=10",
               "host": [
                 "{{BASE_URL}}"
               ],
@@ -3732,6 +4556,16 @@
                 ":photographerId",
                 "ratings"
               ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ],
               "variable": [
                 {
                   "key": "photographerId",
@@ -3739,12 +4573,12 @@
                 }
               ]
             },
-            "description": "Photographer ratings\n\nAuth: none. Source count snapshot: 107 REST /api/v1 + 5 system + 1 WebSocket."
+            "description": "GET /api/v1/users/:photographerId/ratings"
           },
           "response": []
         },
         {
-          "name": "POST /api/v1/users/{photographerId}/ratings - Create photographer rating",
+          "name": "POST /api/v1/users/:photographerId/ratings",
           "request": {
             "auth": {
               "type": "bearer",
@@ -3765,7 +4599,7 @@
               }
             ],
             "url": {
-              "raw": "{{BASE_URL}}/api/v1/users/:photographerId/ratings",
+              "raw": "{{BASE_URL}}/api/v1/users/:photographerId/ratings?bookingId=1",
               "host": [
                 "{{BASE_URL}}"
               ],
@@ -3776,6 +4610,12 @@
                 ":photographerId",
                 "ratings"
               ],
+              "query": [
+                {
+                  "key": "bookingId",
+                  "value": "1"
+                }
+              ],
               "variable": [
                 {
                   "key": "photographerId",
@@ -3783,10 +4623,10 @@
                 }
               ]
             },
-            "description": "Create photographer rating\n\nAuth: bearer. Source count snapshot: 107 REST /api/v1 + 5 system + 1 WebSocket.",
+            "description": "POST /api/v1/users/:photographerId/ratings",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"score\": 5,\n  \"comment\": \"Great service!\"\n}",
+              "raw": "{\n  \"score\": 5,\n  \"comment\": \"Rat tot\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -3797,7 +4637,59 @@
           "response": []
         },
         {
-          "name": "DELETE /api/v1/ratings/{ratingId} - Delete rating",
+          "name": "PUT /api/v1/ratings/:ratingId",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{JWT_TOKEN}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{BASE_URL}}/api/v1/ratings/:ratingId",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "ratings",
+                ":ratingId"
+              ],
+              "variable": [
+                {
+                  "key": "ratingId",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "PUT /api/v1/ratings/:ratingId",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"score\": 4,\n  \"comment\": \"Cap nhat\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "DELETE /api/v1/ratings/:ratingId",
           "request": {
             "auth": {
               "type": "bearer",
@@ -3829,69 +4721,17 @@
                 }
               ]
             },
-            "description": "Delete rating\n\nAuth: bearer. Source count snapshot: 107 REST /api/v1 + 5 system + 1 WebSocket."
-          },
-          "response": []
-        },
-        {
-          "name": "PUT /api/v1/ratings/{ratingId} - Update rating",
-          "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{JWT_TOKEN}}",
-                  "type": "string"
-                }
-              ]
-            },
-            "method": "PUT",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{BASE_URL}}/api/v1/ratings/:ratingId",
-              "host": [
-                "{{BASE_URL}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "ratings",
-                ":ratingId"
-              ],
-              "variable": [
-                {
-                  "key": "ratingId",
-                  "value": "1"
-                }
-              ]
-            },
-            "description": "Update rating\n\nAuth: bearer. Source count snapshot: 107 REST /api/v1 + 5 system + 1 WebSocket.",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"score\": 4,\n  \"comment\": \"Updated review\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
+            "description": "DELETE /api/v1/ratings/:ratingId"
           },
           "response": []
         }
       ]
     },
     {
-      "name": "14. Reports",
+      "name": "16. Reports",
       "item": [
         {
-          "name": "POST /api/v1/reports - Create report",
+          "name": "POST /api/v1/reports",
           "request": {
             "auth": {
               "type": "bearer",
@@ -3922,94 +4762,10 @@
                 "reports"
               ]
             },
-            "description": "Create report\n\nAuth: bearer. Source count snapshot: 107 REST /api/v1 + 5 system + 1 WebSocket.",
+            "description": "Same reporter and target returns the existing report. targetType: POST, COMMENT, USER, BOOKING, MESSAGE, RATING.",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"targetType\": \"POST\",\n  \"targetId\": 1,\n  \"reason\": \"Spam\",\n  \"description\": \"Spam content\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "GET /api/v1/admin/reports - Admin list reports",
-          "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{JWT_TOKEN}}",
-                  "type": "string"
-                }
-              ]
-            },
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{BASE_URL}}/api/v1/admin/reports",
-              "host": [
-                "{{BASE_URL}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "admin",
-                "reports"
-              ]
-            },
-            "description": "Admin list reports\n\nAuth: admin. Source count snapshot: 107 REST /api/v1 + 5 system + 1 WebSocket."
-          },
-          "response": []
-        },
-        {
-          "name": "PUT /api/v1/admin/reports/{reportId} - Admin update report",
-          "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{JWT_TOKEN}}",
-                  "type": "string"
-                }
-              ]
-            },
-            "method": "PUT",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{BASE_URL}}/api/v1/admin/reports/:reportId",
-              "host": [
-                "{{BASE_URL}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "admin",
-                "reports",
-                ":reportId"
-              ],
-              "variable": [
-                {
-                  "key": "reportId",
-                  "value": "1"
-                }
-              ]
-            },
-            "description": "Admin update report\n\nAuth: admin. Source count snapshot: 107 REST /api/v1 + 5 system + 1 WebSocket.",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"status\": \"RESOLVED\",\n  \"adminNote\": \"Handled\"\n}",
+              "raw": "{\n  \"targetType\": \"POST\",\n  \"targetId\": 1,\n  \"reason\": \"spam\",\n  \"description\": \"Noi dung lap\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -4022,10 +4778,10 @@
       ]
     },
     {
-      "name": "15. Admin",
+      "name": "17. Admin",
       "item": [
         {
-          "name": "GET /api/v1/admin/stats - Admin dashboard stats",
+          "name": "GET /api/v1/admin/stats",
           "request": {
             "auth": {
               "type": "bearer",
@@ -4051,12 +4807,12 @@
                 "stats"
               ]
             },
-            "description": "Admin dashboard stats\n\nAuth: admin. Source count snapshot: 107 REST /api/v1 + 5 system + 1 WebSocket."
+            "description": "Role ADMIN."
           },
           "response": []
         },
         {
-          "name": "GET /api/v1/admin/stats/growth - Admin growth chart",
+          "name": "GET /api/v1/admin/stats/growth",
           "request": {
             "auth": {
               "type": "bearer",
@@ -4071,7 +4827,7 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{BASE_URL}}/api/v1/admin/stats/growth",
+              "raw": "{{BASE_URL}}/api/v1/admin/stats/growth?type=USERS&days=7",
               "host": [
                 "{{BASE_URL}}"
               ],
@@ -4081,14 +4837,113 @@
                 "admin",
                 "stats",
                 "growth"
+              ],
+              "query": [
+                {
+                  "key": "type",
+                  "value": "USERS"
+                },
+                {
+                  "key": "days",
+                  "value": "7"
+                }
               ]
             },
-            "description": "Admin growth chart\n\nAuth: admin. Source count snapshot: 107 REST /api/v1 + 5 system + 1 WebSocket."
+            "description": "GET /api/v1/admin/stats/growth"
           },
           "response": []
         },
         {
-          "name": "PUT /api/v1/admin/users/{userId}/ban - Admin ban/unban user",
+          "name": "GET /api/v1/admin/users",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{JWT_TOKEN}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URL}}/api/v1/admin/users?page=1&limit=20",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "users"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                },
+                {
+                  "key": "search",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "status",
+                  "value": "",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "GET /api/v1/admin/users"
+          },
+          "response": []
+        },
+        {
+          "name": "GET /api/v1/admin/users/:userId",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{JWT_TOKEN}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URL}}/api/v1/admin/users/:userId",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "users",
+                ":userId"
+              ],
+              "variable": [
+                {
+                  "key": "userId",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "GET /api/v1/admin/users/:userId"
+          },
+          "response": []
+        },
+        {
+          "name": "PUT /api/v1/admin/users/:userId/ban",
           "request": {
             "auth": {
               "type": "bearer",
@@ -4128,10 +4983,10 @@
                 }
               ]
             },
-            "description": "Admin ban/unban user\n\nAuth: admin. Source count snapshot: 107 REST /api/v1 + 5 system + 1 WebSocket.",
+            "description": "PUT /api/v1/admin/users/:userId/ban",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"isBanned\": true,\n  \"reason\": \"Policy violation\"\n}",
+              "raw": "{\n  \"isBanned\": true,\n  \"reason\": \"spam\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -4142,7 +4997,258 @@
           "response": []
         },
         {
-          "name": "DELETE /api/v1/admin/posts/{postId} - Admin delete post",
+          "name": "PUT /api/v1/admin/users/:userId/verification",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{JWT_TOKEN}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{BASE_URL}}/api/v1/admin/users/:userId/verification",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "users",
+                ":userId",
+                "verification"
+              ],
+              "variable": [
+                {
+                  "key": "userId",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "PUT /api/v1/admin/users/:userId/verification",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"isVerified\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "PUT /api/v1/admin/users/:userId/featured",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{JWT_TOKEN}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{BASE_URL}}/api/v1/admin/users/:userId/featured",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "users",
+                ":userId",
+                "featured"
+              ],
+              "variable": [
+                {
+                  "key": "userId",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "PUT /api/v1/admin/users/:userId/featured",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"isFeatured\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET /api/v1/admin/posts",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{JWT_TOKEN}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URL}}/api/v1/admin/posts?page=1&limit=20",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "posts"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                },
+                {
+                  "key": "search",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "status",
+                  "value": "",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "GET /api/v1/admin/posts"
+          },
+          "response": []
+        },
+        {
+          "name": "GET /api/v1/admin/posts/:postId",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{JWT_TOKEN}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URL}}/api/v1/admin/posts/:postId",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "posts",
+                ":postId"
+              ],
+              "variable": [
+                {
+                  "key": "postId",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "GET /api/v1/admin/posts/:postId"
+          },
+          "response": []
+        },
+        {
+          "name": "PUT /api/v1/admin/posts/:postId/status",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{JWT_TOKEN}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{BASE_URL}}/api/v1/admin/posts/:postId/status",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "posts",
+                ":postId",
+                "status"
+              ],
+              "variable": [
+                {
+                  "key": "postId",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "PUT /api/v1/admin/posts/:postId/status",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"HIDDEN\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "DELETE /api/v1/admin/posts/:postId",
           "request": {
             "auth": {
               "type": "bearer",
@@ -4175,12 +5281,12 @@
                 }
               ]
             },
-            "description": "Admin delete post\n\nAuth: admin. Source count snapshot: 107 REST /api/v1 + 5 system + 1 WebSocket."
+            "description": "DELETE /api/v1/admin/posts/:postId"
           },
           "response": []
         },
         {
-          "name": "DELETE /api/v1/admin/comments/{commentId} - Admin delete comment",
+          "name": "DELETE /api/v1/admin/comments/:commentId",
           "request": {
             "auth": {
               "type": "bearer",
@@ -4213,12 +5319,12 @@
                 }
               ]
             },
-            "description": "Admin delete comment\n\nAuth: admin. Source count snapshot: 107 REST /api/v1 + 5 system + 1 WebSocket."
+            "description": "DELETE /api/v1/admin/comments/:commentId"
           },
           "response": []
         },
         {
-          "name": "GET /api/v1/admin/users - Admin list users",
+          "name": "GET /api/v1/admin/bookings",
           "request": {
             "auth": {
               "type": "bearer",
@@ -4233,7 +5339,7 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{BASE_URL}}/api/v1/admin/users",
+              "raw": "{{BASE_URL}}/api/v1/admin/bookings?page=1&limit=20",
               "host": [
                 "{{BASE_URL}}"
               ],
@@ -4241,15 +5347,35 @@
                 "api",
                 "v1",
                 "admin",
-                "users"
+                "bookings"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                },
+                {
+                  "key": "search",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "status",
+                  "value": "",
+                  "disabled": true
+                }
               ]
             },
-            "description": "Admin list users\n\nAuth: admin. Source count snapshot: 107 REST /api/v1 + 5 system + 1 WebSocket."
+            "description": "GET /api/v1/admin/bookings"
           },
           "response": []
         },
         {
-          "name": "GET /api/v1/admin/users/{userId} - Admin user detail",
+          "name": "GET /api/v1/admin/bookings/:bookingId",
           "request": {
             "auth": {
               "type": "bearer",
@@ -4264,7 +5390,7 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{BASE_URL}}/api/v1/admin/users/:userId",
+              "raw": "{{BASE_URL}}/api/v1/admin/bookings/:bookingId",
               "host": [
                 "{{BASE_URL}}"
               ],
@@ -4272,22 +5398,493 @@
                 "api",
                 "v1",
                 "admin",
-                "users",
-                ":userId"
+                "bookings",
+                ":bookingId"
               ],
               "variable": [
                 {
-                  "key": "userId",
+                  "key": "bookingId",
                   "value": "1"
                 }
               ]
             },
-            "description": "Admin user detail\n\nAuth: admin. Source count snapshot: 107 REST /api/v1 + 5 system + 1 WebSocket."
+            "description": "GET /api/v1/admin/bookings/:bookingId"
           },
           "response": []
         },
         {
-          "name": "GET /api/v1/admin/banned-keywords - Admin list banned keywords",
+          "name": "PUT /api/v1/admin/bookings/:bookingId/status",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{JWT_TOKEN}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{BASE_URL}}/api/v1/admin/bookings/:bookingId/status",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "bookings",
+                ":bookingId",
+                "status"
+              ],
+              "variable": [
+                {
+                  "key": "bookingId",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "PUT /api/v1/admin/bookings/:bookingId/status",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"CONFIRMED\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET /api/v1/admin/ratings",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{JWT_TOKEN}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URL}}/api/v1/admin/ratings?page=1&limit=20",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "ratings"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                },
+                {
+                  "key": "search",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "status",
+                  "value": "",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "GET /api/v1/admin/ratings"
+          },
+          "response": []
+        },
+        {
+          "name": "PUT /api/v1/admin/ratings/:ratingId/status",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{JWT_TOKEN}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{BASE_URL}}/api/v1/admin/ratings/:ratingId/status",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "ratings",
+                ":ratingId",
+                "status"
+              ],
+              "variable": [
+                {
+                  "key": "ratingId",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "APPROVED, PENDING, or HIDDEN.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"HIDDEN\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "DELETE /api/v1/admin/ratings/:ratingId",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{JWT_TOKEN}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URL}}/api/v1/admin/ratings/:ratingId",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "ratings",
+                ":ratingId"
+              ],
+              "variable": [
+                {
+                  "key": "ratingId",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "DELETE /api/v1/admin/ratings/:ratingId"
+          },
+          "response": []
+        },
+        {
+          "name": "GET /api/v1/admin/media",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{JWT_TOKEN}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URL}}/api/v1/admin/media?page=1&limit=20",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "media"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                },
+                {
+                  "key": "search",
+                  "value": "",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "GET /api/v1/admin/media"
+          },
+          "response": []
+        },
+        {
+          "name": "DELETE /api/v1/admin/media/:mediaId",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{JWT_TOKEN}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URL}}/api/v1/admin/media/:mediaId",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "media",
+                ":mediaId"
+              ],
+              "variable": [
+                {
+                  "key": "mediaId",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "DELETE /api/v1/admin/media/:mediaId"
+          },
+          "response": []
+        },
+        {
+          "name": "GET /api/v1/admin/notifications",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{JWT_TOKEN}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URL}}/api/v1/admin/notifications?page=1&limit=20",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "notifications"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                },
+                {
+                  "key": "search",
+                  "value": "",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "GET /api/v1/admin/notifications"
+          },
+          "response": []
+        },
+        {
+          "name": "POST /api/v1/admin/notifications",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{JWT_TOKEN}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{BASE_URL}}/api/v1/admin/notifications",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "notifications"
+              ]
+            },
+            "description": "POST /api/v1/admin/notifications",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Thong bao\",\n  \"body\": \"Noi dung\",\n  \"target\": \"ALL\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET /api/v1/admin/reports",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{JWT_TOKEN}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URL}}/api/v1/admin/reports?status=PENDING&page=1&limit=20",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "reports"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "PENDING"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "GET /api/v1/admin/reports"
+          },
+          "response": []
+        },
+        {
+          "name": "PUT /api/v1/admin/reports/:reportId",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{JWT_TOKEN}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{BASE_URL}}/api/v1/admin/reports/:reportId",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "reports",
+                ":reportId"
+              ],
+              "variable": [
+                {
+                  "key": "reportId",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "PENDING, REVIEWING, RESOLVED, DISMISSED.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"RESOLVED\",\n  \"adminNote\": \"Da xu ly\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET /api/v1/admin/banned-keywords",
           "request": {
             "auth": {
               "type": "bearer",
@@ -4313,12 +5910,12 @@
                 "banned-keywords"
               ]
             },
-            "description": "Admin list banned keywords\n\nAuth: admin. Source count snapshot: 107 REST /api/v1 + 5 system + 1 WebSocket."
+            "description": "GET /api/v1/admin/banned-keywords"
           },
           "response": []
         },
         {
-          "name": "POST /api/v1/admin/banned-keywords - Admin create banned keyword",
+          "name": "POST /api/v1/admin/banned-keywords",
           "request": {
             "auth": {
               "type": "bearer",
@@ -4350,7 +5947,7 @@
                 "banned-keywords"
               ]
             },
-            "description": "Admin create banned keyword\n\nAuth: admin. Source count snapshot: 107 REST /api/v1 + 5 system + 1 WebSocket.",
+            "description": "POST /api/v1/admin/banned-keywords",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"wordOrRegex\": \"spam\",\n  \"isRegex\": false\n}",
@@ -4364,7 +5961,7 @@
           "response": []
         },
         {
-          "name": "DELETE /api/v1/admin/banned-keywords/{id} - Admin delete banned keyword",
+          "name": "DELETE /api/v1/admin/banned-keywords/:id",
           "request": {
             "auth": {
               "type": "bearer",
@@ -4397,7 +5994,53 @@
                 }
               ]
             },
-            "description": "Admin delete banned keyword\n\nAuth: admin. Source count snapshot: 107 REST /api/v1 + 5 system + 1 WebSocket."
+            "description": "DELETE /api/v1/admin/banned-keywords/:id"
+          },
+          "response": []
+        },
+        {
+          "name": "GET /api/v1/admin/activity-logs",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{JWT_TOKEN}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URL}}/api/v1/admin/activity-logs?page=1&limit=20",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "activity-logs"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                },
+                {
+                  "key": "search",
+                  "value": "",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "GET /api/v1/admin/activity-logs"
           },
           "response": []
         }
@@ -4422,6 +6065,11 @@
     },
     {
       "key": "REFRESH_TOKEN",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "USER_ID",
       "value": "",
       "type": "string"
     }

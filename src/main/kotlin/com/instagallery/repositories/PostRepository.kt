@@ -9,6 +9,7 @@ import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.inList
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.isNull
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.notInList
+import org.jetbrains.exposed.sql.deleteWhere
 import org.jetbrains.exposed.dao.id.EntityID
 import java.time.Instant
 
@@ -190,10 +191,15 @@ class PostRepository {
             return@dbQuery PostDetailResult.NotFound
         }
 
-        // 3. Check visibility
         val postOwnerId = postRow[UsersTable.id].value
         val visibility = postRow[PostsTable.visibility]
-        if (visibility == PostVisibility.PRIVATE && currentUserId != postOwnerId) {
+        if (!canViewPost(
+                viewerId = currentUserId,
+                ownerId = postOwnerId,
+                ownerIsPrivate = postRow[UsersTable.isPrivate],
+                visibility = visibility,
+            )
+        ) {
             return@dbQuery PostDetailResult.Forbidden
         }
 
@@ -252,10 +258,13 @@ class PostRepository {
             .selectAll().where { FollowersTable.followerId eq userId }
             .map { it[FollowersTable.followingId].value }
 
+        val hiddenAuthorIds = hiddenAuthorIds(userId)
+        val visibleFollowingIds = followingIds.filterNot { it in hiddenAuthorIds }
+
         // 2. Query following-first feed.
         // Own posts are always visible to the owner; followed users contribute public/followers-only posts.
         val ownPostCondition = PostsTable.userId eq userId
-        val followedVisibleCondition = (PostsTable.userId inList followingIds) and
+        val followedVisibleCondition = (PostsTable.userId inList visibleFollowingIds) and
             (PostsTable.visibility inList listOf(PostVisibility.PUBLIC, PostVisibility.FRIENDS_ONLY))
         val query = (PostsTable innerJoin UsersTable)
             .selectAll().where {
@@ -272,13 +281,14 @@ class PostRepository {
         } else {
             0
         }
-        val excludedUserIds = (followingIds + userId).distinct()
+        val excludedUserIds = (visibleFollowingIds + userId + hiddenAuthorIds).distinct()
         val suggestedRows = if (suggestedLimit > 0) {
             (PostsTable innerJoin UsersTable)
                 .selectAll().where {
                     (PostsTable.userId notInList excludedUserIds) and
                         PostsTable.deletedAt.isNull() and
-                        (PostsTable.visibility eq PostVisibility.PUBLIC)
+                        (PostsTable.visibility eq PostVisibility.PUBLIC) and
+                        (UsersTable.isPrivate eq false)
                 }
                 .orderBy(
                     PostsTable.likeCount to SortOrder.DESC,
@@ -378,15 +388,20 @@ class PostRepository {
         val offsetVal = ((page - 1) * limit).toLong()
 
         var query = (PostsTable innerJoin UsersTable)
-            .selectAll().where { (PostsTable.deletedAt.isNull()) and (PostsTable.visibility eq PostVisibility.PUBLIC) }
+            .selectAll().where {
+                PostsTable.deletedAt.isNull() and
+                    (PostsTable.visibility eq PostVisibility.PUBLIC) and
+                    (UsersTable.isPrivate eq false)
+            }
 
         if (!tag.isNullOrBlank()) {
             // Join with PostMediaTagsTable and MediaTagsTable
             query = (PostsTable innerJoin UsersTable innerJoin PostMediaTable innerJoin PostMediaTagsTable innerJoin MediaTagsTable)
-                .selectAll().where { 
-                    (PostsTable.deletedAt.isNull()) and 
-                    (PostsTable.visibility eq PostVisibility.PUBLIC) and 
-                    (MediaTagsTable.name eq tag)
+                .selectAll().where {
+                    PostsTable.deletedAt.isNull() and
+                        (PostsTable.visibility eq PostVisibility.PUBLIC) and
+                        (UsersTable.isPrivate eq false) and
+                        (MediaTagsTable.name eq tag)
                 }
         }
 
@@ -468,12 +483,21 @@ class PostRepository {
         limit: Int,
     ): PaginatedFeedResponse = dbQuery {
         val offsetVal = ((page - 1) * limit).toLong()
-        val visibleCondition = if (viewerId == userId) {
-            (PostsTable.userId eq userId) and PostsTable.deletedAt.isNull()
-        } else {
-            (PostsTable.userId eq userId) and
-                PostsTable.deletedAt.isNull() and
-                (PostsTable.visibility eq PostVisibility.PUBLIC)
+        val followsOwner = viewerId != userId && FollowersTable.selectAll()
+            .where { (FollowersTable.followerId eq viewerId) and (FollowersTable.followingId eq userId) }
+            .count() > 0
+        val visibleCondition = when {
+            viewerId == userId ->
+                (PostsTable.userId eq userId) and PostsTable.deletedAt.isNull()
+            followsOwner ->
+                (PostsTable.userId eq userId) and
+                    PostsTable.deletedAt.isNull() and
+                    (PostsTable.visibility inList listOf(PostVisibility.PUBLIC, PostVisibility.FRIENDS_ONLY))
+            else ->
+                (PostsTable.userId eq userId) and
+                    PostsTable.deletedAt.isNull() and
+                    (PostsTable.visibility eq PostVisibility.PUBLIC) and
+                    (UsersTable.isPrivate eq false)
         }
         val baseQuery = (PostsTable innerJoin UsersTable)
             .selectAll()
@@ -543,12 +567,36 @@ class PostRepository {
     }
 
     // --- FR-19: TAG USER IN POST ---
-    suspend fun tagUserInPost(ownerId: Long, postId: Long, taggedUserId: Long) = dbQuery {
-        // TODO: Insert into PostTaggedUsersTable when table is created
+    suspend fun tagUserInPost(ownerId: Long, postId: Long, taggedUserId: Long): Boolean = dbQuery {
+        val post = PostsTable
+            .selectAll()
+            .where { (PostsTable.id eq postId) and (PostsTable.userId eq ownerId) and PostsTable.deletedAt.isNull() }
+            .singleOrNull() ?: return@dbQuery false
+        if (taggedUserId == ownerId) return@dbQuery false
+        val taggedExists = UsersTable.selectAll().where { UsersTable.id eq taggedUserId }.count() > 0
+        if (!taggedExists) return@dbQuery false
+        val already = PostTaggedUsersTable
+            .selectAll()
+            .where { (PostTaggedUsersTable.postId eq postId) and (PostTaggedUsersTable.taggedUserId eq taggedUserId) }
+            .count() > 0
+        if (already) return@dbQuery true
+        PostTaggedUsersTable.insert {
+            it[PostTaggedUsersTable.postId] = EntityID(postId, PostsTable)
+            it[PostTaggedUsersTable.taggedUserId] = EntityID(taggedUserId, UsersTable)
+        }
+        true
     }
 
-    suspend fun removeTagFromPost(ownerId: Long, postId: Long, taggedUserId: Long) = dbQuery {
-        // TODO: Delete from PostTaggedUsersTable when table is created
+    suspend fun removeTagFromPost(requesterId: Long, postId: Long, taggedUserId: Long): Boolean = dbQuery {
+        val post = PostsTable
+            .selectAll()
+            .where { (PostsTable.id eq postId) and PostsTable.deletedAt.isNull() }
+            .singleOrNull() ?: return@dbQuery false
+        val ownerId = post[PostsTable.userId].value
+        if (requesterId != ownerId && requesterId != taggedUserId) return@dbQuery false
+        PostTaggedUsersTable.deleteWhere {
+            (PostTaggedUsersTable.postId eq postId) and (PostTaggedUsersTable.taggedUserId eq taggedUserId)
+        } > 0
     }
 
     // --- FR-33: COMMENT SETTINGS ---
@@ -563,5 +611,37 @@ class PostRepository {
         PostsTable.update({ (PostsTable.id eq postId) and (PostsTable.userId eq ownerId) }) {
             it[commentVisibility] = visibility
         }
+    }
+
+    private fun canViewPost(
+        viewerId: Long,
+        ownerId: Long,
+        ownerIsPrivate: Boolean,
+        visibility: PostVisibility,
+    ): Boolean {
+        if (viewerId == ownerId) return true
+        if (visibility == PostVisibility.PRIVATE) return false
+        val followsOwner = FollowersTable.selectAll()
+            .where { (FollowersTable.followerId eq viewerId) and (FollowersTable.followingId eq ownerId) }
+            .count() > 0
+        if (ownerIsPrivate && !followsOwner) return false
+        if (visibility == PostVisibility.FRIENDS_ONLY) return followsOwner
+        return visibility == PostVisibility.PUBLIC
+    }
+
+    private fun hiddenAuthorIds(userId: Long): Set<Long> {
+        val muted = MutedUsersTable
+            .selectAll()
+            .where { MutedUsersTable.muterId eq userId }
+            .map { it[MutedUsersTable.mutedId].value }
+        val blockedByMe = BlockedUsersTable
+            .selectAll()
+            .where { BlockedUsersTable.blockerId eq userId }
+            .map { it[BlockedUsersTable.blockedId].value }
+        val blockedMe = BlockedUsersTable
+            .selectAll()
+            .where { BlockedUsersTable.blockedId eq userId }
+            .map { it[BlockedUsersTable.blockerId].value }
+        return (muted + blockedByMe + blockedMe).toSet()
     }
 }

@@ -17,7 +17,7 @@ class UserService : KoinComponent {
     private val userRepository: UserRepository by inject()
 
     suspend fun getCurrentUser(userId: Long): UserDto {
-        return userRepository.getUserById(userId)
+        return userRepository.getUserById(userId)?.toPublicDto()
             ?: throw AuthException("USER_NOT_FOUND", "Tài khoản không tồn tại hoặc đã bị xóa.")
     }
 

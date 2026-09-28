@@ -14,7 +14,9 @@ class ChatRepository {
     suspend fun getConversationsForUser(userId: Long): ConversationResponse = dbQuery {
         // Find which conversations this user is part of
         val convIds = ConversationMembersTable
-            .selectAll().where { ConversationMembersTable.userId eq userId }
+            .selectAll().where {
+                (ConversationMembersTable.userId eq userId) and ConversationMembersTable.hiddenAt.isNull()
+            }
             .map { it[ConversationMembersTable.conversationId].value }
 
         if (convIds.isEmpty()) return@dbQuery ConversationResponse(emptyList())
@@ -104,6 +106,9 @@ class ChatRepository {
         ConversationsTable.update({ ConversationsTable.id eq conversationId }) {
             it[updatedAt] = nowTime
         }
+        ConversationMembersTable.update({ ConversationMembersTable.conversationId eq conversationId }) {
+            it[hiddenAt] = null
+        }
 
         val userRow = UsersTable.selectAll().where { UsersTable.id eq senderId }.single()
 
@@ -147,6 +152,7 @@ class ChatRepository {
             )
         }
 
+        revealConversation(userId, conversationId)
         markConversationReadInTransaction(userId, conversationId)
 
         PaginatedMessagesResponse(
@@ -156,35 +162,35 @@ class ChatRepository {
     }
 
     suspend fun markConversationRead(userId: Long, conversationId: Long): Int = dbQuery {
+        revealConversation(userId, conversationId)
         markConversationReadInTransaction(userId, conversationId)
         totalUnreadCountForUser(userId)
     }
 
     // --- FR-41: GET OR CREATE CONVERSATION ---
-    suspend fun getOrCreateConversation(userId: Long, targetUserId: Long): Any = dbQuery {
-        // Try to find existing 1-1 conversation between the two users
-        val existingConvIds = ConversationMembersTable
-            .select(ConversationMembersTable.conversationId)
-            .where { ConversationMembersTable.userId eq userId }
-            .map { it[ConversationMembersTable.conversationId].value }
-            .toSet()
+    suspend fun getOrCreateConversation(userId: Long, targetUserId: Long): DirectConversationResult = dbQuery {
+        val pairKey = directPairKey(userId, targetUserId)
+        val existingId = findDirectConversationId(userId, targetUserId, pairKey)
+        if (existingId != null) {
+            revealConversation(userId, existingId)
+            return@dbQuery DirectConversationResult(conversationId = existingId, isNew = false)
+        }
 
-        val targetConvIds = ConversationMembersTable
-            .select(ConversationMembersTable.conversationId)
-            .where { ConversationMembersTable.userId eq targetUserId }
-            .map { it[ConversationMembersTable.conversationId].value }
-            .toSet()
-
-        val commonConvId = existingConvIds.intersect(targetConvIds).firstOrNull()
-
-        if (commonConvId != null) {
-            mapOf("conversationId" to commonConvId, "isNew" to false)
-        } else {
-            // Create new conversation
-            val newConvId = ConversationsTable.insertAndGetId {
-                it[type] = com.instagallery.models.common.ConversationType.DIRECT
+        val newConvId = try {
+            ConversationsTable.insertAndGetId {
+                it[type] = ConversationType.DIRECT
+                it[directPairKey] = pairKey
             }.value
+        } catch (exception: org.jetbrains.exposed.exceptions.ExposedSQLException) {
+            findDirectConversationId(userId, targetUserId, pairKey)
+                ?: throw exception
+        }
 
+        if (ConversationMembersTable.selectAll().where {
+                (ConversationMembersTable.conversationId eq newConvId) and
+                    (ConversationMembersTable.userId eq userId)
+            }.count() == 0L
+        ) {
             ConversationMembersTable.insert {
                 it[ConversationMembersTable.conversationId] = newConvId
                 it[ConversationMembersTable.userId] = userId
@@ -193,24 +199,88 @@ class ChatRepository {
                 it[ConversationMembersTable.conversationId] = newConvId
                 it[ConversationMembersTable.userId] = targetUserId
             }
+        }
 
-            mapOf("conversationId" to newConvId, "isNew" to true)
+        revealConversation(userId, newConvId)
+        DirectConversationResult(conversationId = newConvId, isNew = true)
+    }
+
+    suspend fun hideConversationForUser(userId: Long, conversationId: Long) = dbQuery {
+        ConversationMembersTable.update({
+            (ConversationMembersTable.conversationId eq conversationId) and
+                (ConversationMembersTable.userId eq userId)
+        }) {
+            it[hiddenAt] = Instant.now()
         }
     }
 
-    // --- FR-41: HIDE CONVERSATION FOR USER ---
-    suspend fun hideConversationForUser(userId: Long, conversationId: Long) = dbQuery {
-        // Soft-delete by removing the participant record (only for this user)
-        ConversationMembersTable.deleteWhere {
-            (ConversationMembersTable.conversationId eq conversationId) and
-            (ConversationMembersTable.userId eq userId)
+    private fun findDirectConversationId(userId: Long, targetUserId: Long, pairKey: String): Long? {
+        val keyed = ConversationsTable
+            .selectAll()
+            .where {
+                (ConversationsTable.type eq ConversationType.DIRECT) and
+                    (ConversationsTable.directPairKey eq pairKey)
+            }
+            .singleOrNull()
+        if (keyed != null) return keyed[ConversationsTable.id].value
+
+        val userConversationIds = ConversationMembersTable
+            .select(ConversationMembersTable.conversationId)
+            .where { ConversationMembersTable.userId eq userId }
+            .map { it[ConversationMembersTable.conversationId].value }
+            .toSet()
+        val targetConversationIds = ConversationMembersTable
+            .select(ConversationMembersTable.conversationId)
+            .where { ConversationMembersTable.userId eq targetUserId }
+            .map { it[ConversationMembersTable.conversationId].value }
+            .toSet()
+
+        val legacyId = userConversationIds.intersect(targetConversationIds).firstOrNull { conversationId ->
+            val conversation = ConversationsTable
+                .selectAll()
+                .where {
+                    (ConversationsTable.id eq conversationId) and
+                        (ConversationsTable.type eq ConversationType.DIRECT) and
+                        ConversationsTable.directPairKey.isNull()
+                }
+                .singleOrNull()
+            if (conversation == null) {
+                false
+            } else {
+                ConversationMembersTable
+                    .selectAll()
+                    .where { ConversationMembersTable.conversationId eq conversationId }
+                    .count() == 2L
+            }
+        } ?: return null
+
+        ConversationsTable.update({ ConversationsTable.id eq legacyId }) {
+            it[directPairKey] = pairKey
         }
+        return legacyId
+    }
+
+    private fun revealConversation(userId: Long, conversationId: Long) {
+        ConversationMembersTable.update({
+            (ConversationMembersTable.conversationId eq conversationId) and
+                (ConversationMembersTable.userId eq userId)
+        }) {
+            it[hiddenAt] = null
+        }
+    }
+
+    private fun directPairKey(leftUserId: Long, rightUserId: Long): String {
+        val low = minOf(leftUserId, rightUserId)
+        val high = maxOf(leftUserId, rightUserId)
+        return "$low:$high"
     }
 
     private fun totalUnreadCountForUser(userId: Long): Int {
         return ConversationMembersTable
             .select(ConversationMembersTable.conversationId)
-            .where { ConversationMembersTable.userId eq userId }
+            .where {
+                (ConversationMembersTable.userId eq userId) and ConversationMembersTable.hiddenAt.isNull()
+            }
             .sumOf { row ->
                 countUnreadMessages(
                     userId = userId,

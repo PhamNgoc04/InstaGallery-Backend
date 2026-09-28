@@ -1,5 +1,6 @@
 package com.instagallery.database.tables
 
+import com.instagallery.models.common.RatingVisibility
 import org.jetbrains.exposed.dao.id.LongIdTable
 import org.jetbrains.exposed.sql.ReferenceOption
 import org.jetbrains.exposed.sql.javatime.CurrentTimestamp
@@ -11,6 +12,6 @@ object RatingsTable : LongIdTable("ratings") {
     val rateeId = reference("ratee_id", UsersTable, onDelete = ReferenceOption.CASCADE).index()
     val ratingValue = short("rating_value").index()
     val comment = text("comment").nullable()
-    val status = varchar("status", 20).default("APPROVED").index()
+    val status = enumerationByName("status", 20, RatingVisibility::class).default(RatingVisibility.APPROVED).index()
     val createdAt = timestamp("created_at").defaultExpression(CurrentTimestamp)
 }

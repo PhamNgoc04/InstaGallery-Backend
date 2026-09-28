@@ -44,12 +44,12 @@ class PortfolioAvailabilityTest {
     @Test
     fun `Test Portfolio Availability flow`() = testApplication {
         val uniqueDbName = UUID.randomUUID().toString()
-        Database.connect(
+        val database = Database.connect(
             url = "jdbc:h2:mem:$uniqueDbName;DB_CLOSE_DELAY=-1;IGNORECASE=TRUE",
             driver = "org.h2.Driver"
         )
 
-        transaction {
+        transaction(database) {
             SchemaUtils.create(
                 UsersTable, UserSessionsTable, PortfoliosTable, ActivityLogsTable,
                 ReportsTable, SearchHistoriesTable, FiltersTable,
@@ -109,7 +109,7 @@ class PortfolioAvailabilityTest {
         assertNotNull(accessToken)
 
         // Create portfolio for this photographer
-        transaction {
+        transaction(database) {
             val userId = UsersTable.selectAll().where { UsersTable.email eq "photographer@example.com" }.single()[UsersTable.id].value
             PortfoliosTable.insert {
                 it[this.userId] = userId

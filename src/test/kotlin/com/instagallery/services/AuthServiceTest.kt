@@ -1,6 +1,6 @@
 package com.instagallery.services
 
-import com.instagallery.models.common.UserDto
+import com.instagallery.models.common.UserAccount
 import com.instagallery.models.common.UserType
 import com.instagallery.models.request.LoginRequest
 import com.instagallery.models.request.RegisterRequest
@@ -12,6 +12,8 @@ import com.instagallery.repositories.SessionRepository
 import com.instagallery.repositories.UserRepository
 import com.instagallery.utils.JwtManager
 import com.instagallery.utils.PasswordHasher
+import io.ktor.server.config.ApplicationConfig
+import io.ktor.server.config.MapApplicationConfig
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
@@ -49,6 +51,11 @@ class AuthServiceTest : KoinTest {
                     single { sessionRepository }
                     single { passwordResetRepository }
                     single { jwtManager }
+                    single<ApplicationConfig> {
+                        MapApplicationConfig(
+                            "jwt.secret" to "test_secret_must_be_long_enough_for_hs256"
+                        )
+                    }
                 }
             )
         }
@@ -98,7 +105,7 @@ class AuthServiceTest : KoinTest {
         coEvery { userRepository.getUserByUsername(req.username) } returns null
         every { PasswordHasher.hashPassword(req.passwordHash) } returns "hashedPass"
         
-        val mockUserDto = UserDto(
+        val mockUserDto = UserAccount(
             id = 1L,
             username = "testuser",
             email = "test@test.com",
@@ -133,7 +140,7 @@ class AuthServiceTest : KoinTest {
     @Test
     fun `login should successfully return token`() = runTest {
         val req = LoginRequest("test@test.com", "password")
-        val mockUser = UserDto(1L, "testuser", "test@test.com", "hashedPass", "Test User", null, com.instagallery.models.common.Role.USER, com.instagallery.models.common.UserType.CLIENT, true, false)
+        val mockUser = UserAccount(1L, "testuser", "test@test.com", "hashedPass", "Test User", null, com.instagallery.models.common.Role.USER, com.instagallery.models.common.UserType.CLIENT, true, false)
         
         coEvery { userRepository.getUserByEmail(req.email) } returns mockUser
         

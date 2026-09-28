@@ -163,9 +163,13 @@ fun Route.userRoutes() {
                 val followingId = call.parameters["id"]?.toLongOrNull()
                     ?: return@post call.respond(HttpStatusCode.BadRequest, ApiResponse.error("INVALID_ID", "ID người dùng không hợp lệ."))
 
-                val isFollowing = interactionService.toggleFollow(followerId, followingId)
-                val msg = if (isFollowing) "Đã theo dõi người dùng này." else "Đã bỏ theo dõi người dùng này."
-                call.respond(HttpStatusCode.OK, ApiResponse.success(data = mapOf("isFollowing" to isFollowing), message = msg))
+                val result = interactionService.toggleFollow(followerId, followingId)
+                val msg = when (result.status) {
+                    "FOLLOWING" -> "Đã theo dõi người dùng này."
+                    "REQUESTED" -> "Đã gửi lời mời theo dõi."
+                    else -> "Đã bỏ theo dõi người dùng này."
+                }
+                call.respond(HttpStatusCode.OK, ApiResponse.success(data = result, message = msg))
             }
 
             get("/suggestions") {
@@ -183,34 +187,39 @@ fun Route.userRoutes() {
                 val principal = call.principal<JWTPrincipal>()
                 val userId = principal?.payload?.getClaim("userId")?.asLong()
                     ?: return@get call.respond(HttpStatusCode.Unauthorized, ApiResponse.error("UNAUTHORIZED", "Token không hợp lệ."))
-                // TODO: Query FollowRequestsTable where followingId = userId AND status = PENDING
-                call.respond(HttpStatusCode.OK, ApiResponse.success(data = listOf<Any>()))
+                val requests = interactionService.listFollowRequests(userId)
+                call.respond(HttpStatusCode.OK, ApiResponse.success(data = requests))
             }
 
             post("/me/follow-requests/{followerId}/{action}") {
                 val userId = call.principal<JWTPrincipal>()?.payload?.getClaim("userId")?.asLong()
                     ?: return@post call.respond(HttpStatusCode.Unauthorized, ApiResponse.error("UNAUTHORIZED", "Token không hợp lệ."))
                 val followerId = call.parameters["followerId"]?.toLongOrNull()
-                val action = call.parameters["action"] // accept or reject
-                // TODO: Update FollowRequestsTable status, if ACCEPTED -> insert to FollowersTable
-                call.respond(HttpStatusCode.OK, ApiResponse.success(data = null, message = "Request $action"))
+                    ?: return@post call.respond(HttpStatusCode.BadRequest, ApiResponse.error("INVALID_ID", "followerId không hợp lệ."))
+                val action = call.parameters["action"]
+                    ?: return@post call.respond(HttpStatusCode.BadRequest, ApiResponse.error("MISSING_ACTION", "Thiếu action."))
+                val result = interactionService.respondFollowRequest(userId, followerId, action)
+                call.respond(HttpStatusCode.OK, ApiResponse.success(data = result, message = "Request $action"))
             }
 
-            // --- BLOCK & MUTE ---
             post("/{id}/block") {
                 val userId = call.principal<JWTPrincipal>()?.payload?.getClaim("userId")?.asLong()
                     ?: return@post call.respond(HttpStatusCode.Unauthorized, ApiResponse.error("UNAUTHORIZED", "Token không hợp lệ."))
                 val blockedId = call.parameters["id"]?.toLongOrNull()
-                // TODO: Insert/Delete into BlockedUsersTable. Remove from FollowersTable.
-                call.respond(HttpStatusCode.OK, ApiResponse.success(data = null, message = "Đã thay đổi trạng thái chặn"))
+                    ?: return@post call.respond(HttpStatusCode.BadRequest, ApiResponse.error("INVALID_ID", "ID người dùng không hợp lệ."))
+                val result = interactionService.toggleBlock(userId, blockedId)
+                val msg = if (result.isBlocked) "Đã chặn người dùng này." else "Đã bỏ chặn người dùng này."
+                call.respond(HttpStatusCode.OK, ApiResponse.success(data = result, message = msg))
             }
 
             post("/{id}/mute") {
                 val userId = call.principal<JWTPrincipal>()?.payload?.getClaim("userId")?.asLong()
                     ?: return@post call.respond(HttpStatusCode.Unauthorized, ApiResponse.error("UNAUTHORIZED", "Token không hợp lệ."))
                 val mutedId = call.parameters["id"]?.toLongOrNull()
-                // TODO: Insert/Delete into MutedUsersTable
-                call.respond(HttpStatusCode.OK, ApiResponse.success(data = null, message = "Đã thay đổi trạng thái tắt tiếng"))
+                    ?: return@post call.respond(HttpStatusCode.BadRequest, ApiResponse.error("INVALID_ID", "ID người dùng không hợp lệ."))
+                val result = interactionService.toggleMute(userId, mutedId)
+                val msg = if (result.isMuted) "Đã tắt tiếng người dùng này." else "Đã bỏ tắt tiếng người dùng này."
+                call.respond(HttpStatusCode.OK, ApiResponse.success(data = result, message = msg))
             }
         }
 

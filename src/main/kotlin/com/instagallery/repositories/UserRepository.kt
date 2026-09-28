@@ -6,6 +6,7 @@ import com.instagallery.database.tables.PostsTable
 import com.instagallery.database.tables.UsersTable
 import com.instagallery.models.common.AuthProvider
 import com.instagallery.models.common.Role
+import com.instagallery.models.common.UserAccount
 import com.instagallery.models.common.UserDto
 import com.instagallery.models.common.UserProfileDto
 import com.instagallery.models.common.UserType
@@ -22,7 +23,7 @@ import org.jetbrains.exposed.sql.SqlExpressionBuilder.isNull
 
 class UserRepository {
 
-    suspend fun createUser(request: RegisterRequest, hashedPw: String): UserDto? = dbQuery {
+    suspend fun createUser(request: RegisterRequest, hashedPw: String): UserAccount? = dbQuery {
         val insertStatement = UsersTable.insertAndGetId {
             it[email] = request.email
             it[username] = request.username
@@ -31,22 +32,22 @@ class UserRepository {
             it[userType] = request.userType
         }
         val resultRow = UsersTable.selectAll().where { UsersTable.id eq insertStatement.value }.singleOrNull()
-        resultRow?.toUserDto()
+        resultRow?.toUserAccount()
     }
 
-    suspend fun getUserByEmail(email: String): UserDto? = dbQuery {
-        UsersTable.selectAll().where { UsersTable.email eq email }.singleOrNull()?.toUserDto()
+    suspend fun getUserByEmail(email: String): UserAccount? = dbQuery {
+        UsersTable.selectAll().where { UsersTable.email eq email }.singleOrNull()?.toUserAccount()
     }
 
-    suspend fun getUserByProvider(provider: AuthProvider, providerId: String): UserDto? = dbQuery {
+    suspend fun getUserByProvider(provider: AuthProvider, providerId: String): UserAccount? = dbQuery {
         UsersTable.selectAll()
             .where { (UsersTable.provider eq provider) and (UsersTable.providerId eq providerId) }
             .singleOrNull()
-            ?.toUserDto()
+            ?.toUserAccount()
     }
 
-    suspend fun getUserById(id: Long): UserDto? = dbQuery {
-        UsersTable.selectAll().where { UsersTable.id eq id }.singleOrNull()?.toUserDto()
+    suspend fun getUserById(id: Long): UserAccount? = dbQuery {
+        UsersTable.selectAll().where { UsersTable.id eq id }.singleOrNull()?.toUserAccount()
     }
 
     suspend fun getUserProfile(
@@ -95,8 +96,8 @@ class UserRepository {
         )
     }
 
-    suspend fun getUserByUsername(username: String): UserDto? = dbQuery {
-        UsersTable.selectAll().where { UsersTable.username eq username }.singleOrNull()?.toUserDto()
+    suspend fun getUserByUsername(username: String): UserAccount? = dbQuery {
+        UsersTable.selectAll().where { UsersTable.username eq username }.singleOrNull()?.toUserAccount()
     }
 
     suspend fun updateUserProfile(userId: Long, request: com.instagallery.models.request.UpdateUserProfileRequest, formattedDate: java.time.LocalDate?): Boolean = dbQuery {
@@ -131,7 +132,7 @@ class UserRepository {
         providerId: String,
         hashedPw: String,
         userType: UserType,
-    ): UserDto? = dbQuery {
+    ): UserAccount? = dbQuery {
         val insertStatement = UsersTable.insertAndGetId {
             it[UsersTable.email] = email
             it[UsersTable.username] = username
@@ -143,7 +144,7 @@ class UserRepository {
             it[UsersTable.providerId] = providerId
             it[UsersTable.isVerified] = true
         }
-        UsersTable.selectAll().where { UsersTable.id eq insertStatement.value }.singleOrNull()?.toUserDto()
+        UsersTable.selectAll().where { UsersTable.id eq insertStatement.value }.singleOrNull()?.toUserAccount()
     }
 
     suspend fun linkGoogleIdentity(
@@ -165,7 +166,7 @@ class UserRepository {
         updatedRows > 0
     }
 
-    private fun ResultRow.toUserDto() = UserDto(
+    private fun ResultRow.toUserAccount() = UserAccount(
         id = this[UsersTable.id].value,
         username = this[UsersTable.username],
         email = this[UsersTable.email],
@@ -175,7 +176,8 @@ class UserRepository {
         role = this[UsersTable.role],
         userType = this[UsersTable.userType],
         isActive = this[UsersTable.isActive],
-        isVerified = this[UsersTable.isVerified]
+        isVerified = this[UsersTable.isVerified],
+        isPrivate = this[UsersTable.isPrivate],
     )
 
     private fun ResultRow.toUserProfileDto(
@@ -229,6 +231,6 @@ class UserRepository {
             .selectAll().where { (UsersTable.id neq userId) and (UsersTable.isActive eq true) }
             .orderBy(org.jetbrains.exposed.sql.Random())
             .limit(limit)
-            .map { it.toUserDto() }
+            .map { it.toUserAccount().toPublicDto() }
     }
 }

@@ -10,6 +10,8 @@ import com.instagallery.models.request.ResetPasswordRequest
 import com.instagallery.services.AuthService
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.*
+import io.ktor.server.plugins.ratelimit.RateLimitName
+import io.ktor.server.plugins.ratelimit.rateLimit
 import io.ktor.server.auth.authenticate
 import io.ktor.server.auth.jwt.JWTPrincipal
 import io.ktor.server.auth.principal
@@ -23,6 +25,7 @@ fun Route.authRoutes() {
     val authService = application.getKoin().get<AuthService>()
 
     route("/api/v1/auth") {
+        rateLimit(RateLimitName("auth")) {
         post("/register") {
             val request = call.receive<RegisterRequest>()
             val response = authService.register(request)
@@ -94,7 +97,11 @@ fun Route.authRoutes() {
         }
 
         post("/2fa/verify-login") {
-            call.respond(HttpStatusCode.OK, ApiResponse.success(data = true, message = "2FA verification successful."))
+            call.respond(
+                HttpStatusCode.NotImplemented,
+                ApiResponse.error("NOT_IMPLEMENTED", "Xác thực hai lớp chưa được hỗ trợ.")
+            )
+        }
         }
 
         authenticate("jwt") {
@@ -130,25 +137,17 @@ fun Route.authRoutes() {
             }
 
             post("/2fa/setup") {
-                val principal = call.principal<JWTPrincipal>()
-                principal?.payload?.getClaim("userId")?.asLong()
-                    ?: return@post call.respond(
-                        HttpStatusCode.Unauthorized,
-                        ApiResponse.error("UNAUTHORIZED", "Token is invalid.")
-                    )
-
-                call.respond(HttpStatusCode.OK, ApiResponse.success(data = true, message = "2FA setup created."))
+                call.respond(
+                    HttpStatusCode.NotImplemented,
+                    ApiResponse.error("NOT_IMPLEMENTED", "Xác thực hai lớp chưa được hỗ trợ.")
+                )
             }
 
             post("/2fa/enable") {
-                val principal = call.principal<JWTPrincipal>()
-                principal?.payload?.getClaim("userId")?.asLong()
-                    ?: return@post call.respond(
-                        HttpStatusCode.Unauthorized,
-                        ApiResponse.error("UNAUTHORIZED", "Token is invalid.")
-                    )
-
-                call.respond(HttpStatusCode.OK, ApiResponse.success(data = true, message = "2FA enabled."))
+                call.respond(
+                    HttpStatusCode.NotImplemented,
+                    ApiResponse.error("NOT_IMPLEMENTED", "Xác thực hai lớp chưa được hỗ trợ.")
+                )
             }
         }
     }

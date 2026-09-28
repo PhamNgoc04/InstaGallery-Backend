@@ -18,8 +18,6 @@ TRUNCATE TABLE albums;
 TRUNCATE TABLE album_media;
 SET FOREIGN_KEY_CHECKS = 1;
 
-
-
 -- ==========================================
 -- BẢNG 1: NGƯỜI DÙNG (USERS)
 -- ==========================================

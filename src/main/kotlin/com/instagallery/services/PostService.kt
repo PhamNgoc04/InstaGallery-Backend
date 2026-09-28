@@ -108,14 +108,26 @@ class PostService : KoinComponent {
 
     // --- FR-19: TAG USER IN POST ---
     suspend fun tagUserInPost(ownerId: Long, postId: Long, taggedUserId: Long) {
-        val post = postRepository.getPostById(postId)
-            ?: throw AuthException("POST_NOT_FOUND", "Бài viết không tồn tại.")
-        postRepository.tagUserInPost(ownerId, postId, taggedUserId)
+        postRepository.getPostById(postId)
+            ?: throw AuthException("POST_NOT_FOUND", "Bài viết không tồn tại.")
+        if (taggedUserId == ownerId) {
+            throw ValidationException("SELF_TAG", "Bạn không thể tự gắn thẻ chính mình.")
+        }
+        userRepository.getUserById(taggedUserId)
+            ?: throw AuthException("USER_NOT_FOUND", "Người dùng được gắn thẻ không tồn tại.")
+        val tagged = postRepository.tagUserInPost(ownerId, postId, taggedUserId)
+        if (!tagged) {
+            throw AuthException("FORBIDDEN_ACTION", "Không thể gắn thẻ. Bạn phải là chủ bài viết.")
+        }
+        notificationService.notifyMentioned(taggedUserId, ownerId, postId)
     }
 
     // --- FR-19: REMOVE TAG ---
     suspend fun removeTagFromPost(ownerId: Long, postId: Long, taggedUserId: Long) {
-        postRepository.removeTagFromPost(ownerId, postId, taggedUserId)
+        val removed = postRepository.removeTagFromPost(ownerId, postId, taggedUserId)
+        if (!removed) {
+            throw AuthException("FORBIDDEN_ACTION", "Không thể xóa thẻ người dùng khỏi bài viết.")
+        }
     }
 
     // --- FR-33: COMMENT SETTINGS ---

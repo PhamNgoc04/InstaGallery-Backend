@@ -8,6 +8,7 @@ import com.instagallery.models.request.ReorderMediaRequest
 import com.instagallery.plugins.AuthException
 import com.instagallery.plugins.ValidationException
 import com.instagallery.repositories.MediaRepository
+import com.instagallery.utils.LocalUploadGrantStore
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import java.util.Locale
@@ -30,9 +31,10 @@ class MediaService : KoinComponent {
 
         val folder = (request.folder ?: DEFAULT_MEDIA_FOLDER)
             .takeIf { it.isSafeStorageSegment() }
-            ?: throw ValidationException("INVALID_FOLDER", "Folder upload khÃ´ng há»£p lá»‡.")
+            ?: throw ValidationException("INVALID_FOLDER", "Folder upload không hợp lệ.")
         val mockHash = UUID.randomUUID().toString()
         val cdnFileName = "$mockHash.$extension"
+        LocalUploadGrantStore.issue(userId, folder, cdnFileName)
         val mockUploadUrl = "$localMediaBaseUrl/api/v1/media/local-upload/$folder/$cdnFileName"
         val cdnFileUrl = "$localMediaBaseUrl/api/v1/media/local-files/$folder/$cdnFileName"
 

@@ -4,6 +4,7 @@ import com.instagallery.database.DatabaseFactory.dbQuery
 import com.instagallery.database.tables.*
 import com.instagallery.models.common.FeedMediaDto
 import com.instagallery.models.common.FeedPostDto
+import com.instagallery.models.common.CommentReactionKind
 import com.instagallery.models.common.CommentReactionResponse
 import com.instagallery.models.common.PaginatedFeedResponse
 import com.instagallery.models.common.PaginatedUserCommentsResponse
@@ -14,6 +15,7 @@ import com.instagallery.models.common.UserCommentActivityDto
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.inList
+import org.jetbrains.exposed.sql.or
 import org.jetbrains.exposed.dao.id.EntityID
 import java.time.Instant
 
@@ -276,14 +278,8 @@ class InteractionRepository {
                 parentId = row[CommentsTable.parentCommentId]?.value,
                 likeCount = row[CommentsTable.likeCount],
                 dislikeCount = row[CommentsTable.dislikeCount],
-                isLiked = CommentLikesTable
-                    .selectAll()
-                    .where { (CommentLikesTable.userId eq userId) and (CommentLikesTable.commentId eq commentId) }
-                    .count() > 0,
-                isDisliked = CommentDislikesTable
-                    .selectAll()
-                    .where { (CommentDislikesTable.userId eq userId) and (CommentDislikesTable.commentId eq commentId) }
-                    .count() > 0,
+                isLiked = commentReactionKind(userId, commentId) == CommentReactionKind.LIKE,
+                isDisliked = commentReactionKind(userId, commentId) == CommentReactionKind.DISLIKE,
                 replyCount = row[CommentsTable.replyCount],
                 createdAt = row[CommentsTable.createdAt].toString()
             )
@@ -322,54 +318,217 @@ class InteractionRepository {
     }
 
     suspend fun toggleCommentLike(userId: Long, commentId: Long): CommentReactionResponse = dbQuery {
-        val existingLike = CommentLikesTable.selectAll().where { (CommentLikesTable.userId eq userId) and (CommentLikesTable.commentId eq commentId) }.singleOrNull()
-
-        if (existingLike != null) {
-            CommentLikesTable.deleteWhere { (CommentLikesTable.userId eq userId) and (CommentLikesTable.commentId eq commentId) }
-        } else {
-            CommentDislikesTable.deleteWhere { (CommentDislikesTable.userId eq userId) and (CommentDislikesTable.commentId eq commentId) }
-            CommentLikesTable.insert {
-                it[CommentLikesTable.userId] = EntityID(userId, UsersTable)
-                it[CommentLikesTable.commentId] = EntityID(commentId, CommentsTable)
-            }
-        }
-
+        toggleCommentReaction(userId, commentId, CommentReactionKind.LIKE)
         syncCommentReactionCounts(commentId)
         commentReactionFor(userId, commentId)
     }
 
     suspend fun toggleCommentDislike(userId: Long, commentId: Long): CommentReactionResponse = dbQuery {
-        val existingDislike = CommentDislikesTable.selectAll().where { (CommentDislikesTable.userId eq userId) and (CommentDislikesTable.commentId eq commentId) }.singleOrNull()
-
-        if (existingDislike != null) {
-            CommentDislikesTable.deleteWhere { (CommentDislikesTable.userId eq userId) and (CommentDislikesTable.commentId eq commentId) }
-        } else {
-            CommentLikesTable.deleteWhere { (CommentLikesTable.userId eq userId) and (CommentLikesTable.commentId eq commentId) }
-            CommentDislikesTable.insert {
-                it[CommentDislikesTable.userId] = EntityID(userId, UsersTable)
-                it[CommentDislikesTable.commentId] = EntityID(commentId, CommentsTable)
-            }
-        }
-
+        toggleCommentReaction(userId, commentId, CommentReactionKind.DISLIKE)
         syncCommentReactionCounts(commentId)
         commentReactionFor(userId, commentId)
     }
 
-    // ----- FOLLOWERS -----
-    suspend fun toggleFollow(followerId: Long, followingId: Long): Boolean = dbQuery {
-        val existingFollow = FollowersTable.selectAll().where { (FollowersTable.followerId eq followerId) and (FollowersTable.followingId eq followingId) }.singleOrNull()
+    suspend fun isFollowing(followerId: Long, followingId: Long): Boolean = dbQuery {
+        FollowersTable
+            .selectAll()
+            .where { (FollowersTable.followerId eq followerId) and (FollowersTable.followingId eq followingId) }
+            .count() > 0
+    }
 
-        if (existingFollow != null) {
-            // Unfollow
-            FollowersTable.deleteWhere { (FollowersTable.followerId eq followerId) and (FollowersTable.followingId eq followingId) }
+    suspend fun follow(followerId: Long, followingId: Long): Boolean = dbQuery {
+        val existing = FollowersTable
+            .selectAll()
+            .where { (FollowersTable.followerId eq followerId) and (FollowersTable.followingId eq followingId) }
+            .count() > 0
+        if (existing) return@dbQuery false
+        FollowersTable.insert {
+            it[FollowersTable.followerId] = EntityID(followerId, UsersTable)
+            it[FollowersTable.followingId] = EntityID(followingId, UsersTable)
+        }
+        adjustFollowCounts(followerId, followingId, 1)
+        cancelFollowRequest(followerId, followingId)
+        true
+    }
+
+    suspend fun unfollow(followerId: Long, followingId: Long): Boolean = dbQuery {
+        val deleted = FollowersTable.deleteWhere {
+            (FollowersTable.followerId eq followerId) and (FollowersTable.followingId eq followingId)
+        }
+        if (deleted > 0) {
+            adjustFollowCounts(followerId, followingId, -1)
+        }
+        cancelFollowRequest(followerId, followingId)
+        deleted > 0
+    }
+
+    suspend fun hasPendingFollowRequest(followerId: Long, followingId: Long): Boolean = dbQuery {
+        FollowRequestsTable
+            .selectAll()
+            .where {
+                (FollowRequestsTable.followerId eq followerId) and
+                    (FollowRequestsTable.followingId eq followingId) and
+                    (FollowRequestsTable.status eq com.instagallery.models.common.FollowRequestStatus.PENDING)
+            }
+            .count() > 0
+    }
+
+    suspend fun createFollowRequest(followerId: Long, followingId: Long) = dbQuery {
+        val existing = FollowRequestsTable
+            .selectAll()
+            .where { (FollowRequestsTable.followerId eq followerId) and (FollowRequestsTable.followingId eq followingId) }
+            .singleOrNull()
+        if (existing == null) {
+            FollowRequestsTable.insert {
+                it[FollowRequestsTable.followerId] = EntityID(followerId, UsersTable)
+                it[FollowRequestsTable.followingId] = EntityID(followingId, UsersTable)
+                it[status] = com.instagallery.models.common.FollowRequestStatus.PENDING
+            }
+        } else {
+            FollowRequestsTable.update({
+                (FollowRequestsTable.followerId eq followerId) and (FollowRequestsTable.followingId eq followingId)
+            }) {
+                it[status] = com.instagallery.models.common.FollowRequestStatus.PENDING
+                it[updatedAt] = java.time.Instant.now()
+            }
+        }
+    }
+
+    private fun cancelFollowRequest(followerId: Long, followingId: Long) {
+        FollowRequestsTable.deleteWhere {
+            (FollowRequestsTable.followerId eq followerId) and (FollowRequestsTable.followingId eq followingId)
+        }
+    }
+
+    suspend fun listIncomingFollowRequests(userId: Long): List<com.instagallery.models.common.FollowRequestDto> = dbQuery {
+        FollowRequestsTable
+            .join(UsersTable, JoinType.INNER, FollowRequestsTable.followerId, UsersTable.id)
+            .selectAll()
+            .where {
+                (FollowRequestsTable.followingId eq userId) and
+                    (FollowRequestsTable.status eq com.instagallery.models.common.FollowRequestStatus.PENDING)
+            }
+            .orderBy(FollowRequestsTable.createdAt to SortOrder.DESC)
+            .map { row ->
+                com.instagallery.models.common.FollowRequestDto(
+                    requestId = row[FollowRequestsTable.id].value,
+                    followerId = row[UsersTable.id].value,
+                    username = row[UsersTable.username],
+                    fullName = row[UsersTable.fullName],
+                    avatar = row[UsersTable.profilePictureUrl],
+                    createdAt = row[FollowRequestsTable.createdAt].toString(),
+                )
+            }
+    }
+
+    suspend fun respondFollowRequest(ownerId: Long, followerId: Long, accept: Boolean): Boolean = dbQuery {
+        val request = FollowRequestsTable
+            .selectAll()
+            .where {
+                (FollowRequestsTable.followingId eq ownerId) and
+                    (FollowRequestsTable.followerId eq followerId) and
+                    (FollowRequestsTable.status eq com.instagallery.models.common.FollowRequestStatus.PENDING)
+            }
+            .singleOrNull() ?: return@dbQuery false
+
+        val newStatus = if (accept) {
+            com.instagallery.models.common.FollowRequestStatus.ACCEPTED
+        } else {
+            com.instagallery.models.common.FollowRequestStatus.REJECTED
+        }
+        FollowRequestsTable.update({ FollowRequestsTable.id eq request[FollowRequestsTable.id] }) {
+            it[status] = newStatus
+            it[updatedAt] = java.time.Instant.now()
+        }
+        if (accept) {
+            val already = FollowersTable
+                .selectAll()
+                .where { (FollowersTable.followerId eq followerId) and (FollowersTable.followingId eq ownerId) }
+                .count() > 0
+            if (!already) {
+                FollowersTable.insert {
+                    it[FollowersTable.followerId] = EntityID(followerId, UsersTable)
+                    it[FollowersTable.followingId] = EntityID(ownerId, UsersTable)
+                }
+                adjustFollowCounts(followerId, ownerId, 1)
+            }
+        }
+        true
+    }
+
+    suspend fun isBlockedEitherWay(userA: Long, userB: Long): Boolean = dbQuery {
+        BlockedUsersTable
+            .selectAll()
+            .where {
+                ((BlockedUsersTable.blockerId eq userA) and (BlockedUsersTable.blockedId eq userB)) or
+                    ((BlockedUsersTable.blockerId eq userB) and (BlockedUsersTable.blockedId eq userA))
+            }
+            .count() > 0
+    }
+
+    suspend fun toggleBlock(blockerId: Long, blockedId: Long): Boolean = dbQuery {
+        val existing = BlockedUsersTable
+            .selectAll()
+            .where { (BlockedUsersTable.blockerId eq blockerId) and (BlockedUsersTable.blockedId eq blockedId) }
+            .singleOrNull()
+        if (existing != null) {
+            BlockedUsersTable.deleteWhere {
+                (BlockedUsersTable.blockerId eq blockerId) and (BlockedUsersTable.blockedId eq blockedId)
+            }
             false
         } else {
-            // Follow
-            FollowersTable.insert {
-                it[FollowersTable.followerId] = EntityID(followerId, UsersTable)
-                it[FollowersTable.followingId] = EntityID(followingId, UsersTable)
+            BlockedUsersTable.insert {
+                it[BlockedUsersTable.blockerId] = EntityID(blockerId, UsersTable)
+                it[BlockedUsersTable.blockedId] = EntityID(blockedId, UsersTable)
+            }
+            removeFollowRelation(blockerId, blockedId)
+            removeFollowRelation(blockedId, blockerId)
+            FollowRequestsTable.deleteWhere {
+                ((FollowRequestsTable.followerId eq blockerId) and (FollowRequestsTable.followingId eq blockedId)) or
+                    ((FollowRequestsTable.followerId eq blockedId) and (FollowRequestsTable.followingId eq blockerId))
             }
             true
+        }
+    }
+
+    suspend fun toggleMute(muterId: Long, mutedId: Long): Boolean = dbQuery {
+        val existing = MutedUsersTable
+            .selectAll()
+            .where { (MutedUsersTable.muterId eq muterId) and (MutedUsersTable.mutedId eq mutedId) }
+            .singleOrNull()
+        if (existing != null) {
+            MutedUsersTable.deleteWhere {
+                (MutedUsersTable.muterId eq muterId) and (MutedUsersTable.mutedId eq mutedId)
+            }
+            false
+        } else {
+            MutedUsersTable.insert {
+                it[MutedUsersTable.muterId] = EntityID(muterId, UsersTable)
+                it[MutedUsersTable.mutedId] = EntityID(mutedId, UsersTable)
+            }
+            true
+        }
+    }
+
+    private fun removeFollowRelation(followerId: Long, followingId: Long) {
+        val deleted = FollowersTable.deleteWhere {
+            (FollowersTable.followerId eq followerId) and (FollowersTable.followingId eq followingId)
+        }
+        if (deleted > 0) {
+            adjustFollowCounts(followerId, followingId, -1)
+        }
+    }
+
+    private fun adjustFollowCounts(followerId: Long, followingId: Long, delta: Int) {
+        UsersTable.update({ UsersTable.id eq followerId }) {
+            with(org.jetbrains.exposed.sql.SqlExpressionBuilder) {
+                it.update(UsersTable.followingCount, UsersTable.followingCount + delta)
+            }
+        }
+        UsersTable.update({ UsersTable.id eq followingId }) {
+            with(org.jetbrains.exposed.sql.SqlExpressionBuilder) {
+                it.update(UsersTable.followerCount, UsersTable.followerCount + delta)
+            }
         }
     }
 
@@ -504,9 +663,40 @@ class InteractionRepository {
     }
 
     // --- FR-19: TAGGED POSTS ---
-    suspend fun getTaggedPosts(userId: Long, page: Int, limit: Int): Any = dbQuery {
-        // TODO: Query PostTaggedUsersTable WHERE taggedUserId JOIN PostsTable
-        mapOf("posts" to emptyList<Any>(), "meta" to mapOf("currentPage" to page, "totalPages" to 0))
+    suspend fun getTaggedPosts(userId: Long, page: Int, limit: Int): PaginatedFeedResponse = dbQuery {
+        val offset = ((page - 1) * limit).toLong()
+        val query = PostTaggedUsersTable
+            .join(PostsTable, JoinType.INNER, PostTaggedUsersTable.postId, PostsTable.id)
+            .join(UsersTable, JoinType.INNER, PostsTable.userId, UsersTable.id)
+            .selectAll()
+            .where {
+                (PostTaggedUsersTable.taggedUserId eq userId) and PostsTable.deletedAt.isNull()
+            }
+
+        val totalRecords = query.count()
+        val totalPages = Math.ceil(totalRecords.toDouble() / limit).toInt()
+        val rows = query
+            .orderBy(PostTaggedUsersTable.createdAt to SortOrder.DESC)
+            .limit(limit, offset)
+            .toList()
+        val postIds = rows.map { row -> row[PostsTable.id].value }
+        val likedPostIds = likedPostIdsFor(userId, postIds)
+        val savedPostIds = savedPostIdsFor(userId, postIds)
+
+        PaginatedFeedResponse(
+            posts = rows.map { row ->
+                val postId = row[PostsTable.id].value
+                row.toFeedPostDto(
+                    isLiked = postId in likedPostIds,
+                    isSaved = postId in savedPostIds,
+                )
+            },
+            meta = PaginationMeta(
+                currentPage = page,
+                totalPages = totalPages,
+                hasNext = page < totalPages,
+            ),
+        )
     }
 
     suspend fun getUserComments(userId: Long, page: Int, limit: Int): PaginatedUserCommentsResponse = dbQuery {
@@ -551,16 +741,22 @@ class InteractionRepository {
         )
     }
 
-    // --- FR-28: ACTIVITY LOG ---
-    suspend fun getActivityLog(userId: Long, page: Int, limit: Int): Any = dbQuery {
-        // TODO: Query ActivityLogsTable WHERE actorId = userId ORDER BY createdAt DESC
-        mapOf("activities" to emptyList<Any>(), "meta" to mapOf("currentPage" to page, "totalPages" to 0))
-    }
-
-    // --- FR-31: BLOCKED USERS ---
-    suspend fun getBlockedUsers(userId: Long): Any = dbQuery {
-        // TODO: Query BlockedUsersTable WHERE blockerId = userId JOIN UsersTable
-        listOf<Any>()
+    suspend fun getBlockedUsers(userId: Long): List<com.instagallery.models.common.FollowDto> = dbQuery {
+        BlockedUsersTable
+            .join(UsersTable, JoinType.INNER, BlockedUsersTable.blockedId, UsersTable.id)
+            .selectAll()
+            .where { BlockedUsersTable.blockerId eq userId }
+            .orderBy(BlockedUsersTable.createdAt to SortOrder.DESC)
+            .map { row ->
+                com.instagallery.models.common.FollowDto(
+                    id = row[UsersTable.id].value,
+                    username = row[UsersTable.username],
+                    fullName = row[UsersTable.fullName],
+                    avatar = row[UsersTable.profilePictureUrl],
+                    role = row[UsersTable.role],
+                    userType = row[UsersTable.userType],
+                )
+            }
     }
 
     // --- FR-20: WHO LIKED A POST ---
@@ -598,13 +794,20 @@ class InteractionRepository {
 
     // --- FR-27: INCREMENT SHARE COUNT ---
     suspend fun incrementShareCount(userId: Long, postId: Long): Long = dbQuery {
-        PostsTable.update({ PostsTable.id eq postId }) {
-            with(SqlExpressionBuilder) {
-                it.update(PostsTable.shareCount, PostsTable.shareCount + 1)
+        val alreadyShared = PostSharesTable.selectAll().where {
+            (PostSharesTable.userId eq userId) and (PostSharesTable.postId eq postId)
+        }.count() > 0
+        if (!alreadyShared) {
+            PostSharesTable.insert {
+                it[PostSharesTable.userId] = userId
+                it[PostSharesTable.postId] = postId
             }
         }
-        PostsTable.selectAll().where { PostsTable.id eq postId }
-            .first()[PostsTable.shareCount].toLong()
+        val shareTotal = PostSharesTable.selectAll().where { PostSharesTable.postId eq postId }.count().toInt()
+        PostsTable.update({ PostsTable.id eq postId }) {
+            it[shareCount] = shareTotal
+        }
+        shareTotal.toLong()
     }
 
     // --- FR-27: GET SHARE COUNT ---
@@ -636,15 +839,52 @@ class InteractionRepository {
         }
     }
 
-    private fun syncCommentReactionCounts(commentId: Long) {
-        val likeTotal = CommentLikesTable
+    private fun toggleCommentReaction(userId: Long, commentId: Long, kind: CommentReactionKind) {
+        val existing = commentReactionKind(userId, commentId)
+        if (existing == kind) {
+            CommentReactionsTable.deleteWhere {
+                (CommentReactionsTable.userId eq userId) and (CommentReactionsTable.commentId eq commentId)
+            }
+            return
+        }
+        if (existing == null) {
+            CommentReactionsTable.insert {
+                it[CommentReactionsTable.userId] = userId
+                it[CommentReactionsTable.commentId] = commentId
+                it[reaction] = kind
+            }
+        } else {
+            CommentReactionsTable.update({
+                (CommentReactionsTable.userId eq userId) and (CommentReactionsTable.commentId eq commentId)
+            }) {
+                it[reaction] = kind
+            }
+        }
+    }
+
+    private fun commentReactionKind(userId: Long, commentId: Long): CommentReactionKind? {
+        return CommentReactionsTable
             .selectAll()
-            .where { CommentLikesTable.commentId eq commentId }
+            .where { (CommentReactionsTable.userId eq userId) and (CommentReactionsTable.commentId eq commentId) }
+            .singleOrNull()
+            ?.get(CommentReactionsTable.reaction)
+    }
+
+    private fun syncCommentReactionCounts(commentId: Long) {
+        val likeTotal = CommentReactionsTable
+            .selectAll()
+            .where {
+                (CommentReactionsTable.commentId eq commentId) and
+                    (CommentReactionsTable.reaction eq CommentReactionKind.LIKE)
+            }
             .count()
             .toInt()
-        val dislikeTotal = CommentDislikesTable
+        val dislikeTotal = CommentReactionsTable
             .selectAll()
-            .where { CommentDislikesTable.commentId eq commentId }
+            .where {
+                (CommentReactionsTable.commentId eq commentId) and
+                    (CommentReactionsTable.reaction eq CommentReactionKind.DISLIKE)
+            }
             .count()
             .toInt()
 
@@ -662,14 +902,8 @@ class InteractionRepository {
             .single()
 
         return CommentReactionResponse(
-            isLiked = CommentLikesTable
-                .selectAll()
-                .where { (CommentLikesTable.userId eq userId) and (CommentLikesTable.commentId eq commentId) }
-                .count() > 0,
-            isDisliked = CommentDislikesTable
-                .selectAll()
-                .where { (CommentDislikesTable.userId eq userId) and (CommentDislikesTable.commentId eq commentId) }
-                .count() > 0,
+            isLiked = commentReactionKind(userId, commentId) == CommentReactionKind.LIKE,
+            isDisliked = commentReactionKind(userId, commentId) == CommentReactionKind.DISLIKE,
             likeCount = commentRow[CommentsTable.likeCount],
             dislikeCount = commentRow[CommentsTable.dislikeCount],
         )
@@ -734,19 +968,27 @@ class InteractionRepository {
 
     private fun likedCommentIdsFor(userId: Long, commentIds: List<Long>): Set<Long> {
         if (commentIds.isEmpty()) return emptySet()
-        return CommentLikesTable
+        return CommentReactionsTable
             .selectAll()
-            .where { (CommentLikesTable.userId eq userId) and (CommentLikesTable.commentId inList commentIds) }
-            .map { row -> row[CommentLikesTable.commentId].value }
+            .where {
+                (CommentReactionsTable.userId eq userId) and
+                    (CommentReactionsTable.commentId inList commentIds) and
+                    (CommentReactionsTable.reaction eq CommentReactionKind.LIKE)
+            }
+            .map { row -> row[CommentReactionsTable.commentId].value }
             .toSet()
     }
 
     private fun dislikedCommentIdsFor(userId: Long, commentIds: List<Long>): Set<Long> {
         if (commentIds.isEmpty()) return emptySet()
-        return CommentDislikesTable
+        return CommentReactionsTable
             .selectAll()
-            .where { (CommentDislikesTable.userId eq userId) and (CommentDislikesTable.commentId inList commentIds) }
-            .map { row -> row[CommentDislikesTable.commentId].value }
+            .where {
+                (CommentReactionsTable.userId eq userId) and
+                    (CommentReactionsTable.commentId inList commentIds) and
+                    (CommentReactionsTable.reaction eq CommentReactionKind.DISLIKE)
+            }
+            .map { row -> row[CommentReactionsTable.commentId].value }
             .toSet()
     }
 

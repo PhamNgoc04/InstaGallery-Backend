@@ -1,6 +1,7 @@
 package com.instagallery.services
 
 import com.instagallery.models.common.ConversationResponse
+import com.instagallery.models.common.DirectConversationResult
 import com.instagallery.models.common.MessageDto
 import com.instagallery.models.common.PaginatedMessagesResponse
 import com.instagallery.models.common.WsEventResponse
@@ -38,7 +39,7 @@ class ChatService : KoinComponent {
     suspend fun markConversationRead(userId: Long, conversationId: Long): Int {
         val inConv = chatRepo.isUserInConversation(userId, conversationId)
         if (!inConv) {
-            throw AuthException("UNAUTHORIZED_ACCESS", "Báº¡n khÃ´ng cÃ³ quyá»n xem tin nháº¯n nhÃ³m nÃ y.")
+            throw AuthException("UNAUTHORIZED_ACCESS", "Bạn không có quyền xem tin nhắn nhóm này.")
         }
 
         return chatRepo.markConversationRead(userId, conversationId)
@@ -126,7 +127,7 @@ class ChatService : KoinComponent {
     }
 
     // --- FR-41: TẠO HOẶC LẤY CONVERSATION ---
-    suspend fun getOrCreateConversation(userId: Long, targetUserId: Long): Any {
+    suspend fun getOrCreateConversation(userId: Long, targetUserId: Long): DirectConversationResult {
         if (userId == targetUserId) {
             throw ValidationException("SELF_CONVERSATION", "Không thể tạo cuộc trò chuyện với chính mình.")
         }

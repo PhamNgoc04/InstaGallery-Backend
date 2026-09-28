@@ -45,19 +45,20 @@ class InteractionIntegrationTest {
     fun `Integration Test - Authenticated Like Post flow`() = testApplication {
         // Setup Isolated App and Database for this specific test
         val uniqueDbName = UUID.randomUUID().toString()
-        Database.connect(
+        val database = Database.connect(
             url = "jdbc:h2:mem:$uniqueDbName;DB_CLOSE_DELAY=-1;IGNORECASE=TRUE",
             driver = "org.h2.Driver"
         )
 
-        transaction {
+        transaction(database) {
             SchemaUtils.create(
                 UsersTable, UserSessionsTable, PortfoliosTable, ActivityLogsTable,
                 ReportsTable, SearchHistoriesTable, FiltersTable,
                 FollowersTable, LikesTable, CommentsTable, CommentLikesTable, SavedPostsTable,
                 PhotographerServicesTable, BookingsTable, RatingsTable, ConversationsTable, ConversationMembersTable,
                 MessagesTable, NotificationsTable, PasswordResetTokensTable, PostsTable,
-                PostMediaTable, MediaTagsTable, PostMediaTagsTable
+                PostMediaTable, MediaTagsTable, PostMediaTagsTable, FollowRequestsTable, BlockedUsersTable,
+                MutedUsersTable, AlbumsTable, AlbumMediaTable, PostTaggedUsersTable, CommentDislikesTable
             )
         }
 
@@ -110,7 +111,7 @@ class InteractionIntegrationTest {
 
         // 3. Create a DUMMY POST in the Database transaction
         var testPostId = 0L
-        transaction {
+        transaction(database) {
             // Find the user we just registered
             val userRow = UsersTable.select(UsersTable.columns).where { UsersTable.email eq "likeruser@example.com" }.firstOrNull()
             assertNotNull(userRow, "User should exist after registration")

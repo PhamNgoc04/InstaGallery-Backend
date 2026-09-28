@@ -25,7 +25,6 @@ class PortfolioRepository {
         val existing = PortfoliosTable.selectAll().where { PortfoliosTable.userId eq userId }.singleOrNull()
         
         if (existing == null) {
-            // Insert
             PortfoliosTable.insert {
                 it[PortfoliosTable.userId] = userId
                 request.bioProfessional?.let { bio -> it[PortfoliosTable.description] = bio }
@@ -34,7 +33,6 @@ class PortfolioRepository {
                 request.location?.let { loc -> it[PortfoliosTable.serviceArea] = loc }
             }
         } else {
-            // Update
             PortfoliosTable.update({ PortfoliosTable.userId eq userId }) {
                 request.bioProfessional?.let { bio -> it[PortfoliosTable.description] = bio }
                 request.hourlyRate?.let { rate -> it[PortfoliosTable.hourlyRate] = rate.toBigDecimal() }
@@ -43,8 +41,8 @@ class PortfolioRepository {
                 it[PortfoliosTable.updatedAt] = java.time.Instant.now()
             }
         }
-        
-        getPortfolioByUserId(userId)
+
+        PortfoliosTable.selectAll().where { PortfoliosTable.userId eq userId }.singleOrNull()?.toPortfolioDto()
     }
 
     suspend fun getPhotographers(location: String?, specialty: String?, minRate: Double?, maxRate: Double?, page: Int, limit: Int): PaginatedPhotographersResponse = dbQuery {

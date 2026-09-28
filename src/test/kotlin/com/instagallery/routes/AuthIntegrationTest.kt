@@ -47,7 +47,9 @@ class AuthIntegrationTest {
                 PostsTable, FiltersTable, PostMediaTable, MediaTagsTable, PostMediaTagsTable,
                 FollowersTable, LikesTable, CommentsTable, CommentLikesTable, SavedPostsTable,
                 PhotographerServicesTable, BookingsTable, RatingsTable, ConversationsTable, ConversationMembersTable, MessagesTable,
-                NotificationsTable, ActivityLogsTable, ReportsTable, SearchHistoriesTable, PasswordResetTokensTable
+                NotificationsTable, ActivityLogsTable, ReportsTable, SearchHistoriesTable, PasswordResetTokensTable,
+                FollowRequestsTable, BlockedUsersTable, MutedUsersTable, AlbumsTable, AlbumMediaTable, PostTaggedUsersTable,
+                CommentDislikesTable, DeviceTokensTable
             )
         }
 

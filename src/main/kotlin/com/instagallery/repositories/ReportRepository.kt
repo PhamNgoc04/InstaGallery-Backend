@@ -11,6 +11,13 @@ import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 class ReportRepository {
 
     suspend fun createReport(reporterId: Long, request: CreateReportRequest): Long = dbQuery {
+        val existingId = ReportsTable.selectAll().where {
+            (ReportsTable.reporterId eq reporterId) and
+                (ReportsTable.targetType eq request.targetType) and
+                (ReportsTable.targetId eq request.targetId)
+        }.singleOrNull()?.get(ReportsTable.id)?.value
+        if (existingId != null) return@dbQuery existingId
+
         ReportsTable.insertAndGetId {
             it[ReportsTable.reporterId] = reporterId
             it[targetType] = request.targetType

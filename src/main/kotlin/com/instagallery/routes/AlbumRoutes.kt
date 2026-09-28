@@ -1,6 +1,10 @@
 package com.instagallery.routes
 
 import com.instagallery.models.common.ApiResponse
+import com.instagallery.models.request.AddAlbumMediaRequest
+import com.instagallery.models.request.CreateAlbumRequest
+import com.instagallery.models.request.UpdateAlbumRequest
+import com.instagallery.services.AlbumService
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
@@ -8,52 +12,76 @@ import io.ktor.server.auth.jwt.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import org.koin.ktor.ext.getKoin
 
 fun Route.albumRoutes() {
+    val albumService = application.getKoin().get<AlbumService>()
+
     route("/api/v1/albums") {
         authenticate("jwt") {
-            
             post {
-                // TODO: Receive AlbumRequest (title, description, isPrivate)
-                // TODO: Insert into AlbumsTable
-                call.respond(HttpStatusCode.Created, ApiResponse.success(data = null, message = "Album created successfully"))
+                val userId = call.principal<JWTPrincipal>()?.payload?.getClaim("userId")?.asLong()
+                    ?: return@post call.respond(HttpStatusCode.Unauthorized, ApiResponse.error("UNAUTHORIZED", "Token không hợp lệ."))
+                val request = call.receive<CreateAlbumRequest>()
+                val album = albumService.createAlbum(userId, request)
+                call.respond(HttpStatusCode.Created, ApiResponse.success(data = album, message = "Tạo album thành công."))
             }
 
             get {
-                // TODO: Get list of albums for current user (or query param for other user's public albums)
-                // TODO: Query AlbumsTable
-                call.respond(HttpStatusCode.OK, ApiResponse.success(data = listOf<Any>(), message = "Albums fetched successfully"))
+                val userId = call.principal<JWTPrincipal>()?.payload?.getClaim("userId")?.asLong()
+                    ?: return@get call.respond(HttpStatusCode.Unauthorized, ApiResponse.error("UNAUTHORIZED", "Token không hợp lệ."))
+                val ownerId = call.request.queryParameters["userId"]?.toLongOrNull() ?: userId
+                val albums = albumService.listAlbums(userId, ownerId)
+                call.respond(HttpStatusCode.OK, ApiResponse.success(data = albums))
             }
 
             get("/{id}") {
-                val id = call.parameters["id"]?.toLongOrNull()
-                // TODO: Fetch Album and check privacy. Fetch posts from AlbumMediaTable.
-                call.respond(HttpStatusCode.OK, ApiResponse.success(data = null, message = "Album details fetched"))
+                val userId = call.principal<JWTPrincipal>()?.payload?.getClaim("userId")?.asLong()
+                    ?: return@get call.respond(HttpStatusCode.Unauthorized, ApiResponse.error("UNAUTHORIZED", "Token không hợp lệ."))
+                val albumId = call.parameters["id"]?.toLongOrNull()
+                    ?: return@get call.respond(HttpStatusCode.BadRequest, ApiResponse.error("INVALID_ID", "ID album không hợp lệ."))
+                val album = albumService.getAlbum(userId, albumId)
+                call.respond(HttpStatusCode.OK, ApiResponse.success(data = album))
             }
 
             put("/{id}") {
-                val id = call.parameters["id"]?.toLongOrNull()
-                // TODO: Update title, description, coverImageUrl
-                call.respond(HttpStatusCode.OK, ApiResponse.success(data = null, message = "Album updated"))
+                val userId = call.principal<JWTPrincipal>()?.payload?.getClaim("userId")?.asLong()
+                    ?: return@put call.respond(HttpStatusCode.Unauthorized, ApiResponse.error("UNAUTHORIZED", "Token không hợp lệ."))
+                val albumId = call.parameters["id"]?.toLongOrNull()
+                    ?: return@put call.respond(HttpStatusCode.BadRequest, ApiResponse.error("INVALID_ID", "ID album không hợp lệ."))
+                val request = call.receive<UpdateAlbumRequest>()
+                val album = albumService.updateAlbum(userId, albumId, request)
+                call.respond(HttpStatusCode.OK, ApiResponse.success(data = album, message = "Đã cập nhật album."))
             }
 
             delete("/{id}") {
-                val id = call.parameters["id"]?.toLongOrNull()
-                // TODO: Soft delete or Hard delete from AlbumsTable
-                call.respond(HttpStatusCode.OK, ApiResponse.success(data = null, message = "Album deleted"))
+                val userId = call.principal<JWTPrincipal>()?.payload?.getClaim("userId")?.asLong()
+                    ?: return@delete call.respond(HttpStatusCode.Unauthorized, ApiResponse.error("UNAUTHORIZED", "Token không hợp lệ."))
+                val albumId = call.parameters["id"]?.toLongOrNull()
+                    ?: return@delete call.respond(HttpStatusCode.BadRequest, ApiResponse.error("INVALID_ID", "ID album không hợp lệ."))
+                albumService.deleteAlbum(userId, albumId)
+                call.respond(HttpStatusCode.OK, ApiResponse.success(data = null, message = "Đã xóa album."))
             }
 
             post("/{id}/media") {
-                val id = call.parameters["id"]?.toLongOrNull()
-                // TODO: Expect post_ids payload, insert into AlbumMediaTable
-                call.respond(HttpStatusCode.OK, ApiResponse.success(data = null, message = "Media added to album"))
+                val userId = call.principal<JWTPrincipal>()?.payload?.getClaim("userId")?.asLong()
+                    ?: return@post call.respond(HttpStatusCode.Unauthorized, ApiResponse.error("UNAUTHORIZED", "Token không hợp lệ."))
+                val albumId = call.parameters["id"]?.toLongOrNull()
+                    ?: return@post call.respond(HttpStatusCode.BadRequest, ApiResponse.error("INVALID_ID", "ID album không hợp lệ."))
+                val request = call.receive<AddAlbumMediaRequest>()
+                val album = albumService.addMedia(userId, albumId, request)
+                call.respond(HttpStatusCode.OK, ApiResponse.success(data = album, message = "Đã thêm bài viết vào album."))
             }
-            
+
             delete("/{id}/media/{mediaId}") {
-                val id = call.parameters["id"]?.toLongOrNull()
+                val userId = call.principal<JWTPrincipal>()?.payload?.getClaim("userId")?.asLong()
+                    ?: return@delete call.respond(HttpStatusCode.Unauthorized, ApiResponse.error("UNAUTHORIZED", "Token không hợp lệ."))
+                val albumId = call.parameters["id"]?.toLongOrNull()
+                    ?: return@delete call.respond(HttpStatusCode.BadRequest, ApiResponse.error("INVALID_ID", "ID album không hợp lệ."))
                 val mediaId = call.parameters["mediaId"]?.toLongOrNull()
-                // TODO: Remove post from AlbumMediaTable
-                call.respond(HttpStatusCode.OK, ApiResponse.success(data = null, message = "Media removed from album"))
+                    ?: return@delete call.respond(HttpStatusCode.BadRequest, ApiResponse.error("INVALID_ID", "ID media không hợp lệ."))
+                albumService.removeMedia(userId, albumId, mediaId)
+                call.respond(HttpStatusCode.OK, ApiResponse.success(data = null, message = "Đã gỡ media khỏi album."))
             }
         }
     }

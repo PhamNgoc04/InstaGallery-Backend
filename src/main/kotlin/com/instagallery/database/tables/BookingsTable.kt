@@ -15,6 +15,11 @@ object BookingsTable : LongIdTable("bookings") {
     val packageSnapshot = text("package_snapshot").nullable()
     val shootingType = varchar("shooting_type", 40).nullable()
     val sceneType = varchar("scene_type", 40).nullable()
+    val availabilityId = reference(
+        "availability_id",
+        AvailabilitySchedulesTable,
+        onDelete = ReferenceOption.SET_NULL,
+    ).nullable().index()
     val bookingDate = datetime("booking_date").index()
     val durationHours = decimal("duration_hours", 4, 1).nullable()
     val locationBooking = varchar("location_booking", 255).nullable()

@@ -35,8 +35,13 @@ class SearchRepository {
         }
 
         if (type == "POSTS" || type == "ALL") {
-            val postRows = PostsTable
-                .selectAll().where { (PostsTable.caption like likePattern) and (PostsTable.deletedAt.isNull()) and (PostsTable.visibility eq PostVisibility.PUBLIC) }
+            val postRows = (PostsTable innerJoin UsersTable)
+                .selectAll().where {
+                    (PostsTable.caption like likePattern) and
+                        PostsTable.deletedAt.isNull() and
+                        (PostsTable.visibility eq PostVisibility.PUBLIC) and
+                        (UsersTable.isPrivate eq false)
+                }
                 .orderBy(PostsTable.likeCount to SortOrder.DESC) // Ưu tiên top posts
                 .limit(limit)
                 .toList()
@@ -71,12 +76,22 @@ class SearchRepository {
             val id = existing[SearchHistoriesTable.id]
             SearchHistoriesTable.update({ SearchHistoriesTable.id eq id }) {
                 it[searchedAt] = java.time.Instant.now()
+                it[resultCount] = resultsCount
             }
         } else {
-            SearchHistoriesTable.insert {
-                it[SearchHistoriesTable.userId] = userId
-                it[queryText] = query
-                it[resultCount] = resultsCount
+            try {
+                SearchHistoriesTable.insert {
+                    it[SearchHistoriesTable.userId] = userId
+                    it[queryText] = query
+                    it[resultCount] = resultsCount
+                }
+            } catch (_: org.jetbrains.exposed.exceptions.ExposedSQLException) {
+                SearchHistoriesTable.update({
+                    (SearchHistoriesTable.userId eq userId) and (SearchHistoriesTable.queryText eq query)
+                }) {
+                    it[searchedAt] = java.time.Instant.now()
+                    it[resultCount] = resultsCount
+                }
             }
         }
     }

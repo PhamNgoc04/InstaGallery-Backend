@@ -6,11 +6,9 @@ import com.instagallery.database.tables.BookingsTable
 import com.instagallery.database.tables.PortfoliosTable
 import com.instagallery.database.tables.RatingsTable
 import com.instagallery.database.tables.UsersTable
-import com.instagallery.models.common.AvailabilityType
 import com.instagallery.models.common.BookingDto
 import com.instagallery.models.common.BookingPackageSnapshotDto
 import com.instagallery.models.common.BookingStatus
-import com.instagallery.models.common.DayOfWeekIso
 import com.instagallery.models.common.PaginatedBookingsResponse
 import com.instagallery.models.common.PaginationMeta
 import com.instagallery.models.common.UserType
@@ -32,11 +30,68 @@ import kotlin.math.roundToInt
 
 class BookingRepository {
 
-    suspend fun createBooking(data: BookingCreateData): Long = dbQuery {
-        val insertStmt = BookingsTable.insertAndGetId {
+    suspend fun reserveBooking(data: BookingCreateData): BookingReservation = dbQuery {
+        val requestedEnd = BookingScheduleRules.appointmentEnd(data.bookingDate, data.durationMinutes)
+            ?: return@dbQuery BookingReservation.OutsideHours
+
+        val portfolioRow = PortfoliosTable
+            .selectAll()
+            .where { PortfoliosTable.userId eq data.photographerId }
+            .forUpdate()
+            .singleOrNull()
+            ?: return@dbQuery BookingReservation.NoWorkingHours
+
+        if (!portfolioRow[PortfoliosTable.isAvailable]) {
+            return@dbQuery BookingReservation.PhotographerClosed
+        }
+
+        val portfolioId = portfolioRow[PortfoliosTable.id].value
+        val windows = AvailabilitySchedulesTable
+            .selectAll()
+            .where { AvailabilitySchedulesTable.portfolioId eq portfolioId }
+            .mapNotNull { row ->
+                val start = parseTime(row[AvailabilitySchedulesTable.startTime]) ?: return@mapNotNull null
+                val end = parseTime(row[AvailabilitySchedulesTable.endTime]) ?: return@mapNotNull null
+                WorkingWindow(
+                    id = row[AvailabilitySchedulesTable.id].value,
+                    type = row[AvailabilitySchedulesTable.type],
+                    dayOfWeek = row[AvailabilitySchedulesTable.dayOfWeek],
+                    specificDate = row[AvailabilitySchedulesTable.specificDate],
+                    start = start,
+                    end = end,
+                )
+            }
+
+        if (windows.isEmpty()) return@dbQuery BookingReservation.NoWorkingHours
+
+        val window = BookingScheduleRules.containingWindow(windows, data.bookingDate, data.durationMinutes)
+            ?: return@dbQuery BookingReservation.OutsideHours
+
+        val blockingStatuses = listOf(BookingStatus.PENDING, BookingStatus.CONFIRMED, BookingStatus.IN_PROGRESS)
+        val taken = BookingsTable
+            .selectAll()
+            .where {
+                (BookingsTable.photographerId eq data.photographerId) and
+                    (BookingsTable.status inList blockingStatuses)
+            }
+            .forUpdate()
+            .any { row ->
+                val existingStart = BookingScheduleRules.storedBookingStart(row[BookingsTable.bookingDate])
+                val existingMinutes = row[BookingsTable.durationHours]
+                    ?.toDouble()
+                    ?.let { (it * 60).roundToInt() }
+                    ?.coerceAtLeast(30)
+                    ?: DEFAULT_DURATION_MINUTES
+                val existingEnd = existingStart.plusMinutes(existingMinutes.toLong())
+                BookingScheduleRules.overlaps(data.bookingDate, requestedEnd, existingStart, existingEnd)
+            }
+        if (taken) return@dbQuery BookingReservation.SlotTaken
+
+        val bookingId = BookingsTable.insertAndGetId {
             it[clientId] = data.clientId
             it[photographerId] = data.photographerId
             data.serviceId?.let { serviceId -> it[BookingsTable.serviceId] = serviceId }
+            it[availabilityId] = window.id
             it[packageName] = data.packageName
             it[packageSnapshot] = data.packageSnapshotJson
             it[shootingType] = data.shootingType
@@ -53,8 +108,9 @@ class BookingRepository {
             it[price] = data.price?.toBigDecimal()
             it[currency] = data.currency
             it[status] = BookingStatus.PENDING
-        }
-        insertStmt.value
+        }.value
+
+        BookingReservation.Created(bookingId)
     }
 
     suspend fun checkPhotographerExists(photographerId: Long): Boolean = dbQuery {
@@ -123,82 +179,6 @@ class BookingRepository {
         )
     }
 
-    suspend fun isWithinAvailability(
-        photographerId: Long,
-        bookingDate: LocalDateTime,
-        durationMinutes: Int,
-    ): Boolean = dbQuery {
-        val portfolioRow = PortfoliosTable
-            .selectAll()
-            .where { PortfoliosTable.userId eq photographerId }
-            .singleOrNull()
-            ?: return@dbQuery true
-
-        if (!portfolioRow[PortfoliosTable.isAvailable]) return@dbQuery false
-
-        val portfolioId = portfolioRow[PortfoliosTable.id].value
-
-        val scheduleRows = AvailabilitySchedulesTable
-            .selectAll()
-            .where {
-                (AvailabilitySchedulesTable.portfolioId eq portfolioId) and
-                    (AvailabilitySchedulesTable.isBooked eq false)
-            }
-            .toList()
-
-        if (scheduleRows.isEmpty()) return@dbQuery true
-
-        val startTime = bookingDate.toLocalTime()
-        val endTime = startTime.plusMinutes(durationMinutes.toLong())
-        if (!endTime.isAfter(startTime)) return@dbQuery false
-        val targetDate = bookingDate.toLocalDate()
-        val targetDay = DayOfWeekIso.valueOf(bookingDate.dayOfWeek.name)
-
-        scheduleRows.any { row ->
-            val matchesDate = when (row[AvailabilitySchedulesTable.type]) {
-                AvailabilityType.SPECIFIC_DATE -> row[AvailabilitySchedulesTable.specificDate] == targetDate
-                AvailabilityType.RECURRING -> row[AvailabilitySchedulesTable.dayOfWeek] == targetDay
-            }
-            if (!matchesDate) {
-                false
-            } else {
-                val slotStart = parseTime(row[AvailabilitySchedulesTable.startTime])
-                val slotEnd = parseTime(row[AvailabilitySchedulesTable.endTime])
-                slotStart != null &&
-                    slotEnd != null &&
-                    !startTime.isBefore(slotStart) &&
-                    !endTime.isAfter(slotEnd)
-            }
-        }
-    }
-
-    suspend fun hasScheduleConflict(
-        photographerId: Long,
-        bookingDate: LocalDateTime,
-        durationMinutes: Int,
-    ): Boolean = dbQuery {
-        val requestedStart = bookingDate
-        val requestedEnd = requestedStart.plusMinutes(durationMinutes.toLong())
-        val blockingStatuses = listOf(BookingStatus.PENDING, BookingStatus.CONFIRMED, BookingStatus.IN_PROGRESS)
-
-        BookingsTable
-            .selectAll()
-            .where {
-                (BookingsTable.photographerId eq photographerId) and
-                    (BookingsTable.status inList blockingStatuses)
-            }
-            .any { row ->
-                val existingStart = row[BookingsTable.bookingDate]
-                val existingMinutes = row[BookingsTable.durationHours]
-                    ?.toDouble()
-                    ?.let { (it * 60).roundToInt() }
-                    ?.coerceAtLeast(30)
-                    ?: DEFAULT_DURATION_MINUTES
-                val existingEnd = existingStart.plusMinutes(existingMinutes.toLong())
-                requestedStart.isBefore(existingEnd) && requestedEnd.isAfter(existingStart)
-            }
-    }
-
     private fun ResultRow.toBookingDto(viewerId: Long): BookingDto {
         val bookingIdValue = this[BookingsTable.id].value
         val clientIdVal = this[BookingsTable.clientId].value
@@ -227,7 +207,7 @@ class BookingRepository {
                 ?.let { raw -> runCatching { bookingJson.decodeFromString<BookingPackageSnapshotDto>(raw) }.getOrNull() },
             shootingType = this[BookingsTable.shootingType],
             sceneType = this[BookingsTable.sceneType],
-            bookingDate = this[BookingsTable.bookingDate].toString(),
+            bookingDate = BookingScheduleRules.storedBookingStart(this[BookingsTable.bookingDate]).toString(),
             status = this[BookingsTable.status],
             price = this[BookingsTable.price]?.toDouble(),
             currency = this[BookingsTable.currency],
@@ -300,4 +280,13 @@ data class BookingCreateData(
     val referenceImages: List<String>,
     val price: Double?,
     val currency: String,
+    val durationMinutes: Int,
 )
+
+sealed class BookingReservation {
+    data class Created(val bookingId: Long) : BookingReservation()
+    data object NoWorkingHours : BookingReservation()
+    data object PhotographerClosed : BookingReservation()
+    data object OutsideHours : BookingReservation()
+    data object SlotTaken : BookingReservation()
+}
